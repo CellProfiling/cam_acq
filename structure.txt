@@ -1,0 +1,55 @@
+* socket_client
+    - send
+    - receive
+
+* directory
+    - manipulate dir
+* file
+    - manipulate file
+        - read csv file
+        - save csv file
+    * image
+        - analyse image
+            - read image
+            - save image
+            - make max proj
+            - get histogram
+            - get image pixel width
+            - get image bit depth
+        - get experiment data from image name
+            * channel
+            * well
+            * field
+            * Z
+            * E
+            * O
+            * J
+
+* command
+    - generate command
+        - delete cam list command
+        - cam list command
+        - cam start command
+        - cam stop command
+        - scan start command
+        - scan stop command
+        - enable field command
+        - set pmt gain command
+        - set pmt offset command
+
+* control
+    - direct stages
+        * stage0
+        * stage1
+        * stage2
+        * stage3
+        * stage4
+        * stage5
+    - parse reply
+
+* gain
+    - run R script on csv histograms
+    - connect wells and channels with correct gain
+
+* main
+    - usage
