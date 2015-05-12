@@ -2,9 +2,6 @@ import os
 import fnmatch
 import re
 import tifffile
-from PIL import Image
-from lxml import etree
-from unicodedata import normalize
 import abc
 class Base(object):
     """Base class
