@@ -3,6 +3,8 @@ import fnmatch
 import re
 import tifffile
 import abc
+from collections import defaultdict
+
 class Base(object):
     """Base class
 
@@ -78,6 +80,25 @@ class Directory(Base):
 class File(Base):
     """A file.
     """
+
+    def read_csv(self, index, keys):
+        list_dict = defaultdict(list)
+        with open(self.path) as f:
+            reader = csv.DictReader(f)
+            for d in reader:
+                for key in keys:
+                    list_dict[d[index]].append(d[key])
+
+    def write_csv(self, dict_list, keys):
+        """Function to write a list of dicts as a csv file.
+        dict_list: A list of dicts, each having the same keys as keys param.
+        keys: A list of strings to order the keys as column headers
+        """
+
+        with open(self.path, 'wb') as f:
+            w = csv.DictWriter(f, keys)
+            w.writeheader()
+            w.writerows(dict_list)
 
     def get_name(self, regex):
         """Return the part of the name of the file, matching regex."""
