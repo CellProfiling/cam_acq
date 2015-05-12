@@ -22,9 +22,8 @@ class Client(object):
             sys.exit()
         print 'Socket Created'
 
-    def recv_timeout(self, timeout, test):
-        """Receives reply from server, with a timeout and a list of strings
-        to test. When all test strings are received, the listening loop ends."""
+    def recv_timeout(self, timeout):
+        """Receives reply from server, with a timeout."""
 
         # make socket non blocking
         self.sock.setblocking(False)
@@ -36,8 +35,7 @@ class Client(object):
 
         # start time
         begin=time.time()
-        while not (all(t in data for t in test) or
-                   ('scanfinished' in data)):
+        while True:
             # if data exist, then break after timeout
             if total_data and time.time()-begin > timeout:
                 break
@@ -77,7 +75,7 @@ class Client(object):
             self.sock.connect(server_address)
 
             # Receive welcome reply from server
-            self.recv_timeout(3, 'Welcome')
+            self.recv_timeout(3)
 
         except socket.error:
             print 'Failed to connect to socket.'
@@ -87,8 +85,7 @@ class Client(object):
 
     def send(self, message):
         """Function to send data from client to server.
-        message: A string representing the message to send from the client
-                     to the server.
+        message: A string as the message to send from the client to the server.
         """
         try:
             # Send data
@@ -102,11 +99,8 @@ class Client(object):
                     line = line + '\r\n'
                 print 'sending "%s"' % line
                 self.sock.send(line)
-                self.recv_timeout(20, line[:-2])
+                self.recv_timeout(20)
                 time.sleep(0.3)
-                #if 'pmt' in line:
-                    #print('Waiting for objective')
-                    #time.sleep(5)
 
         except socket.error:
             #Send failed
@@ -118,7 +112,6 @@ class Client(object):
         return
 
     def close(self):
-        self.sock.shutdown(socket.SHUT_RDWR)
         time.sleep(0.5)
         self.sock.close()
         print('Socket closed.')
