@@ -12,7 +12,7 @@ config = {
     'long_description': readme(),
     'author': 'Martin Hjelmare',
     'url': 'https://github.com/MartinHjelmare/cam_acq',
-    'download_url': 'git@github.com:MartinHjelmare/cam_acq.git',
+    'download_url': 'https://github.com/MartinHjelmare/cam_acq/archive/master.zip',
     'license': 'GPLv3',
     'author_email': 'marhje52@kth.se',
     'version': '0.1.0',
@@ -20,7 +20,7 @@ config = {
     'packages': find_packages(exclude=['contrib', 'docs', 'tests*']),
     'include_package_data': True,
     'scripts': ['scripts/path/to/script'],
-    'name': 'projectname',
+    'name': 'cam_acq',
     'zip_safe': False,
     'classifiers': [
     # How mature is this project? Common values are
