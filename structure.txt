@@ -35,7 +35,6 @@
         - scan stop command
         - enable field command
         - set pmt gain command
-        - set pmt offset command
 
 * control
     - direct stages
