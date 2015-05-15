@@ -1,5 +1,5 @@
 from nose.tools import *
-import NAME
+import cam_acq
 
 def setup():
     print "SETUP!"
