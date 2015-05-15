@@ -3,7 +3,18 @@ from collections import OrderedDict
 from collections import defaultdict
 import numpy as np
 
-def calc_gain(wells, fbs, first_std_fbs, sec_std_fbs, first_gain_d, sec_gain_d):
+def calc_gain(wells,
+              fbs,
+              first_std_fbs,
+              sec_std_fbs,
+              first_gain_d,
+              sec_gain_d,
+              imaging_dir,
+              first_r_script,
+              sec_r_script,
+              first_initialgains_file,
+              sec_initialgains_file
+              ):
     """Function to run R scripts and calculate gain values for the wells."""
 
     # Get a unique set of fbs from the csv paths.
