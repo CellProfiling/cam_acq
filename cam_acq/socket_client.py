@@ -1,7 +1,6 @@
 import socket
 import sys
 import time
-import re
 
 class Client(object):
     """Client class
