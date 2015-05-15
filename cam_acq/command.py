@@ -82,7 +82,7 @@ class Command(object):
     def enable_com(self, well, field, enable):
         """Returns a dict with parts for the cam command
         to enable a field in a well. Gets wellx/y and fieldx/y from well and
-        field by calling get_wfx get_wfy."""
+        field by calling get_wfx and get_wfy."""
 
         wellx = get_wfx(well)
         welly = get_wfy(well)
@@ -95,7 +95,8 @@ class Command(object):
     @com_deco
     def cam_com(self, exp, well, field, dx, dy):
         """Returns a dict with parts for the cam command to add a field to
-        the cam list."""
+        the cam list. Gets wellx/y and fieldx/y from well and field by calling
+        get_wfx and get_wfy."""
 
         wellx = get_wfx(well)
         welly = get_wfy(well)
