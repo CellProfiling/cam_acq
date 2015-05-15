@@ -8,22 +8,22 @@
     - manipulate file
         - read csv file
         - save csv file
-    * image
-        - analyse image
-            - read image
-            - save image
-            - make max proj
-            - get histogram
-            - get image pixel width
-            - get image bit depth
-        - get experiment data from image name
-            * channel
-            * well
-            * field
-            * Z
-            * E
-            * O
-            * J
+* image
+    - analyse image
+        - read image
+        - save image
+        - make max proj
+        - get histogram
+        - get image pixel width
+        - get image bit depth
+    - get experiment data from image name
+        * channel
+        * well
+        * field
+        * Z
+        * E
+        * O
+        * J
 
 * command
     - generate command
