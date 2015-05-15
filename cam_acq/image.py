@@ -44,11 +44,12 @@ class Directory(Base):
     """A directory on the plate."""
 
     def get_children(self):
-        """Return a list of child directories."""
+        """Return a list of child directories at path."""
         return filter(os.path.isdir, [os.path.join(self.path,f)
                       for f in os.listdir(self.path)])
 
     def get_all_children(self):
+        """Return a recursive list of child directories at path."""
         dir_list = []
         for root, dirnames, filenames in os.walk(self.path):
             for dirname in dirnames:
@@ -57,16 +58,17 @@ class Directory(Base):
 
     def get_name(self, regex):
         """Return the part of the name of the current directory,
-        matching regex."""
+        matching regex, at path."""
         path = os.path.normpath(self.path)
         return super(Directory, self).get_name(path, regex)
 
     def get_files(self, regex):
+        """Return a list of all files matching regex at path."""
         return filter(os.path.isfile, [os.path.join(self.path,f)
                       for f in fnmatch.filter(os.listdir(self.path), regex)])
 
     def get_all_files(self, regex):
-        """Return a list of all files matching regex, recursively."""
+        """Return a list of all files matching regex, recursively, at path."""
         file_list = []
         for root, dirnames, filenames in os.walk(self.path):
             for filename in fnmatch.filter(filenames, regex):
@@ -82,12 +84,14 @@ class File(Base):
     """
 
     def read_csv(self, index, keys):
+        """Read a csv file and return a dictionary of lists."""
         list_dict = defaultdict(list)
         with open(self.path) as f:
             reader = csv.DictReader(f)
             for d in reader:
                 for key in keys:
                     list_dict[d[index]].append(d[key])
+        return list_dict
 
     def write_csv(self, dict_list, keys):
         """Function to write a list of dicts as a csv file.
@@ -99,6 +103,7 @@ class File(Base):
             w = csv.DictWriter(f, keys)
             w.writeheader()
             w.writerows(dict_list)
+        return pass
 
     def get_name(self, regex):
         """Return the part of the name of the file, matching regex."""
@@ -127,6 +132,7 @@ class CamImage(Base):
         #if metadata is None: # description not always needed
         #    metadata = ''
         tifffile.imsave(self.path, data, description=metadata)
+        return pass
 
     def get_name(self, regex):
         """Return the part of the name of the file, matching regex."""
