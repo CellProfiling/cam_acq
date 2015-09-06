@@ -1,8 +1,11 @@
 import socket
 import sys
 import time
+import re
+
 
 class Client(object):
+
     """Client class
 
     Attributes:
@@ -21,26 +24,29 @@ class Client(object):
             sys.exit()
         print 'Socket Created'
 
-    def recv_timeout(self, timeout):
-        """Receives reply from server, with a timeout."""
+    def recv_timeout(self, timeout, test):
+        """Receives reply from server, with a timeout and a list of strings
+        to test. When all test strings are received, the listening loop
+        ends."""
 
         # make socket non blocking
         self.sock.setblocking(False)
 
         # total data in an array
-        total_data=[]
-        data=''
+        total_data = []
+        data = ''
         joined_data = ''
 
         # start time
-        begin=time.time()
-        while True:
+        begin = time.time()
+        while not (all(t in data for t in test) or
+                   ('scanfinished' in data)):
             # if data exist, then break after timeout
-            if total_data and time.time()-begin > timeout:
+            if total_data and time.time() - begin > timeout:
                 break
 
             # if no data exist, then break after longer timeout
-            elif time.time()-begin > timeout*2:
+            elif time.time() - begin > timeout * 2:
                 break
 
             # receive data
@@ -50,7 +56,7 @@ class Client(object):
                     print 'received "%s"' % data
                     total_data.append(data)
                     # reset start time
-                    begin=time.time()
+                    begin = time.time()
                     # join all data to final data
                     joined_data = ''.join(total_data)
                 else:
@@ -74,7 +80,7 @@ class Client(object):
             self.sock.connect(server_address)
 
             # Receive welcome reply from server
-            self.recv_timeout(3)
+            self.recv_timeout(3, ['Welcome'])
 
         except socket.error:
             print 'Failed to connect to socket.'
@@ -84,25 +90,28 @@ class Client(object):
 
     def send(self, message):
         """Function to send data from client to server.
-        message: A string as the message to send from the client to the server.
+        message: A string representing the message to send from the client
+                     to the server.
         """
         try:
             # Send data
             # Make compatible with Windows line breaks
             for line in message.splitlines():
-                if line[-2:]=='\r\n':
+                if line.endswith('\r\n'):
                     line = line
-                if line[-1:]=='\n':
+                elif line.endswith('\n'):
                     line = line[:-1] + '\r\n'
                 else:
                     line = line + '\r\n'
                 print 'sending "%s"' % line
                 self.sock.send(line)
-                self.recv_timeout(20)
+                self.recv_timeout(20, [line[:-2]])
+                if 'stopscan' in line:
+                    self.recv_timeout(20, ['scanfinished'])
                 time.sleep(0.3)
 
         except socket.error:
-            #Send failed
+            # Send failed
             print 'Sending to server failed.'
             sys.exit()
 
@@ -111,10 +120,11 @@ class Client(object):
         return
 
     def close(self):
+        self.sock.shutdown(socket.SHUT_RDWR)
         time.sleep(0.5)
         self.sock.close()
         print('Socket closed.')
         return
 
-if __name__ =='__main__':
+if __name__ == '__main__':
     main(sys.argv[1:])

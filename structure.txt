@@ -50,5 +50,6 @@
     - run R script on csv histograms
     - connect wells and channels with correct gain
 
-* main
+* program
+    - main
     - usage
