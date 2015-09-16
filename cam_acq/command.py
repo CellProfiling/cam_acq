@@ -66,9 +66,22 @@ class Command(object):
         return OrderedDict([('cmd', 'stopscan')])
 
     @make_com
-    def camstart_com(self, afjob, afrange, afsteps):
+    def camstart_com(self, afjob=None, afrange=None, afsteps=None):
         """Returns a dict with parts for the cam command to start the cam scan
         with selected AF job and AF settings."""
+
+        if afjob is None:
+            afjob = ''
+        else:
+            afjob = afjob
+        if afrange is None:
+            afrange = ''
+        else:
+            afrange = afrange
+        if afsteps is None:
+            afsteps = ''
+        else:
+            afsteps = afsteps
 
         return OrderedDict([('cmd', 'startcamscan'), ('runtime', '36000'),
                             ('repeattime', '36000'), ('afj', afjob),
