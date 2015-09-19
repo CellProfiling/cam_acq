@@ -51,7 +51,7 @@ def check_ip_arg(addr):
             'String {} is not a valid ip address'.format(addr))
 
 
-def parse_command_line():
+def parse_command_line(argv):
     """Parse the provided command line."""
     parser = argparse.ArgumentParser(
         description='Control a Leica microscope through CAM interface.')
@@ -143,34 +143,34 @@ def parse_command_line():
         dest='gain_only',
         action='store_true',
         help='an option to activate only running the gain job')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.imaging_dir:
-        imaging_dir = os.path.normpath(args.imaging_dir)
+        args.imaging_dir = os.path.normpath(args.imaging_dir)
     if args.working_dir:
-        working_dir = os.path.normpath(args.working_dir)
+        args.working_dir = os.path.normpath(args.working_dir)
     if args.init_gain is None:
         # init_gain = os.path.normpath(
         #    os.path.join(working_dir, '10x_gain.csv'))
-        init_gain = resource_string(__name__, 'data/10x_gain.csv')
+        args.init_gain = resource_string(__name__, 'data/10x_gain.csv')
     else:
-        init_gain = os.path.normpath(args.init_gain)
+        args.init_gain = os.path.normpath(args.init_gain)
     if args.coord_file:
-        coord_file = os.path.normpath(args.coord_file)
+        args.coord_file = os.path.normpath(args.coord_file)
     if args.template_file:
-        template_file = os.path.normpath(args.template_file)
+        args.template_file = os.path.normpath(args.template_file)
     if args.input_gain:
-        input_gain = os.path.normpath(args.input_gain)
-    print(imaging_dir)
+        args.input_gain = os.path.normpath(args.input_gain)
+    print(args.imaging_dir)
     # #DONE:0 Finish adding args, parse_command_line(), trello:VjTzfUGv
 
     return args
 
 
-def main():
+def main(argv):
     """Main function"""
 
     # Parse command line arguments
-    args = parse_command_line()
+    args = parse_command_line(argv)
     print(args)  # testing
 
     # #DONE:10 Fix args to make control object working, trello:PxoHWv3P
@@ -185,4 +185,4 @@ def main():
     # control.control()
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv)
