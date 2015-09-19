@@ -21,7 +21,7 @@ config = {
     ],
     'packages': find_packages(exclude=['contrib', 'docs', 'tests*']),
     'include_package_data': True,
-    'scripts': ['scripts/path/to/script'],
+    #'scripts': ['scripts/path/to/script'], # uncomment when scripts exist
     'entry_points': {
         'console_scripts': [
             'camacq = cam_acq.__main__:main'
