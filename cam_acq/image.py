@@ -4,7 +4,7 @@ import re
 import tifffile
 import abc
 from collections import defaultdict
-from scipy.misc import imread
+from Pillow import Image
 import numpy as np
 
 
@@ -106,7 +106,7 @@ class File(Base):
     """A file.
     """
 
-    def read_csv(index, header, path=None):
+    def read_csv(self, index, header, path=None):
         """Read a csv file and return a defaultdict of lists."""
         if path is None:
             path = self.path
@@ -118,7 +118,7 @@ class File(Base):
                     dict_list[d[index]].append(d[key])
         return dict_list
 
-    def write_csv(d, header, path=None):
+    def write_csv(self, d, header, path=None):
         """Function to write a defaultdict of lists as a csv file."""
         if path is None:
             path = self.path
@@ -164,11 +164,17 @@ class CamImage(Base):
     #    with tifffile.TiffFile(self.path) as tif:
     #        return tif.asarray()
 
+    # def read_image(self, path=None):
+    #    """Read a tif image and return the data."""
+    #    if path is None:
+    #        path = self.path
+    #    return imread(path)
+
     def read_image(self, path=None):
         """Read a tif image and return the data."""
         if path is None:
             path = self.path
-        return imread(path)
+        return np.array(Image.open(path))
 
     def meta_data(self, path=None):
         """Read a tif image and return the meta data of the description."""
