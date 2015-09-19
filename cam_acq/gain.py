@@ -111,7 +111,7 @@ class Gain(object):
             com.gain_com(exp=job, num=detector, value=gain) + '\n'
         return com
 
-    # #FIXME:0 Merge get_com and get_init_com functions.
+    # #FIXME:50 Merge get_com and get_init_com functions, trello:egmsbuN8
     def get_com(self):
         dx = 0
         dy = 0

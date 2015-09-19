@@ -60,7 +60,7 @@ def parse_command_line():
         type=check_dir_arg,
         help='the path to the directory where images are exported')
     parser.add_argument(
-        # #TODO:10 Replace this with resource api call for all data files
+        # #TODO:0 Replace working_dir with resource api call for all data files, trello:3kgNjgJs
         # instead of looking in the working dir.
         # foo_config = resource_string(__name__, 'foo.conf')
         '-w',
@@ -119,7 +119,7 @@ def parse_command_line():
         'host',
         type=check_ip_arg,
         help='the ip address of the host server, i.e. the microscope')
-    # #FIXME:40 Make end-10x, end-40x and end-63x mutually exclusive.
+    # #FIXME:20 Make end-10x, end-40x and end-63x mutually exclusive, trello:xinb2xIm
     parser.add_argument(
         '--end-10x',
         dest='end_10x',
@@ -161,7 +161,7 @@ def parse_command_line():
     if args.input_gain:
         input_gain = os.path.normpath(args.input_gain)
     print(imaging_dir)
-    # #DONE:0 Finish adding arguments
+    # #DONE:0 Finish adding args, parse_command_line(), trello:VjTzfUGv
 
     return args
 
@@ -173,7 +173,7 @@ def main():
     args = parse_command_line()
     print(args)  # testing
 
-    # #DONE:10 Change args to make it working
+    # #DONE:10 Fix args to make control object working, trello:PxoHWv3P
     control = Control(
         args.imaging_dir, args.host, args.init_gain, args.working_dir,
         args.last_well, args.last_field, args.first_job,
@@ -181,7 +181,7 @@ def main():
         template_file=args.template_file, end_10x=args.end_10x,
         end_40x=args.end_40x, end_63x=args.end_63x, gain_only=args.gain_only)
 
-    # #FIXME:50 Finish main function
+    # #FIXME:30 Finish main function, trello:efo8RhDm
     # control.control()
 
 if __name__ == '__main__':

@@ -207,7 +207,7 @@ class CamImage(Base):
         print('Max proj:' + str(time.time() - ptime) + ' secs')
         return max_imgs
 
-    # #FIXME:30 Finish adding functions for image handling and processing.
+    # #FIXME:40 Finish adding functions in image.py, trello:rigYhKuF
 
     def base_type(self):
         """"Return a string representing the type of object this is."""

@@ -9,7 +9,7 @@ from gain import Gain
 
 class Control(object):
 
-    # #FIXME:10 Check which arguments should be optional in init function.
+    # #FIXME:0 Which args should be optional in init function, Control class, trello:Tg7I1eTe
     def __init__(self, imaging_dir, host, init_gain, working_dir, last_well,
                  last_field, first_job, coord_file=None, input_gain=None,
                  template_file=None, end_10x=None, end_40x=None, end_63x=None,
@@ -44,8 +44,8 @@ class Control(object):
         self.gain_dict = defaultdict(list)
         self.saved_gains = defaultdict(list)
 
-        # #TODO:0 Assign job and pattern variables by config file
-        # or by parsing the xml/lrp-files.
+        # #RFE:0 Assign job vars by config file, trello:UiavT7yP
+        # #RFE:10 Assign job vars by parsing the xml/lrp-files, trello:d7eWnJC5
 
         # Job and pattern variables and names
         # AF job names and settings are not used when not using the drift AF.
@@ -94,7 +94,7 @@ class Control(object):
                 print('No images yet... but maybe later?', e)
         return None
 
-    # #DONE:20 Add get_imgs function.
+    # #DONE:20 Add get_imgs function, trello:nh2R6RWR
 
     def get_imgs(self, path, imdir, job_order, f_job=None, img_save=None,
                  csv_save=None):
@@ -284,7 +284,7 @@ class Control(object):
 
     def control():
         """Function to control the flow."""
-        # #FIXME:20 Make sure order of booleans are correct
+        # #FIXME:10 Make sure order of booleans is correct, trello:BST7i275
         # if they effect eachother
         # Booleans etc to control flow.
         stage1 = True
@@ -343,7 +343,7 @@ class Control(object):
 
         com_result = gobj.get_init_com()
 
-        # #DONE:30 Finish the control function.
+        # #DONE:30 Finish the control function, trello:wEjYJ3E4
 
         if self.input_gain:
             csv = File(self.input_gain)
