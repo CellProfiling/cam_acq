@@ -160,7 +160,7 @@ def parse_command_line(argv):
         args.template_file = os.path.normpath(args.template_file)
     if args.input_gain:
         args.input_gain = os.path.normpath(args.input_gain)
-    print(args.imaging_dir)
+    # print(args.imaging_dir) # testing
     # #DONE:0 Finish adding args, parse_command_line(), trello:VjTzfUGv
 
     return args

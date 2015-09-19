@@ -32,7 +32,7 @@ class Control(object):
         # Create socket
         self.sock = Client()
         # Port number
-        port = 8895
+        self.port = 8895
         # commands
         self.del_com = Command().del_com()
         self.start_com = Command().start_com()
@@ -49,15 +49,15 @@ class Control(object):
 
         # Job and pattern variables and names
         # AF job names and settings are not used when not using the drift AF.
-        af_job_10x = 'af10xcam'
-        afr_10x = '200'
-        afs_10x = '41'
-        af_job_40x = 'af40x'
-        afr_40x = '105'
-        afs_40x = '106'
-        af_job_63x = 'af63x'
-        afr_63x = '50'
-        afs_63x = '51'
+        #af_job_10x = 'af10xcam'
+        #afr_10x = '200'
+        #afs_10x = '41'
+        #af_job_40x = 'af40x'
+        #afr_40x = '105'
+        #afs_40x = '106'
+        #af_job_63x = 'af63x'
+        #afr_63x = '50'
+        #afs_63x = '51'
         self.pattern_g_10x = 'pattern7'
         self.pattern_g_40x = 'pattern8'
         self.pattern_g_63x = 'pattern9'
@@ -206,7 +206,7 @@ class Control(object):
                     wells.append(well_name)
         return {'bases': fbs, 'wells': wells}
 
-    def send_com(gobj, com_list, end_com_list, stage1=None, stage3=None,
+    def send_com(self, gobj, com_list, end_com_list, stage1=None, stage3=None,
                  stage4=None):
         for com, end_com in zip(com_list, end_com_list):
             # Send CAM list for the gain job to the server during stage1.
@@ -282,7 +282,7 @@ class Control(object):
                 self.send_com(late_com_list, late_end_com_list, stage1=False,
                               stage3=stage3, stage4=stage4)
 
-    def control():
+    def control(self):
         """Function to control the flow."""
         # #FIXME:10 Make sure order of booleans is correct, trello:BST7i275
         # if they effect eachother
@@ -339,7 +339,7 @@ class Control(object):
                     )
 
         # Connect to server
-        self.sock.connect(host, port)
+        self.sock.connect(self.host, self.port)
 
         com_result = gobj.get_init_com()
 

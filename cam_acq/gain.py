@@ -159,7 +159,7 @@ class Gain(object):
             end_com_list.append(end_com)
         return {'com': com_list, 'end_com': end_com_list}
 
-    def get_init_com():
+    def get_init_com(self):
         wells = []
         if self.template:
             # Selected wells from template file.
