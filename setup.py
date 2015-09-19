@@ -18,6 +18,9 @@ config = {
     'version': '0.1.0',
     'install_requires': [
         'nose',
+        'numpy',
+        'tifffile',
+        'Pillow'
     ],
     'packages': find_packages(exclude=['contrib', 'docs', 'tests*']),
     'include_package_data': True,
