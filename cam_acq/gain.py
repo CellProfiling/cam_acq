@@ -2,6 +2,7 @@ from collections import defaultdict
 import subprocess
 import numpy as np
 from command import Command
+from image import File
 
 
 class Gain(object):

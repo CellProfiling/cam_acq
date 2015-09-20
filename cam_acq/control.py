@@ -2,9 +2,12 @@ import os
 import re
 from collections import defaultdict
 from pkg_resources import resource_string
+import numpy as np
 from socket_client import Client
 from command import Command
 from gain import Gain
+from image import File
+from image import CamImage
 
 
 class Control(object):
@@ -142,7 +145,7 @@ class Control(object):
                         img.meta_data())
             os.rename(img_path, new_name)
         # Make a max proj per channel and well.
-        max_projs = make_proj(new_paths)
+        max_projs = img.make_proj(new_paths)
         new_dir = os.path.normpath(os.path.join(imdir, 'maxprojs'))
         if not os.path.exists(new_dir):
             os.makedirs(new_dir)
@@ -167,9 +170,9 @@ class Control(object):
                     max_int = 255
                 if proj.dtype.name == 'uint16':
                     max_int = 65535
-                histo = histogram(proj, 0, max_int, 256)
+                histo = np.histogram(proj, 256, (0, max_int))
                 rows = defaultdict(list)
-                for b, count in enumerate(histo):
+                for b, count in enumerate(histo[0]):
                     rows[b].append(count)
                 p = os.path.normpath(os.path.join(
                     new_dir, '{}--{}.ome.csv'.format(img.well, C_id)))
