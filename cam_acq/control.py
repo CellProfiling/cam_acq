@@ -9,7 +9,7 @@ from gain import Gain
 
 class Control(object):
 
-    # #FIXME:0 Which args should be optional in init function, Control class, trello:Tg7I1eTe
+    # #DONE:60 Which args should be optional in init function, Control class, trello:Tg7I1eTe
     def __init__(self, imaging_dir, host, init_gain, working_dir, last_well,
                  last_field, first_job, coord_file=None, input_gain=None,
                  template_file=None, end_10x=None, end_40x=None, end_63x=None,
@@ -20,13 +20,13 @@ class Control(object):
         self.working_dir = working_dir
         self.last_well = last_well
         self.last_field = last_field
+        self.first_job = first_job
         self.coord_file = coord_file
         self.input_gain = input_gain
         self.template_file = template_file
         self.end_10x = end_10x
         self.end_40x = end_40x
         self.end_63x = end_63x
-        self.first_job = first_job
         self.gain_only = gain_only
         self.r_script = resource_string(__name__, 'data/gain.r')
         # Create socket
@@ -106,6 +106,7 @@ class Control(object):
             img_save = True
         if csv_save is None:
             csv_save = True
+        # Get all image paths in well.
         img_paths = Directory(path).get_all_files('*' + job_order + '*.tif')
         new_paths = []
         metadata_d = {}
@@ -139,6 +140,7 @@ class Control(object):
                     img.well + '--' + img.field + '--' + img.C_id] = (
                         img.meta_data())
             os.rename(img_path, new_name)
+        # Make a max proj per channel and well.
         max_projs = make_proj(new_paths)
         new_dir = os.path.normpath(os.path.join(imdir, 'maxprojs'))
         if not os.path.exists(new_dir):
@@ -155,6 +157,7 @@ class Control(object):
                     C_id + '.ome.tif'))
                 metadata = metadata_d[
                     img.well + '--' + img.field + '--' + C_id]
+                # Save meta data and image max proj.
                 CamImage(p).save_image(proj, metadata)
                 print('Save image:' + str(time.time() - ptime) + ' secs')
             if csv_save:
@@ -180,11 +183,6 @@ class Control(object):
         # and corresponding well names
         fbs = []
         wells = []
-        # Parse reply, check well (UV), field (XY).
-        # Get well path.
-        # Get all image paths in well.
-        # Make a max proj per channel and well.
-        # Save meta data and image max proj.
         img = search_imgs(line)
         if img:
             if (img.field == self.last_field and img.C_id == 'C31'):
@@ -206,13 +204,13 @@ class Control(object):
                     wells.append(well_name)
         return {'bases': fbs, 'wells': wells}
 
-    def send_com(self, gobj, com_list, end_com_list, stage1=None, stage3=None,
-                 stage4=None):
+    def send_com(self, gobj, com_list, end_com_list, stage1=None, stage2=None,
+                 stage3=None):
         for com, end_com in zip(com_list, end_com_list):
             # Send CAM list for the gain job to the server during stage1.
             # Send gain change command to server in the four channels
-            # during stage 3 and 4.
-            # Send CAM list for the experiment jobs to server (stage3/4).
+            # during stage2 and stage3.
+            # Send CAM list for the experiment jobs to server (stage2/stage3).
             # Reset self.gain_dict for each iteration.
             self.gain_dict = defaultdict(list)
             com = self.del_com + com
@@ -227,8 +225,8 @@ class Control(object):
             print(self.camstart_com)
             sock.send(self.camstart_com)
             time.sleep(3)
-            stage5 = True
-            while stage5:
+            stage4 = True
+            while stage4:
                 print('Waiting for images...')
                 reply = sock.recv_timeout(120, ['image--'])
                 for line in reply.splitlines():
@@ -254,11 +252,11 @@ class Control(object):
                             late_com_list = com_result['com']
                             late_end_com_list = com_result['end_com']
                     elif 'image' in line:
-                        if stage3:
-                            print('Stage3')
+                        if stage2:
+                            print('stage2')
                             img_saving = False
-                        if stage4:
-                            print('Stage4')
+                        if stage3:
+                            print('stage3')
                             img_saving = True
                         img = self.search_imgs(line)
                         if img:
@@ -270,7 +268,7 @@ class Control(object):
                                      csv_save=False
                                      )
                     if all(test in line for test in end_com):
-                        stage5 = False
+                        stage4 = False
             # Stop scan
             # print(stop_cam_com)
             # sock.send(stop_cam_com)
@@ -280,44 +278,36 @@ class Control(object):
             time.sleep(6)  # Wait for it to come to complete stop.
             if self.gain_dict and stage1:
                 self.send_com(late_com_list, late_end_com_list, stage1=False,
-                              stage3=stage3, stage4=stage4)
+                              stage2=stage2, stage3=stage3)
 
     def control(self):
         """Function to control the flow."""
-        # #FIXME:10 Make sure order of booleans is correct, trello:BST7i275
+        # #DONE:70 Make sure order of booleans is correct, trello:BST7i275
         # if they effect eachother
         # Booleans etc to control flow.
         stage1 = True
-        stage3 = True
-        stage4 = False
-        stage5 = False
+        stage2 = True
+        stage3 = False
         if self.end_10x:
-            self.end_40x = False
-            self.end_63x = False
             pattern_g = self.pattern_g_10x
             job_list = self.job_10x
             pattern = self.pattern_10x
         elif self.end_40x:
-            self.end_10x = False
-            self.end_63x = False
             pattern_g = self.pattern_g_40x
             job_list = self.job_40x
             pattern = self.pattern_40x
-        if self.coord_file:
-            self.end_63x = True
-            csv = File(self.coord_file)
-            coords = csv.read_csv('fov', ['dxPx', 'dyPx'])
-        if self.end_63x:
-            self.end_10x = False
-            self.end_40x = False
-            stage3 = False
-            stage4 = True
+        elif self.end_63x:
+            stage2 = False
+            stage3 = True
             pattern_g = self.pattern_g_63x
             job_list = self.job_63x
             pattern = self.pattern_63x
+        if self.coord_file:
+            csv = File(self.coord_file)
+            coords = csv.read_csv('fov', ['dxPx', 'dyPx'])
         if self.gain_only:
+            stage2 = False
             stage3 = False
-            stage4 = False
         if self.input_gain:
             stage1 = False
 
@@ -354,6 +344,8 @@ class Control(object):
         com_list = com_result['com']
         end_com_list = com_result['end_com']
 
-        if stage1 or stage3 or stage4:
-            self.send_com(com_list, end_com_list, stage1=stage1, stage3=stage3,
-                          stage4=stage4)
+        if stage1 or stage2 or stage3:
+            self.send_com(com_list, end_com_list, stage1=stage1, stage2=stage2,
+                          stage3=stage3)
+
+        print('\nExperiment finished!')

@@ -159,17 +159,6 @@ class CamImage(Base):
         self.field_path = self.get_dir()
         self.well_path = self.get_dir(path=self.field_path)
 
-    # def read_image(self):
-    #    """Read a tif image and return the data."""
-    #    with tifffile.TiffFile(self.path) as tif:
-    #        return tif.asarray()
-
-    # def read_image(self, path=None):
-    #    """Read a tif image and return the data."""
-    #    if path is None:
-    #        path = self.path
-    #    return imread(path)
-
     def read_image(self, path=None):
         """Read a tif image and return the data."""
         if path is None:
@@ -213,7 +202,7 @@ class CamImage(Base):
         print('Max proj:' + str(time.time() - ptime) + ' secs')
         return max_imgs
 
-    # #FIXME:40 Finish adding functions in image.py, trello:rigYhKuF
+    # #FIXME:0 Finish adding functions in image.py, trello:rigYhKuF
 
     def base_type(self):
         """"Return a string representing the type of object this is."""

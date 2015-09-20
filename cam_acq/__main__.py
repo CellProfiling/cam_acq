@@ -43,8 +43,8 @@ def check_field_arg(arg):
 def check_ip_arg(addr):
     try:
         socket.inet_aton(addr)
-        return addr
         # legal
+        return addr
     except socket.error:
         # not legal
         raise argparse.ArgumentTypeError(
@@ -119,20 +119,21 @@ def parse_command_line(argv):
         'host',
         type=check_ip_arg,
         help='the ip address of the host server, i.e. the microscope')
-    # #FIXME:20 Make end-10x, end-40x and end-63x mutually exclusive, trello:xinb2xIm
-    parser.add_argument(
+    # #DONE:50 Make end-10x, end-40x and end-63x mutually exclusive, trello:xinb2xIm
+    objectives = parser.add_mutually_exclusive_group(required=True)
+    objectives.add_argument(
         '--end-10x',
         dest='end_10x',
         action='store_true',
         help='an option to activate 10x objective as last objective in\
              experiment')
-    parser.add_argument(
+    objectives.add_argument(
         '--end-40x',
         dest='end_40x',
         action='store_true',
         help='an option to activate 40x objective as last objective in\
              experiment')
-    parser.add_argument(
+    objectives.add_argument(
         '--end-63x',
         dest='end_63x',
         action='store_true',
@@ -149,8 +150,6 @@ def parse_command_line(argv):
     if args.working_dir:
         args.working_dir = os.path.normpath(args.working_dir)
     if args.init_gain is None:
-        # init_gain = os.path.normpath(
-        #    os.path.join(working_dir, '10x_gain.csv'))
         args.init_gain = resource_string(__name__, 'data/10x_gain.csv')
     else:
         args.init_gain = os.path.normpath(args.init_gain)
@@ -160,7 +159,6 @@ def parse_command_line(argv):
         args.template_file = os.path.normpath(args.template_file)
     if args.input_gain:
         args.input_gain = os.path.normpath(args.input_gain)
-    # print(args.imaging_dir) # testing
     # #DONE:0 Finish adding args, parse_command_line(), trello:VjTzfUGv
 
     return args
@@ -181,8 +179,8 @@ def main(argv):
         template_file=args.template_file, end_10x=args.end_10x,
         end_40x=args.end_40x, end_63x=args.end_63x, gain_only=args.gain_only)
 
-    # #FIXME:30 Finish main function, trello:efo8RhDm
-    # control.control()
+    # #DONE:40 Finish main function, trello:efo8RhDm
+    control.control()
 
 if __name__ == '__main__':
     main(sys.argv)

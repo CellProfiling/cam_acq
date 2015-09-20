@@ -33,7 +33,10 @@ class Gain(object):
             csv = File(self.template_file)
             self.template = csv.read_csv('gain_from_well', ['well'])
             self.last_well = sorted(self.template.keys())[-1]
-        self.coords = coords
+        if self.coords is None:
+            self.coords = {}
+        else:
+            self.coords = coords
         self.green_sorted = defaultdict(list)
         self.medians = defaultdict(int)
 
@@ -111,7 +114,7 @@ class Gain(object):
             com.gain_com(exp=job, num=detector, value=gain) + '\n'
         return com
 
-    # #FIXME:50 Merge get_com and get_init_com functions, trello:egmsbuN8
+    # #FIXME:10 Merge get_com and get_init_com functions, trello:egmsbuN8
     def get_com(self):
         dx = 0
         dy = 0
@@ -127,8 +130,6 @@ class Gain(object):
                         self.medians['red']
                         ]
             com = self.set_gain(com, channels, self.job_list)
-            if self.coords is None:
-                self.coords = {}
             for well in sorted(wells):
                 for i in range(2):
                     for j in range(2):
