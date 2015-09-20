@@ -113,6 +113,7 @@ class Control(object):
         for img_path in img_paths:
             img = CamImage(img_path)
             img_array = img.read_image()
+            # #FIXME:20 Breakout new renaming function (DRY), trello:rKNNQvha
             if img.E_id_int == f_job:
                 new_name = os.path.normpath(os.path.join(
                     path, ('{}--{}--{}--{}--{}.ome.tif'.format(
