@@ -4,7 +4,7 @@ import re
 import tifffile
 import abc
 from collections import defaultdict
-from Pillow import Image
+from PIL import Image
 import numpy as np
 
 

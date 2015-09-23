@@ -219,20 +219,20 @@ class Control(object):
             self.gain_dict = defaultdict(list)
             com = self.del_com + com
             print(com)
-            sock.send(com)
+            self.sock.send(com)
             time.sleep(3)
             # Start scan.
             print(self.start_com)
-            sock.send(self.start_com)
+            self.sock.send(self.start_com)
             time.sleep(7)
             # Start CAM scan.
             print(self.camstart_com)
-            sock.send(self.camstart_com)
+            self.sock.send(self.camstart_com)
             time.sleep(3)
             stage4 = True
             while stage4:
                 print('Waiting for images...')
-                reply = sock.recv_timeout(120, ['image--'])
+                reply = self.sock.recv_timeout(120, ['image--'])
                 for line in reply.splitlines():
                     if stage1 and 'image' in line:
                         print('Stage1')
@@ -275,13 +275,13 @@ class Control(object):
                         stage4 = False
             # Stop scan
             # print(stop_cam_com)
-            # sock.send(stop_cam_com)
+            # self.sock.send(stop_cam_com)
             # time.sleep(5)
             print(self.stop_com)
-            sock.send(self.stop_com)
+            self.sock.send(self.stop_com)
             time.sleep(6)  # Wait for it to come to complete stop.
             if self.gain_dict and stage1:
-                self.send_com(late_com_list, late_end_com_list, stage1=False,
+                self.send_com(gobj, late_com_list, late_end_com_list, stage1=False,
                               stage2=stage2, stage3=stage3)
 
     def control(self):
@@ -309,6 +309,8 @@ class Control(object):
         if self.coord_file:
             csv = File(self.coord_file)
             coords = csv.read_csv('fov', ['dxPx', 'dyPx'])
+        else:
+            coords = None
         if self.gain_only:
             stage2 = False
             stage3 = False
@@ -349,7 +351,7 @@ class Control(object):
         end_com_list = com_result['end_com']
 
         if stage1 or stage2 or stage3:
-            self.send_com(com_list, end_com_list, stage1=stage1, stage2=stage2,
+            self.send_com(gobj, com_list, end_com_list, stage1=stage1, stage2=stage2,
                           stage3=stage3)
 
         print('\nExperiment finished!')

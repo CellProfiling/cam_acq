@@ -29,12 +29,13 @@ class Gain(object):
         self.end_10x = end_10x
         self.end_40x = end_40x
         self.end_63x = end_63x
-        self.template_file = template_file
-        if self.template_file:
-            csv = File(self.template_file)
+        if template_file is None:
+            self.template = None
+        else:
+            csv = File(template_file)
             self.template = csv.read_csv('gain_from_well', ['well'])
             self.last_well = sorted(self.template.keys())[-1]
-        if self.coords is None:
+        if coords is None:
             self.coords = {}
         else:
             self.coords = coords
