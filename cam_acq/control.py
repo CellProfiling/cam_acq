@@ -293,16 +293,14 @@ class Control(object):
             stage3 = False
         if self.args.input_gain:
             stage1 = False
+            csv = File(self.args.input_gain)
+            self.gain_dict = csv.read_csv('well',
+                                          ['green', 'blue', 'yellow', 'red'])
 
         # Connect to server
         self.sock.connect(self.args.host, self.port)
 
         # #DONE:30 Finish the control function, trello:wEjYJ3E4
-
-        if self.args.input_gain:
-            csv = File(self.args.input_gain)
-            self.gain_dict = csv.read_csv('well',
-                                          ['green', 'blue', 'yellow', 'red'])
 
         # make Gain object
         gobj = Gain(self.args, self.gain_dict, job_list, pattern_g, pattern)
