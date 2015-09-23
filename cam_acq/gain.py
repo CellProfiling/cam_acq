@@ -1,3 +1,4 @@
+from pkg_resources import resource_string
 from collections import defaultdict
 import subprocess
 import numpy as np
@@ -14,31 +15,24 @@ class Gain(object):
         each list (value) contains the gain values of the (four) channels.
     """
 
-    def __init__(self, gain_dict, imaging_dir, init_gain, r_script, job_list,
-                 pattern_g, pattern, first_job, last_well, end_10x=None,
-                 end_40x=None, end_63x=None, template_file=None, coords=None):
+    def __init__(self, args, gain_dict, job_list, pattern_g, pattern):
+        self.args = args
         self.gain_dict = gain_dict
-        self.imaging_dir = imaging_dir
-        self.init_gain = init_gain
-        self.r_script = r_script
         self.job_list = job_list
         self.pattern_g = pattern_g
         self.pattern = pattern
-        self.first_job = first_job
-        self.last_well = last_well
-        self.end_10x = end_10x
-        self.end_40x = end_40x
-        self.end_63x = end_63x
-        if template_file is None:
+        if args.template_file is None:
             self.template = None
         else:
-            csv = File(template_file)
+            csv = File(args.template_file)
             self.template = csv.read_csv('gain_from_well', ['well'])
-            self.last_well = sorted(self.template.keys())[-1]
-        if coords is None:
+            self.args.last_well = sorted(self.template.keys())[-1]
+        if args.coord_file is None:
             self.coords = {}
         else:
-            self.coords = coords
+            csv = File(args.coord_file)
+            self.coords = csv.read_csv('fov', ['dxPx', 'dyPx'])
+        self.r_script = resource_string(__name__, 'data/gain.r')
         self.green_sorted = defaultdict(list)
         self.medians = defaultdict(int)
 
@@ -61,9 +55,9 @@ class Gain(object):
                 print('Starting R...')
                 r_output = subprocess.check_output(['Rscript',
                                                     self.r_script,
-                                                    self.imaging_dir,
+                                                    self.args.imaging_dir,
                                                     fbase,
-                                                    self.init_gain
+                                                    self.args.init_gain
                                                     ])
                 self.gain_dict = self.process_output(well, r_output,
                                                      self.gain_dict)
@@ -88,7 +82,7 @@ class Gain(object):
                 # and where the value is a list of well ids.
                 if c == 'green':
                     # Round gain values to multiples of 10 in green channel
-                    if self.end_63x:
+                    if self.args.end_63x:
                         green_val = int(min(round(int(v[i]), -1), 800))
                     else:
                         green_val = int(round(int(v[i]), -1))
@@ -154,7 +148,7 @@ class Gain(object):
                                         )
                             end_com = ['CAM',
                                        well,
-                                       'E0' + str(self.first_job + 2),
+                                       'E0' + str(self.args.first_job + 2),
                                        'X0{}--Y0{}'.format(j, i)
                                        ]
             # Store the commands in lists.
@@ -169,8 +163,8 @@ class Gain(object):
             wells = self.template.keys()
         else:
             # All wells.
-            for u in range(int(Command().get_wfx(self.last_well))):
-                for v in range(int(Command().get_wfy(self.last_well))):
+            for u in range(int(Command().get_wfx(self.args.last_well))):
+                for v in range(int(Command().get_wfy(self.args.last_well))):
                     wells.append('U0' + str(u) + '--V0' + str(v))
         # Lists and strings for storing command strings.
         com_list = []
@@ -188,7 +182,7 @@ class Gain(object):
             end_com_list.append(end_com)
             com = Command()
         # Concatenate commands to one string if dry objective
-        if self.end_10x or self.end_40x:
+        if self.args.end_10x or self.args.end_40x:
             com.com = ''.join(com_list)
             com_list = []
             com_list.append(com.com)

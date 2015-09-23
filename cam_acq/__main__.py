@@ -172,12 +172,7 @@ def main(argv):
     print(args)  # testing
 
     # #DONE:10 Fix args to make control object working, trello:PxoHWv3P
-    control = Control(
-        args.imaging_dir, args.host, args.init_gain, args.working_dir,
-        args.last_well, args.last_field, args.first_job,
-        coord_file=args.coord_file, input_gain=args.input_gain,
-        template_file=args.template_file, end_10x=args.end_10x,
-        end_40x=args.end_40x, end_63x=args.end_63x, gain_only=args.gain_only)
+    control = Control(args)
 
     # #DONE:40 Finish main function, trello:efo8RhDm
     control.control()

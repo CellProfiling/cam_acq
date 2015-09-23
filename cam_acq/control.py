@@ -1,7 +1,6 @@
 import os
 import re
 from collections import defaultdict
-from pkg_resources import resource_string
 import numpy as np
 from socket_client import Client
 from command import Command
@@ -13,25 +12,8 @@ from image import CamImage
 class Control(object):
 
     # #DONE:60 Which args should be optional in init function, Control class, trello:Tg7I1eTe
-    def __init__(self, imaging_dir, host, init_gain, working_dir, last_well,
-                 last_field, first_job, coord_file=None, input_gain=None,
-                 template_file=None, end_10x=None, end_40x=None, end_63x=None,
-                 gain_only=None):
-        self.imaging_dir = imaging_dir
-        self.host = host
-        self.init_gain = init_gain
-        self.working_dir = working_dir
-        self.last_well = last_well
-        self.last_field = last_field
-        self.first_job = first_job
-        self.coord_file = coord_file
-        self.input_gain = input_gain
-        self.template_file = template_file
-        self.end_10x = end_10x
-        self.end_40x = end_40x
-        self.end_63x = end_63x
-        self.gain_only = gain_only
-        self.r_script = resource_string(__name__, 'data/gain.r')
+    def __init__(self, args):
+        self.args = args
         # Create socket
         self.sock = Client()
         # Port number
@@ -85,7 +67,7 @@ class Control(object):
         count = 0
         while error and count < 2:
             try:
-                root = self.parse_reply(line, self.imaging_dir)
+                root = self.parse_reply(line, self.args.imaging_dir)
                 img = CamImage(root)
                 print(img.name)
                 error = False
@@ -189,8 +171,8 @@ class Control(object):
         wells = []
         img = search_imgs(line)
         if img:
-            if (img.field == self.last_field and img.C_id == 'C31'):
-                if self.end_63x:
+            if (img.field == self.args.last_field and img.C_id == 'C31'):
+                if self.args.end_63x:
                     self.sock.send(self.stop_com)
                 ptime = time.time()
                 get_imgs(img.well_path, img.well_path, 'E02', img_save=False)
@@ -249,7 +231,7 @@ class Control(object):
                             header = ['well', 'green', 'blue', 'yellow', 'red']
                             csv_name = 'output_gains.csv'
                             csv = File(os.path.normpath(
-                                os.path.join(self.imaging_dir, csv_name)))
+                                os.path.join(self.args.imaging_dir, csv_name)))
                             csv.write_csv(self.saved_gains, header)
                             gobj.distribute_gain()
                             com_result = gobj.get_com()
@@ -265,9 +247,9 @@ class Control(object):
                         img = self.search_imgs(line)
                         if img:
                             get_imgs(img.field_path,
-                                     self.imaging_dir,
+                                     self.args.imaging_dir,
                                      img.E_id,
-                                     f_job=self.first_job,
+                                     f_job=self.args.first_job,
                                      img_save=img_saving,
                                      csv_save=False
                                      )
@@ -292,66 +274,49 @@ class Control(object):
         stage1 = True
         stage2 = True
         stage3 = False
-        if self.end_10x:
+        if self.args.end_10x:
             pattern_g = self.pattern_g_10x
             job_list = self.job_10x
             pattern = self.pattern_10x
-        elif self.end_40x:
+        elif self.args.end_40x:
             pattern_g = self.pattern_g_40x
             job_list = self.job_40x
             pattern = self.pattern_40x
-        elif self.end_63x:
+        elif self.args.end_63x:
             stage2 = False
             stage3 = True
             pattern_g = self.pattern_g_63x
             job_list = self.job_63x
             pattern = self.pattern_63x
-        if self.coord_file:
-            csv = File(self.coord_file)
-            coords = csv.read_csv('fov', ['dxPx', 'dyPx'])
-        else:
-            coords = None
-        if self.gain_only:
+        if self.args.gain_only:
             stage2 = False
             stage3 = False
-        if self.input_gain:
+        if self.args.input_gain:
             stage1 = False
 
-        # make Gain object
-        gobj = Gain(self.gain_dict,
-                    self.imaging_dir,
-                    self.init_gain,
-                    self.r_script,
-                    job_list,
-                    pattern_g,
-                    pattern,
-                    self.first_job,
-                    self.last_well,
-                    end_10x=self.end_10x,
-                    end_40x=self.end_40x,
-                    end_63x=self.end_63x,
-                    template_file=self.template_file,
-                    coords=coords
-                    )
-
         # Connect to server
-        self.sock.connect(self.host, self.port)
-
-        com_result = gobj.get_init_com()
+        self.sock.connect(self.args.host, self.port)
 
         # #DONE:30 Finish the control function, trello:wEjYJ3E4
 
-        if self.input_gain:
-            csv = File(self.input_gain)
+        if self.args.input_gain:
+            csv = File(self.args.input_gain)
             self.gain_dict = csv.read_csv('well',
                                           ['green', 'blue', 'yellow', 'red'])
+
+        # make Gain object
+        gobj = Gain(self.args, self.gain_dict, job_list, pattern_g, pattern)
+
+        if self.args.input_gain:
             com_result = gobj.get_com()
+        else:
+            com_result = gobj.get_init_com()
 
         com_list = com_result['com']
         end_com_list = com_result['end_com']
 
         if stage1 or stage2 or stage3:
-            self.send_com(gobj, com_list, end_com_list, stage1=stage1, stage2=stage2,
-                          stage3=stage3)
+            self.send_com(gobj, com_list, end_com_list, stage1=stage1,
+                          stage2=stage2, stage3=stage3)
 
         print('\nExperiment finished!')
