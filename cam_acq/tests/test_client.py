@@ -2,7 +2,6 @@
 
 import socket
 import logging
-import threading
 from nose.tools import *
 from test_server import EchoServer
 from test_server import EchoRequestHandler
@@ -11,21 +10,6 @@ from cam_acq.socket_client import Client
 
 IP = 'localhost'
 PORT = 8895
-_address = (IP, PORT)
-SERVER = EchoServer(_address, EchoRequestHandler)
-
-
-def setup():
-    # Create the test server
-    #address = (IP, PORT)
-    #server = EchoServer(address, EchoRequestHandler)
-    #ip, port = server.server_address
-
-    # Start new thread for server
-    t = threading.Thread(target=SERVER.serve_forever)
-    t.setDaemon(True)  # don't hang on exit
-    t.start()
-    return
 
 
 def test_client():
@@ -56,10 +40,4 @@ def test_client():
     logger.debug('closing socket')
     s.close()
     logger.debug('done')
-    return
-
-
-def teardown():
-    SERVER.socket.close()
-    SERVER.server_close()
     return
