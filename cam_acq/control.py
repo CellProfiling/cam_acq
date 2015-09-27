@@ -265,6 +265,7 @@ class Control(object):
             if self.gain_dict and stage1:
                 self.send_com(gobj, late_com_list, late_end_com_list, stage1=False,
                               stage2=stage2, stage3=stage3)
+        return
 
     def control(self):
         """Function to control the flow."""

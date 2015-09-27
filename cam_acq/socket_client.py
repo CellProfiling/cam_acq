@@ -39,7 +39,7 @@ class Client(object):
 
         # start time
         begin = time.time()
-        while not (all(t in data for t in test) or
+        while not (all(t in joined_data for t in test) or
                    ('scanfinished' in data)):
             # if data exist, then break after timeout
             if total_data and time.time() - begin > timeout:
@@ -80,7 +80,7 @@ class Client(object):
             self.sock.connect(server_address)
 
             # Receive welcome reply from server
-            self.recv_timeout(3, ['Welcome'])
+            #self.recv_timeout(3, ['Welcome'])
 
         except socket.error:
             print 'Failed to connect to socket.'

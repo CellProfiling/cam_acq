@@ -2,8 +2,11 @@ import os
 import argparse
 import re
 import socket
+import logging
 from pkg_resources import resource_string
 from control import Control
+import log
+import config
 
 
 def check_dir_arg(path):
@@ -49,6 +52,18 @@ def check_ip_arg(addr):
         # not legal
         raise argparse.ArgumentTypeError(
             'String {} is not a valid ip address'.format(addr))
+
+
+def check_log_level(loglevel):
+    # assuming loglevel is bound to the string value obtained from the
+    # command line argument. Convert to upper case to allow the user to
+    # specify --log=DEBUG or --log=debug
+    numeric_level = getattr(logging, loglevel.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise argparse.ArgumentTypeError(
+            'String {} is not a valid log level'.format(loglevel))
+    else:
+        return numeric_level
 
 
 def parse_command_line(argv):
@@ -144,6 +159,11 @@ def parse_command_line(argv):
         dest='gain_only',
         action='store_true',
         help='an option to activate only running the gain job')
+    parser.add_argument(
+        '--log-level',
+        dest='log_level',
+        type=check_log_level,
+        help='an option to specify lowest log level to log')
     args = parser.parse_args(argv)
     if args.imaging_dir:
         args.imaging_dir = os.path.normpath(args.imaging_dir)
@@ -171,6 +191,9 @@ def main(argv):
     args = parse_command_line(argv)
     print(args)  # testing
 
+    log.enable_log(args)
+    cfg = config.load_config_file('path/to/config')  # fix this path
+    log.enable_log(args, config=cfg['logging'])
     # #DONE:10 Fix args to make control object working, trello:PxoHWv3P
     control = Control(args)
 
