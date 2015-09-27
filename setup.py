@@ -20,7 +20,8 @@ config = {
         'nose',
         'numpy',
         'tifffile',
-        'Pillow'
+        'Pillow',
+        'PyYAML'
     ],
     'packages': find_packages(exclude=['contrib', 'docs', 'tests*']),
     'include_package_data': True,
