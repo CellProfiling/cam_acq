@@ -81,6 +81,14 @@ class Control(object):
 
     # #DONE:20 Add get_imgs function, trello:nh2R6RWR
 
+    def format_new_name(self, img):
+        """
+        Function to get a filename from an image.
+        """
+        path = '{}--{}--{}--{}--{}.ome.tif'.format(img.well, img.E_id, img.field, img.Z_id, img.C_id)
+        name = os.path.normpath(os.path.join(path))
+        return name
+
     def get_imgs(self, path, imdir, job_order, f_job=None, img_save=None,
                  csv_save=None):
         """Function to handle the acquired images, do renaming,
@@ -100,24 +108,16 @@ class Control(object):
             img_array = img.read_image()
             # #FIXME:20 Breakout new renaming function (DRY), trello:rKNNQvha
             if img.E_id_int == f_job:
-                new_name = os.path.normpath(os.path.join(
-                    path, ('{}--{}--{}--{}--{}.ome.tif'.format(
-                        img.well, img.E_id, img.field, img.Z_id, img.C_id))))
+                new_name = self.format_new_name(img)
             elif img.E_id_int == f_job + 1 and img.C_id == 'C00':
-                new_name = os.path.normpath(os.path.join(
-                    path, ('{}--{}--{}--{}--C01.ome.tif'.format(
-                        img.well, img.E_id, img.field, img.Z_id))))
                 img.C_id = 'C01'
+                new_name = self.format_new_name(img)
             elif img.E_id_int == f_job + 1 and img.C_id == 'C01':
-                new_name = os.path.normpath(os.path.join(
-                    path, ('{}--{}--{}--{}--C02.ome.tif'.format(
-                        img.well, img.E_id, img.field, img.Z_id))))
                 img.C_id = 'C02'
+                new_name = self.format_new_name(img)
             elif img.E_id_int == f_job + 2:
-                new_name = os.path.normpath(os.path.join(
-                    path, ('{}--{}--{}--{}--C03.ome.tif'.format(
-                        img.well, img.E_id, img.field, img.Z_id))))
                 img.C_id = 'C03'
+                new_name = self.format_new_name(img)
             else:
                 new_name = img_path
             if not (len(img_array) == 16 or len(img_array) == 256):
