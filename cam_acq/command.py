@@ -113,9 +113,10 @@ class Command(object):
         fieldx = self.get_wfx(field)
         fieldy = self.get_wfy(field)
 
-        return OrderedDict([('cmd', 'enable'), ('slide', '0'), ('wellx', wellx),
-                            ('welly', welly), ('fieldx', fieldx),
-                            ('fieldy', fieldy), ('value', enable)])
+        return OrderedDict([('cmd', 'enable'), ('slide', '0'),
+                            ('wellx', wellx), ('welly', welly),
+                            ('fieldx', fieldx), ('fieldy', fieldy),
+                            ('value', enable)])
 
     @make_com
     def cam_com(self, exp, well, field, dx, dy):

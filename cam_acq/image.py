@@ -3,6 +3,8 @@ import fnmatch
 import re
 import tifffile
 import abc
+import csv
+import time
 from collections import defaultdict
 from PIL import Image
 import numpy as np
@@ -190,7 +192,6 @@ class CamImage(Base):
     def make_proj(self, path_list):
         """Function to make a dict of max projections from a list of paths
         to images. Each channel will make one max projection"""
-        channels = []
         print('Making max projections')
         ptime = time.time()
         sorted_images = defaultdict(list)

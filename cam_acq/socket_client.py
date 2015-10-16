@@ -1,7 +1,6 @@
 import socket
 import sys
 import time
-import re
 
 
 class Client(object):
@@ -80,7 +79,7 @@ class Client(object):
             self.sock.connect(server_address)
 
             # Receive welcome reply from server
-            #self.recv_timeout(3, ['Welcome'])
+            # self.recv_timeout(3, ['Welcome'])
 
         except socket.error:
             print 'Failed to connect to socket.'
@@ -125,6 +124,3 @@ class Client(object):
         self.sock.close()
         print('Socket closed.')
         return
-
-if __name__ == '__main__':
-    main(sys.argv[1:])

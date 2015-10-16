@@ -1,3 +1,4 @@
+import os
 import logging
 import config
 
@@ -5,7 +6,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def check_path(path):
-    if os.path.isfile(path) and os.access(path, os.W_OK):
+    # if os.path.isfile(path) and os.access(path, os.W_OK):
     if (os.path.isfile(path) and os.access(path, os.W_OK)) or \
        (not os.path.isfile(path) and os.access(config.config_dir, os.W_OK)):
         return True
@@ -18,7 +19,7 @@ def check_path(path):
 def enable_log(args, config=None):  # pass the logging part of the config
     logging.basicConfig(level=logging.INFO,
                         format='%(name)-12s: %(levelname)-8s %(message)s',
-                        #datefmt='%m-%d %H:%M',
+                        # datefmt='%m-%d %H:%M',
                         )
     if config is not None:  # add try+except to catch wrong config
         if check_path(config['handlers']['filelog']['filename']):

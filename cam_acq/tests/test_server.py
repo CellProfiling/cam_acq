@@ -1,7 +1,6 @@
 # Python socket server example taken from pymotw
 
 import logging
-import sys
 import SocketServer
 import threading
 
@@ -94,6 +93,5 @@ if __name__ == '__main__':
     t.start()
 
     # Clean up
-    logger.debug('done')
     server.socket.close()
     server.server_close()

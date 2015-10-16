@@ -1,11 +1,13 @@
 import os
 import re
+import time
 from collections import defaultdict
 import numpy as np
 from socket_client import Client
 from command import Command
 from gain import Gain
 from image import File
+from image import Directory
 from image import CamImage
 
 
@@ -34,15 +36,15 @@ class Control(object):
 
         # Job and pattern variables and names
         # AF job names and settings are not used when not using the drift AF.
-        #af_job_10x = 'af10xcam'
-        #afr_10x = '200'
-        #afs_10x = '41'
-        #af_job_40x = 'af40x'
-        #afr_40x = '105'
-        #afs_40x = '106'
-        #af_job_63x = 'af63x'
-        #afr_63x = '50'
-        #afs_63x = '51'
+        # af_job_10x = 'af10xcam'
+        # afr_10x = '200'
+        # afs_10x = '41'
+        # af_job_40x = 'af40x'
+        # afr_40x = '105'
+        # afs_40x = '106'
+        # af_job_63x = 'af63x'
+        # afr_63x = '50'
+        # afs_63x = '51'
         self.pattern_g_10x = 'pattern7'
         self.pattern_g_40x = 'pattern8'
         self.pattern_g_63x = 'pattern9'
@@ -85,7 +87,8 @@ class Control(object):
         """
         Function to get a filename from an image.
         """
-        path = '{}--{}--{}--{}--{}.ome.tif'.format(img.well, img.E_id, img.field, img.Z_id, img.C_id)
+        path = '{}--{}--{}--{}--{}.ome.tif'.format(
+            img.well, img.E_id, img.field, img.Z_id, img.C_id)
         name = os.path.normpath(os.path.join(path))
         return name
 
@@ -106,7 +109,7 @@ class Control(object):
         for img_path in img_paths:
             img = CamImage(img_path)
             img_array = img.read_image()
-            # #FIXME:20 Breakout new renaming function (DRY), trello:rKNNQvha
+            # #DONE:80 Breakout new renaming function (DRY), trello:rKNNQvha
             if img.E_id_int == f_job:
                 new_name = self.format_new_name(img)
             elif img.E_id_int == f_job + 1 and img.C_id == 'C00':
@@ -169,13 +172,14 @@ class Control(object):
         # and corresponding well names
         fbs = []
         wells = []
-        img = search_imgs(line)
+        img = self.search_imgs(line)
         if img:
             if (img.field == self.args.last_field and img.C_id == 'C31'):
                 if self.args.end_63x:
                     self.sock.send(self.stop_com)
                 ptime = time.time()
-                get_imgs(img.well_path, img.well_path, 'E02', img_save=False)
+                self.get_imgs(
+                    img.well_path, img.well_path, 'E02', img_save=False)
                 print(str(time.time() - ptime) + ' secs')
                 # get all CSVs and wells
                 search = Directory(img.well_path)
@@ -246,13 +250,13 @@ class Control(object):
                             img_saving = True
                         img = self.search_imgs(line)
                         if img:
-                            get_imgs(img.field_path,
-                                     self.args.imaging_dir,
-                                     img.E_id,
-                                     f_job=self.args.first_job,
-                                     img_save=img_saving,
-                                     csv_save=False
-                                     )
+                            self.get_imgs(img.field_path,
+                                          self.args.imaging_dir,
+                                          img.E_id,
+                                          f_job=self.args.first_job,
+                                          img_save=img_saving,
+                                          csv_save=False
+                                          )
                     if all(test in line for test in end_com):
                         stage4 = False
             # Stop scan
@@ -263,8 +267,8 @@ class Control(object):
             self.sock.send(self.stop_com)
             time.sleep(6)  # Wait for it to come to complete stop.
             if self.gain_dict and stage1:
-                self.send_com(gobj, late_com_list, late_end_com_list, stage1=False,
-                              stage2=stage2, stage3=stage3)
+                self.send_com(gobj, late_com_list, late_end_com_list,
+                              stage1=False, stage2=stage2, stage3=stage3)
         return
 
     def control(self):

@@ -1,3 +1,4 @@
+import sys
 from pkg_resources import resource_string
 from collections import defaultdict
 import subprocess
