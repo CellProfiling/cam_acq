@@ -92,6 +92,7 @@ class Control(object):
         name = os.path.normpath(os.path.join(path))
         return name
 
+    # #FIXME:20 Function get_imgs is too complex, trello:hOc4mqsa
     def get_imgs(self, path, imdir, job_order, f_job=None, img_save=None,
                  csv_save=None):
         """Function to handle the acquired images, do renaming,
@@ -194,6 +195,7 @@ class Control(object):
                     wells.append(well_name)
         return {'bases': fbs, 'wells': wells}
 
+    # #FIXME:20 Function send_com is too complex, trello:S4Df369p
     def send_com(self, gobj, com_list, end_com_list, stage1=None, stage2=None,
                  stage3=None):
         for com, end_com in zip(com_list, end_com_list):
