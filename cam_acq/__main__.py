@@ -193,8 +193,8 @@ def main(argv):
     print(args)  # testing
 
     log.enable_log(args)
-    cfg = config.load_config_file('path/to/config')  # fix this path
-    log.enable_log(args, config=cfg['logging'])
+    cfg = config.load_config_file('./cam_acq/config.yml')  # fix this path
+    log.enable_log(args, config_file=cfg['logging'])
     # #DONE:10 Fix args to make control object working, trello:PxoHWv3P
     control = Control(args)
 

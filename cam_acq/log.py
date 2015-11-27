@@ -1,5 +1,7 @@
 import os
 import logging
+import logging.handlers
+import logging.config
 import config
 
 _LOGGER = logging.getLogger(__name__)
@@ -23,7 +25,7 @@ def enable_log(args, config_file=None):  # pass the logging part of the config
                         )
     if config_file is not None:  # add try+except to catch wrong config
         if check_path(config_file['handlers']['filelog']['filename']):
-            logging.config.dictConfig(config)
+            logging.config.dictConfig(config_file)
     else:  # get log path from default config dir
         path = os.path.join(config.config_dir, 'cam_acq.log')
         if check_path(path):
