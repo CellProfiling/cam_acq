@@ -3,6 +3,7 @@ import logging
 import yaml
 
 _LOGGER = logging.getLogger(__name__)
+config_dir = '/tmp/' #TODO Make this the actual config path
 
 
 def load_config_file(path):
