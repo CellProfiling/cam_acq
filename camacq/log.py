@@ -16,14 +16,17 @@ def check_path(path):
         return False
 
 
-def enable_log(args, config=None):  # pass the logging part of the config
+def enable_log(args, config_instance=None):  # pass the logging part of the config
     logging.basicConfig(level=logging.INFO,
                         format='%(name)-12s: %(levelname)-8s %(message)s',
                         # datefmt='%m-%d %H:%M',
                         )
-    if config is not None:  # add try+except to catch wrong config
+    if config_instance is not None:  # add try+except to catch wrong config
         if check_path(config['handlers']['filelog']['filename']):
-            logging.config.dictConfig(config)
+            logging.config.dictConfig(config_instance)
+    else:
+        print("No config file supplied")
+    """
     else:  # get log path from default config dir
         path = os.path.join(config.config_dir, 'cam_acq.log')
         if check_path(path):
@@ -34,3 +37,4 @@ def enable_log(args, config=None):  # pass the logging part of the config
                 '%(asctime)s;%(name)-12s;%(levelname)-8s;%(message)s')
             filelog.setFormatter(formatter)
             logging.getLogger('').addHandler(filelog)
+     """

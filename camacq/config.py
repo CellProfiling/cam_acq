@@ -4,6 +4,8 @@ import yaml
 
 _LOGGER = logging.getLogger(__name__)
 
+config_dir = "."
+
 
 def load_config_file(path):
     """ Parse a YAML configuration file. """

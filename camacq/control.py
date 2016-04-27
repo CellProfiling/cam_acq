@@ -174,8 +174,10 @@ class Control(object):
         fbs = []
         wells = []
         img = self.search_imgs(line)
+        print(img, "    ", img.C_id, "     ", img.field, "      ", self.args.last_field)
         if img:
             if (img.field == self.args.last_field and img.C_id == 'C31'):
+                print("No we are inside")
                 if self.args.end_63x:
                     self.sock.send(self.stop_com)
                 ptime = time.time()
@@ -224,15 +226,18 @@ class Control(object):
                 for line in reply.splitlines():
                     if stage1 and 'image' in line:
                         print('Stage1')
+                        print(line)
                         csv_result = self.get_csvs(line)
                         filebases = csv_result['bases']
+                        print(filebases)
                         fin_wells = csv_result['wells']
+                        print(fin_wells)
                         self.gain_dict = gobj.calc_gain(filebases, fin_wells)
-                        # print(gain_dict) #testing
+                        print(self.gain_dict) #testing
                         if not self.saved_gains:
                             self.saved_gains = self.gain_dict
                         if self.saved_gains:
-                            # print(self.saved_gains) #testing
+                            print("SAVED_GAINS", self.saved_gains) #testing
                             self.saved_gains.update(self.gain_dict)
                             header = ['well', 'green', 'blue', 'yellow', 'red']
                             csv_name = 'output_gains.csv'
@@ -240,7 +245,8 @@ class Control(object):
                                 os.path.join(self.args.imaging_dir, csv_name)))
                             csv.write_csv(self.saved_gains, header)
                             gobj.distribute_gain()
-                            com_result = gobj.get_com()
+                            com_result = gobj.get_com(
+                                self.args.x_fields, self.args.y_fields)
                             late_com_list = com_result['com']
                             late_end_com_list = com_result['end_com']
                     elif 'image' in line:
@@ -313,7 +319,7 @@ class Control(object):
         gobj = Gain(self.args, self.gain_dict, job_list, pattern_g, pattern)
 
         if self.args.input_gain:
-            com_result = gobj.get_com()
+            com_result = gobj.get_com(self.args.x_fields, self.args.y_fields)
         else:
             com_result = gobj.get_init_com()
 

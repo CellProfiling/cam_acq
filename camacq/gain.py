@@ -51,7 +51,7 @@ class Gain(object):
         # Get a unique set of names of the experiment wells.
         fin_wells = sorted(set(fin_wells))
         for fbase, well in zip(filebases, fin_wells):
-            print(well)
+            print("WELL: ", well)
             try:
                 print('Starting R...')
                 r_output = subprocess.check_output(['Rscript',
@@ -112,7 +112,7 @@ class Gain(object):
         return com
 
     # #FIXME:10 Merge get_com and get_init_com functions, trello:egmsbuN8
-    def get_com(self):
+    def get_com(self, x_fields, y_fields):
         dx = 0
         dy = 0
         # Lists for storing command strings.
@@ -128,8 +128,8 @@ class Gain(object):
                         ]
             com = self.set_gain(com, channels, self.job_list)
             for well in sorted(wells):
-                for i in range(2):
-                    for j in range(2):
+                for i in range(y_fields):
+                    for j in range(x_fields):
                         # Only add selected fovs from file (arg) to cam list
                         fov = '{}--X0{}--Y0{}'.format(well, j, i)
                         if fov in self.coords.keys():

@@ -72,7 +72,7 @@ def parse_command_line(argv):
     parser = argparse.ArgumentParser(
         description='Control a Leica microscope through CAM interface.')
     parser.add_argument(
-        'imaging_dir',
+        '--imaging_dir',
         type=check_dir_arg,
         help='the path to the directory where images are exported')
     parser.add_argument(
@@ -105,6 +105,18 @@ def parse_command_line(argv):
         default='X01--Y01',
         type=check_field_arg,
         help='the id of the last field in each well, e.g. X01--Y01')
+    parser.add_argument(
+        '--x-fields',
+        dest='x_fields',
+        default=2,
+        type=int,
+        help='the number (int) of fields on x axis in each well, e.g. 2')
+    parser.add_argument(
+        '--y-fields',
+        dest='y_fields',
+        default=2,
+        type=int,
+        help='the number (int) of fields on y axis in each well, e.g. 2')
     parser.add_argument(
         '-j',
         '--first-job',
@@ -190,11 +202,17 @@ def main(argv):
 
     # Parse command line arguments
     args = parse_command_line(argv)
-    print(args)  # testing
+    #print(args)  # testing
 
-    log.enable_log(args)
-    cfg = config.load_config_file('path/to/config')  # fix this path
-    log.enable_log(args, config=cfg['logging'])
+    #log.enable_log(args)
+    config_file_path = "cam_acq/config.yml"
+    cfg = config.load_config_file(config_file_path)  # fix this path
+    if not cfg:
+        print("Could not load config file at:", config_file_path)
+        os.exit(1)
+    else:
+        print("CONFIG:", cfg)
+    #log.enable_log(args, config=cfg['logging'])
     # #DONE:10 Fix args to make control object working, trello:PxoHWv3P
     control = Control(args)
 
