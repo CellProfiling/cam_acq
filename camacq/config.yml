@@ -8,12 +8,12 @@ logging:
   handlers:
     console:
       class: logging.StreamHandler
-      level: INFO
+      level: DEBUG
       formatter: simple
       stream: ext://sys.stdout
     filelog:
       class: logging.handlers.RotatingFileHandler
-      level: DEBUG
+      level: INFO
       formatter: verbose
       filename: camacq.log
       maxBytes: 1024
