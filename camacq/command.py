@@ -14,7 +14,8 @@ def make_com(base_com):
         """
         com = ''
         for key, val in base_com(self, *args, **kwargs).iteritems():
-            com = com + ' /' + key + ':' + val
+            if val:
+                com = com + ' /' + key + ':' + val
         self.com = self.com + '/cli:1 /app:matrix' + com + '\n'
         return self.com
     return wrapper

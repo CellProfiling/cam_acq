@@ -1,5 +1,6 @@
 """Handle logging."""
 import logging
+import logging.handlers
 import os
 
 LOG_FILENAME = 'camacq.log'

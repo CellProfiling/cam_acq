@@ -248,7 +248,7 @@ def main(argv):
     """Main function."""
     # Parse command line arguments
     args = parse_command_line(argv)
-    config_dir = os.path.join(os.getcwd(), args.config)
+    config_dir = os.path.join(os.getcwd(), args.config_dir)
     ensure_config_path(config_dir)
     config_file = ensure_config_file(config_dir)
     cfg = config.load_config_file(config_file)

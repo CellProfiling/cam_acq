@@ -167,9 +167,9 @@ class Control(object):
         fbs = []
         wells = []
         img = self.search_imgs(line)
-        _LOGGER.debug('%s    %s    %s    %s',
-                      img, img.C_id, img.field, self.args.last_field)
         if img:
+            _LOGGER.debug('%s    %s    %s    %s',
+                          img, img.C_id, img.field, self.args.last_field)
             if img.field == self.args.last_field and img.C_id == 'C31':
                 _LOGGER.debug("No we are inside")
                 if self.args.end_63x:

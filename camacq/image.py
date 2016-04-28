@@ -191,7 +191,7 @@ class CamImage(Base):
         """Return the part of the name of the image, matching regex."""
         if path is None:
             path = self.path
-        return super(CamImage, self).get_name(path, regex)
+        return super(CamImage, self).get_name(regex, path)
 
     def make_proj(self, path_list):
         """Make a dict of max projections from a list of image paths.
