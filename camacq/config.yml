@@ -15,7 +15,7 @@ logging:
       class: logging.handlers.RotatingFileHandler
       level: DEBUG
       formatter: verbose
-      filename: path/to/cam_acq.log
+      filename: camacq.log
       maxBytes: 1024
       backupCount: 9
       encoding: utf-8

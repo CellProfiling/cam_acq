@@ -1,15 +1,21 @@
-import sys
-from pkg_resources import resource_string
-from collections import defaultdict
+"""Handle gain."""
+import logging
 import subprocess
+import sys
+from collections import defaultdict
+
 import numpy as np
+from pkg_resources import resource_string
+
 from command import Command
 from image import File
 
+_LOGGER = logging.getLogger(__name__)
+
 
 class Gain(object):
-
-    """Gain class
+    """
+    Gain class.
 
     Attributes:
         gain_dict: A defaultdict of lists where the keys are the wells and
@@ -17,6 +23,7 @@ class Gain(object):
     """
 
     def __init__(self, args, gain_dict, job_list, pattern_g, pattern):
+        """Set up instance."""
         self.args = args
         self.gain_dict = gain_dict
         self.job_list = job_list
@@ -29,7 +36,7 @@ class Gain(object):
             self.template = csv.read_csv('gain_from_well', ['well'])
             self.args.last_well = sorted(self.template.keys())[-1]
         if args.coord_file is None:
-            self.coords = {}
+            self.coords = defaultdict(list)
         else:
             csv = File(args.coord_file)
             self.coords = csv.read_csv('fov', ['dxPx', 'dyPx'])
@@ -38,42 +45,40 @@ class Gain(object):
         self.medians = defaultdict(int)
 
     def process_output(self, well, output, dict_list):
-        """Function to process output from the R scripts."""
+        """Process output from the R scripts."""
         for c in output.split():
             dict_list[well].append(c)
         return dict_list
 
     def calc_gain(self, filebases, fin_wells):
-        """Function to run R scripts and calculate gain values for
-        the wells."""
+        """Run R scripts and calculate gain values for the wells."""
         # Get a unique set of filebases from the csv paths.
         filebases = sorted(set(filebases))
         # Get a unique set of names of the experiment wells.
         fin_wells = sorted(set(fin_wells))
         for fbase, well in zip(filebases, fin_wells):
-            print("WELL: ", well)
+            _LOGGER.debug('WELL: %s', well)
             try:
-                print('Starting R...')
+                _LOGGER.info('Starting R...')
                 r_output = subprocess.check_output(['Rscript',
                                                     self.r_script,
                                                     self.args.imaging_dir,
                                                     fbase,
-                                                    self.args.init_gain
-                                                    ])
+                                                    self.args.init_gain])
                 self.gain_dict = self.process_output(well, r_output,
                                                      self.gain_dict)
             except OSError as e:
-                print('Execution failed:', e)
+                _LOGGER.error('Execution failed: %s', e)
                 sys.exit()
             except subprocess.CalledProcessError as e:
-                print('Subprocess returned a non-zero exit status:', e)
+                _LOGGER.error(
+                    'Subprocess returned a non-zero exit status: %s', e)
                 sys.exit()
-            print(r_output)
+            _LOGGER.debug(r_output)
         return self.gain_dict
 
     def distribute_gain(self):
-        """Function to collate gain values and distribute them to the wells as
-           to efficiently be able to scan all the wells."""
+        """Collate gain values and distribute them to the wells."""
         self.green_sorted = defaultdict(list)
         self.medians = defaultdict(int)
         for i, c in enumerate(['green', 'blue', 'yellow', 'red']):
@@ -100,6 +105,7 @@ class Gain(object):
         return
 
     def set_gain(self, com, channels, job_list):
+        """Set gain."""
         for i, c in enumerate(channels):
             gain = str(c)
             if i < 2:
@@ -108,11 +114,12 @@ class Gain(object):
             if i >= 2:
                 detector = '2'
                 job = job_list[i - 1]
-            com.gain_com(exp=job, num=detector, value=gain) + '\n'
+            com.gain_com(exp=job, num=detector, value=gain)
         return com
 
     # #FIXME:10 Merge get_com and get_init_com functions, trello:egmsbuN8
     def get_com(self, x_fields, y_fields):
+        """Get command."""
         dx = 0
         dy = 0
         # Lists for storing command strings.
@@ -124,8 +131,7 @@ class Gain(object):
             channels = [gain,
                         self.medians['blue'],
                         self.medians['yellow'],
-                        self.medians['red']
-                        ]
+                        self.medians['red']]
             com = self.set_gain(com, channels, self.job_list)
             for well in sorted(wells):
                 for i in range(y_fields):
@@ -145,19 +151,18 @@ class Gain(object):
                                         well,
                                         'X0{}--Y0{}'.format(j, i),
                                         dx,
-                                        dy
-                                        )
+                                        dy)
                             end_com = ['CAM',
                                        well,
                                        'E0' + str(self.args.first_job + 2),
-                                       'X0{}--Y0{}'.format(j, i)
-                                       ]
+                                       'X0{}--Y0{}'.format(j, i)]
             # Store the commands in lists.
             com_list.append(com.com)
             end_com_list.append(end_com)
         return {'com': com_list, 'end_com': end_com_list}
 
     def get_init_com(self):
+        """Get command for gain analysis."""
         wells = []
         if self.template:
             # Selected wells from template file.

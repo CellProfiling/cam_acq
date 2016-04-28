@@ -1,16 +1,22 @@
-import os
-import sys
+"""Main module."""
 import argparse
+import logging
+import os
 import re
 import socket
-import logging
+import sys
+
 from pkg_resources import resource_string
-from control import Control
-import log
+
 import config
+import log
+from control import Control
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def check_dir_arg(path):
+    """Check that argument is a directory."""
     # remove if not needed
     if os.path.isdir(path):
         return path
@@ -20,6 +26,7 @@ def check_dir_arg(path):
 
 
 def check_file_arg(path):
+    """Check that argument is a file."""
     # remove if not needed
     if os.path.isfile(path):
         return path
@@ -29,22 +36,25 @@ def check_file_arg(path):
 
 
 def check_well_arg(arg):
+    """Check that argument is valid well."""
     try:
-        return re.match("^U\d\d--V\d\d$", arg).group(0)
+        return re.match(r'^U\d\d--V\d\d$', arg).group(0)
     except AttributeError:
         raise argparse.ArgumentTypeError(
             'String {} does not match required format'.format(arg))
 
 
 def check_field_arg(arg):
+    """Check that argument is valid field."""
     try:
-        return re.match("^X\d\d--Y\d\d$", arg).group(0)
+        return re.match(r'^X\d\d--Y\d\d$', arg).group(0)
     except AttributeError:
         raise argparse.ArgumentTypeError(
             'String {} does not match required format'.format(arg))
 
 
 def check_ip_arg(addr):
+    """Check that addr argument is valid ip address."""
     try:
         socket.inet_aton(addr)
         # legal
@@ -56,6 +66,7 @@ def check_ip_arg(addr):
 
 
 def check_log_level(loglevel):
+    """Validate log level and return it if valid."""
     # assuming loglevel is bound to the string value obtained from the
     # command line argument. Convert to upper case to allow the user to
     # specify --log=DEBUG or --log=debug
@@ -76,7 +87,8 @@ def parse_command_line(argv):
         type=check_dir_arg,
         help='the path to the directory where images are exported')
     parser.add_argument(
-        # #TODO:0 Replace working_dir with resource api call for all data files, trello:3kgNjgJs
+        # #TODO:0 Replace working_dir with resource api call for all data files
+        # trello:3kgNjgJs
         # instead of looking in the working dir.
         # foo_config = resource_string(__name__, 'foo.conf')
         '-w',
@@ -147,7 +159,6 @@ def parse_command_line(argv):
         'host',
         type=check_ip_arg,
         help='the ip address of the host server, i.e. the microscope')
-    # #DONE:50 Make end-10x, end-40x and end-63x mutually exclusive, trello:xinb2xIm
     objectives = parser.add_mutually_exclusive_group(required=True)
     objectives.add_argument(
         '--end-10x',
@@ -177,6 +188,12 @@ def parse_command_line(argv):
         dest='log_level',
         type=check_log_level,
         help='an option to specify lowest log level to log')
+    parser.add_argument(
+        '-C',
+        '--config',
+        dest='config_dir',
+        default=config.get_default_config_dir(),
+        help='the path to camacq configuration directory')
     args = parser.parse_args(argv)
     if args.imaging_dir:
         args.imaging_dir = os.path.normpath(args.imaging_dir)
@@ -192,31 +209,56 @@ def parse_command_line(argv):
         args.template_file = os.path.normpath(args.template_file)
     if args.input_gain:
         args.input_gain = os.path.normpath(args.input_gain)
+    if args.config_dir:
+        args.config_dir = os.path.normpath(args.config_dir)
     # #DONE:0 Finish adding args, parse_command_line(), trello:VjTzfUGv
 
     return args
 
 
-def main(argv):
-    """Main function"""
+def ensure_config_path(config_dir):
+    """Validate the configuration directory."""
+    # Test if configuration directory exists
+    if not os.path.isdir(config_dir):
+        if config_dir != config.get_default_config_dir():
+            print(('Fatal Error: Specified configuration directory does '
+                   'not exist {} ').format(config_dir))
+            sys.exit(1)
 
+        try:
+            os.mkdir(config_dir)
+        except OSError:
+            print(('Fatal Error: Unable to create default configuration '
+                   'directory {} ').format(config_dir))
+            sys.exit(1)
+
+
+def ensure_config_file(config_dir):
+    """Ensure configuration file exists."""
+    config_path = config.ensure_config_exists(config_dir)
+
+    if config_path is None:
+        print('Error getting configuration path')
+        sys.exit(1)
+
+    return config_path
+
+
+def main(argv):
+    """Main function."""
     # Parse command line arguments
     args = parse_command_line(argv)
-    #print(args)  # testing
-
-    #log.enable_log(args)
-    config_file_path = "cam_acq/config.yml"
-    cfg = config.load_config_file(config_file_path)  # fix this path
+    config_dir = os.path.join(os.getcwd(), args.config)
+    ensure_config_path(config_dir)
+    config_file = ensure_config_file(config_dir)
+    cfg = config.load_config_file(config_file)
     if not cfg:
-        print("Could not load config file at:", config_file_path)
-        os.exit(1)
-    else:
-        print("CONFIG:", cfg)
-    #log.enable_log(args, config=cfg['logging'])
-    # #DONE:10 Fix args to make control object working, trello:PxoHWv3P
-    control = Control(args)
+        print('Could not load config file at:', config_file)
+        sys.exit(1)
+    log.enable_log(args, config_instance=cfg['logging'])
+    _LOGGER.info('CONFIG: %s', cfg)
 
-    # #DONE:40 Finish main function, trello:efo8RhDm
+    control = Control(args)
     control.control()
 
 if __name__ == '__main__':

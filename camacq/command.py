@@ -1,14 +1,17 @@
+"""Handle commands."""
 import re
 from collections import OrderedDict
 
 
 def make_com(base_com):
-    """Decorator function for the command functions, in the Command class."""
+    """Decorate command functions, in the Command class."""
 
     def wrapper(self, *args, **kwargs):
-        """Wrapper function in the decorator.
-        Creates the command from the base command and concatenates
-        any existing command with the new command and returns."""
+        """Wrap the base_com function.
+
+        Create the command from the base command and concatenate
+        any existing command with the new command and return the command.
+        """
         com = ''
         for key, val in base_com(self, *args, **kwargs).iteritems():
             com = com + ' /' + key + ':' + val
@@ -18,58 +21,56 @@ def make_com(base_com):
 
 
 class Command(object):
-
-    """Command class
+    """Command class.
 
     Attributes:
         com: A string where each line is a command to be sent to the server.
     """
 
     def __init__(self):
+        """Set up instance."""
         self.com = ''
 
     def get_wfx(self, compartment):
-        """Returns a string representing the well or field X coordinate."""
-
-        return str(int(re.sub(r'\D',
-                              '',
-                              re.sub('--.\d\d', '', compartment)
-                              )) + 1)
+        """Return a string representing the well or field X coordinate."""
+        return str(int(re.sub(
+            r'\D', '', re.sub(r'--.\d\d', '', compartment))) + 1)
 
     def get_wfy(self, compartment):
-        """Returns a string representing the well or field Y coordinate."""
-
-        return str(int(re.sub(r'\D',
-                              '',
-                              re.sub('.\d\d--', '', compartment)
-                              )) + 1)
+        """Return a string representing the well or field Y coordinate."""
+        return str(int(re.sub(
+            r'\D', '', re.sub(r'.\d\d--', '', compartment))) + 1)
 
     @make_com
     def del_com(self):
-        """Returns a dict with parts for the cam command for deleting
-        the cam list."""
+        """Delete the cam list.
 
+        Return a dict with parts for the cam command.
+        """
         return OrderedDict([('cmd', 'deletelist')])
 
     @make_com
     def start_com(self):
-        """Returns a dict with parts for the cam command for starting
-        the scan."""
+        """Start the scan.
 
+        Return a dict with parts for the cam command.
+        """
         return OrderedDict([('cmd', 'startscan')])
 
     @make_com
     def stop_com(self):
-        """Returns a dict with parts for the cam command for stopping
-        the scan."""
+        """Stop the scan.
 
+        Return a dict with parts for the cam command.
+        """
         return OrderedDict([('cmd', 'stopscan')])
 
     @make_com
     def camstart_com(self, afjob=None, afrange=None, afsteps=None):
-        """Returns a dict with parts for the cam command to start the cam scan
-        with selected AF job and AF settings."""
+        """Start the cam scan with selected AF job and AF settings.
 
+        Return a dict with parts for the cam command.
+        """
         if afjob is None:
             afjob = ''
         else:
@@ -89,25 +90,29 @@ class Command(object):
 
     @make_com
     def camstop_com(self):
-        """Returns a dict with parts for the cam command for stopping the
-        cam scan."""
+        """Stop the cam scan.
 
+        Return a dict with parts for the cam command.
+        """
         return OrderedDict([('cmd', 'stopcamscan')])
 
     @make_com
     def gain_com(self, exp='job', num='1', value='800'):
-        """Returns a dict with parts for the cam command for changing the
-        pmt gain in a job."""
+        """Change the pmt gain in a job.
 
+        Return a dict with parts for the cam command.
+        """
         return OrderedDict([('cmd', 'adjust'), ('tar', 'pmt'), ('num', num),
                             ('exp', exp), ('prop', 'gain'), ('value', value)])
 
     @make_com
     def enable_com(self, well, field, enable):
-        """Returns a dict with parts for the cam command
-        to enable a field in a well. Gets wellx/y and fieldx/y from well and
-        field by calling get_wfx and get_wfy."""
+        """Enable a field in a well.
 
+        Return a dict with parts for the cam command.
+        Get wellx/y and fieldx/y from well and field
+        by calling get_wfx and get_wfy.
+        """
         wellx = self.get_wfx(well)
         welly = self.get_wfy(well)
         fieldx = self.get_wfx(field)
@@ -119,11 +124,13 @@ class Command(object):
                             ('value', enable)])
 
     @make_com
-    def cam_com(self, exp, well, field, dx, dy):
-        """Returns a dict with parts for the cam command to add a field to
-        the cam list. Gets wellx/y and fieldx/y from well and field by calling
-        get_wfx and get_wfy."""
+    def cam_com(self, exp, well, field, dxcoord, dycoord):
+        """Add a field to the cam list.
 
+        Return a dict with parts for the cam command.
+        Get wellx/y and fieldx/y from well and field by calling
+        get_wfx and get_wfy.
+        """
         wellx = self.get_wfx(well)
         welly = self.get_wfy(well)
         fieldx = self.get_wfx(field)
@@ -132,4 +139,5 @@ class Command(object):
         return OrderedDict([('cmd', 'add'), ('tar', 'camlist'), ('exp', exp),
                             ('ext', 'af'), ('slide', '0'), ('wellx', wellx),
                             ('welly', welly), ('fieldx', fieldx),
-                            ('fieldy', fieldy), ('dxpos', dx), ('dypos', dy)])
+                            ('fieldy', fieldy), ('dxpos', dxcoord),
+                            ('dypos', dycoord)])

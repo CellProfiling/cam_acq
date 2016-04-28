@@ -1,20 +1,27 @@
+"""Control the microscope."""
+import logging
 import os
 import re
 import time
 from collections import defaultdict
+
 import numpy as np
-from socket_client import Client
+
 from command import Command
 from gain import Gain
-from image import File
-from image import Directory
-from image import CamImage
+from image import CamImage, Directory, File
+from socket_client import Client
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class Control(object):
+    """Represent a control center for the microscope."""
 
-    # #DONE:60 Which args should be optional in init function, Control class, trello:Tg7I1eTe
+    # pylint: disable=too-many-instance-attributes
+
     def __init__(self, args):
+        """Set up instance."""
         self.args = args
         # Create socket
         self.sock = Client()
@@ -34,17 +41,6 @@ class Control(object):
         # #RFE:0 Assign job vars by config file, trello:UiavT7yP
         # #RFE:10 Assign job vars by parsing the xml/lrp-files, trello:d7eWnJC5
 
-        # Job and pattern variables and names
-        # AF job names and settings are not used when not using the drift AF.
-        # af_job_10x = 'af10xcam'
-        # afr_10x = '200'
-        # afs_10x = '41'
-        # af_job_40x = 'af40x'
-        # afr_40x = '105'
-        # afs_40x = '106'
-        # af_job_63x = 'af63x'
-        # afr_63x = '50'
-        # afs_63x = '51'
         self.pattern_g_10x = 'pattern7'
         self.pattern_g_40x = 'pattern8'
         self.pattern_g_63x = 'pattern9'
@@ -56,8 +52,7 @@ class Control(object):
         self.pattern_63x = 'pattern3'
 
     def parse_reply(self, reply, root):
-        """Function to parse the reply from the server to find the
-        correct file path."""
+        """Parse the reply from the server to find the correct file path."""
         reply = reply.replace('/relpath:', '')
         paths = reply.split('\\')
         for path in paths:
@@ -65,28 +60,27 @@ class Control(object):
         return root
 
     def search_imgs(self, line):
+        """Search for an image and return an CamImage instance."""
         error = True
         count = 0
         while error and count < 2:
             try:
                 root = self.parse_reply(line, self.args.imaging_dir)
                 img = CamImage(root)
-                print(img.name)
+                _LOGGER.debug('Image name: %s', img.name)
                 error = False
                 return img
-            except TypeError as e:
+            except TypeError as exc:
                 error = True
                 count += 1
                 time.sleep(1)
-                print('No images yet... but maybe later?', e)
+                _LOGGER.warning('No images yet... but maybe later: %s', exc)
         return None
 
     # #DONE:20 Add get_imgs function, trello:nh2R6RWR
 
     def format_new_name(self, img):
-        """
-        Function to get a filename from an image.
-        """
+        """Get a filename from an image."""
         path = '{}--{}--{}--{}--{}.ome.tif'.format(
             img.well, img.E_id, img.field, img.Z_id, img.C_id)
         name = os.path.normpath(os.path.join(path))
@@ -95,8 +89,7 @@ class Control(object):
     # #FIXME:20 Function get_imgs is too complex, trello:hOc4mqsa
     def get_imgs(self, path, imdir, job_order, f_job=None, img_save=None,
                  csv_save=None):
-        """Function to handle the acquired images, do renaming,
-        max projections etc."""
+        """Handle acquired images, do renaming, make max projections."""
         if f_job is None:
             f_job = 2
         if img_save is None:
@@ -136,9 +129,9 @@ class Control(object):
         if not os.path.exists(new_dir):
             os.makedirs(new_dir)
         if img_save:
-            print('Saving images')
+            _LOGGER.info('Saving images')
         if csv_save:
-            print('Calculating histograms')
+            _LOGGER.info('Calculating histograms')
         for C_id, proj in max_projs.iteritems():
             if img_save:
                 ptime = time.time()
@@ -149,7 +142,7 @@ class Control(object):
                     img.well + '--' + img.field + '--' + C_id]
                 # Save meta data and image max proj.
                 CamImage(p).save_image(proj, metadata)
-                print('Save image:' + str(time.time() - ptime) + ' secs')
+                _LOGGER.debug('Save image: %s secs', str(time.time() - ptime))
             if csv_save:
                 ptime = time.time()
                 if proj.dtype.name == 'uint8':
@@ -164,35 +157,36 @@ class Control(object):
                     new_dir, '{}--{}.ome.csv'.format(img.well, C_id)))
                 csv = File(p)
                 csv.write_csv(rows, ['bin', 'count'])
-                print('Save csv:' + str(time.time() - ptime) + ' secs')
+                _LOGGER.debug('Save csv: %s secs', str(time.time() - ptime))
         return
 
     def get_csvs(self, line):
-        """Function to find the correct csv files and get their base names."""
+        """Find correct csv files and get their base names."""
         # empty lists for keeping csv file base path names
         # and corresponding well names
         fbs = []
         wells = []
         img = self.search_imgs(line)
-        print(img, "    ", img.C_id, "     ", img.field, "      ", self.args.last_field)
+        _LOGGER.debug('%s    %s    %s    %s',
+                      img, img.C_id, img.field, self.args.last_field)
         if img:
-            if (img.field == self.args.last_field and img.C_id == 'C31'):
-                print("No we are inside")
+            if img.field == self.args.last_field and img.C_id == 'C31':
+                _LOGGER.debug("No we are inside")
                 if self.args.end_63x:
                     self.sock.send(self.stop_com)
                 ptime = time.time()
                 self.get_imgs(
                     img.well_path, img.well_path, 'E02', img_save=False)
-                print(str(time.time() - ptime) + ' secs')
+                _LOGGER.debug('%s secs', str(time.time() - ptime))
                 # get all CSVs and wells
                 search = Directory(img.well_path)
                 csvs = sorted(search.get_all_files('*.ome.csv'))
                 for csv_path in csvs:
                     csv_file = File(csv_path)
                     # Get the filebase from the csv path.
-                    fbase = re.sub('C\d\d.+$', '', csv_file.path)
+                    fbase = re.sub(r'C\d\d.+$', '', csv_file.path)
                     #  Get the well from the csv path.
-                    well_name = csv_file.get_name('U\d\d--V\d\d')
+                    well_name = csv_file.get_name(r'U\d\d--V\d\d')
                     fbs.append(fbase)
                     wells.append(well_name)
         return {'bases': fbs, 'wells': wells}
@@ -200,6 +194,7 @@ class Control(object):
     # #FIXME:20 Function send_com is too complex, trello:S4Df369p
     def send_com(self, gobj, com_list, end_com_list, stage1=None, stage2=None,
                  stage3=None):
+        """Send commands to the CAM server."""
         for com, end_com in zip(com_list, end_com_list):
             # Send CAM list for the gain job to the server during stage1.
             # Send gain change command to server in the four channels
@@ -208,36 +203,37 @@ class Control(object):
             # Reset self.gain_dict for each iteration.
             self.gain_dict = defaultdict(list)
             com = self.del_com + com
-            print(com)
+            _LOGGER.debug(com)
             self.sock.send(com)
             time.sleep(3)
             # Start scan.
-            print(self.start_com)
+            _LOGGER.debug(self.start_com)
             self.sock.send(self.start_com)
             time.sleep(7)
             # Start CAM scan.
-            print(self.camstart_com)
+            _LOGGER.debug(self.camstart_com)
             self.sock.send(self.camstart_com)
             time.sleep(3)
             stage4 = True
             while stage4:
-                print('Waiting for images...')
+                _LOGGER.info('Waiting for images...')
                 reply = self.sock.recv_timeout(120, ['image--'])
                 for line in reply.splitlines():
                     if stage1 and 'image' in line:
-                        print('Stage1')
-                        print(line)
+                        _LOGGER.info('Stage1')
+                        _LOGGER.debug(line)
                         csv_result = self.get_csvs(line)
                         filebases = csv_result['bases']
-                        print(filebases)
+                        _LOGGER.debug(filebases)
                         fin_wells = csv_result['wells']
-                        print(fin_wells)
+                        _LOGGER.debug(fin_wells)
                         self.gain_dict = gobj.calc_gain(filebases, fin_wells)
-                        print(self.gain_dict) #testing
+                        _LOGGER.debug(self.gain_dict)  # testing
                         if not self.saved_gains:
                             self.saved_gains = self.gain_dict
                         if self.saved_gains:
-                            print("SAVED_GAINS", self.saved_gains) #testing
+                            # testing
+                            _LOGGER.debug('SAVED_GAINS %s', self.saved_gains)
                             self.saved_gains.update(self.gain_dict)
                             header = ['well', 'green', 'blue', 'yellow', 'red']
                             csv_name = 'output_gains.csv'
@@ -251,10 +247,10 @@ class Control(object):
                             late_end_com_list = com_result['end_com']
                     elif 'image' in line:
                         if stage2:
-                            print('stage2')
+                            _LOGGER.info('Stage2')
                             img_saving = False
                         if stage3:
-                            print('stage3')
+                            _LOGGER.info('Stage3')
                             img_saving = True
                         img = self.search_imgs(line)
                         if img:
@@ -263,15 +259,10 @@ class Control(object):
                                           img.E_id,
                                           f_job=self.args.first_job,
                                           img_save=img_saving,
-                                          csv_save=False
-                                          )
+                                          csv_save=False)
                     if all(test in line for test in end_com):
                         stage4 = False
-            # Stop scan
-            # print(stop_cam_com)
-            # self.sock.send(stop_cam_com)
-            # time.sleep(5)
-            print(self.stop_com)
+            _LOGGER.debug(self.stop_com)
             self.sock.send(self.stop_com)
             time.sleep(6)  # Wait for it to come to complete stop.
             if self.gain_dict and stage1:
@@ -280,7 +271,7 @@ class Control(object):
         return
 
     def control(self):
-        """Function to control the flow."""
+        """Control the flow."""
         # #DONE:70 Make sure order of booleans is correct, trello:BST7i275
         # if they effect eachother
         # Booleans etc to control flow.
@@ -330,4 +321,4 @@ class Control(object):
             self.send_com(gobj, com_list, end_com_list, stage1=stage1,
                           stage2=stage2, stage3=stage3)
 
-        print('\nExperiment finished!')
+        _LOGGER.info('\nExperiment finished!')

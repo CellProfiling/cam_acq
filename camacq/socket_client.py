@@ -1,8 +1,10 @@
 """Handle socket client."""
+import logging
 import socket
 import sys
 import time
 
+_LOGGER = logging.getLogger(__name__)
 
 class Client(object):
     """Client class."""
@@ -16,9 +18,9 @@ class Client(object):
             else:
                 self.sock = sock
         except socket.error:
-            print 'Failed to create socket'
+            _LOGGER.error('Failed to create socket')
             sys.exit()
-        print 'Socket Created'
+        _LOGGER.debug('Socket created')
 
     def recv_timeout(self, timeout, test):
         """Receive reply from server.
@@ -57,7 +59,7 @@ class Client(object):
             try:
                 data = self.sock.recv(8192)
                 if data:
-                    print 'received "%s"' % data
+                    _LOGGER.debug('Received %s', data)
                     total_data.append(data)
                     # reset start time
                     begin = time.time()
@@ -66,7 +68,7 @@ class Client(object):
                 else:
                     # sleep to add time difference
                     time.sleep(0.1)
-            except:
+            except socket.error:
                 pass
 
         return joined_data
@@ -85,14 +87,14 @@ class Client(object):
         try:
             # Connect to the server at the port
             server_address = (host, port)
-            print 'connecting to %s port %s' % server_address
+            _LOGGER.info('Connecting to %s', server_address)
             self.sock.connect(server_address)
 
             # Receive welcome reply from server
             # self.recv_timeout(3, ['Welcome'])
 
         except socket.error:
-            print 'Failed to connect to socket.'
+            _LOGGER.error('Failed to connect to socket')
             sys.exit()
 
     def send(self, message):
@@ -113,7 +115,7 @@ class Client(object):
                     line = line[:-1] + '\r\n'
                 else:
                     line = line + '\r\n'
-                print 'sending "%s"' % line
+                _LOGGER.debug('Sending %s', line)
                 self.sock.send(line)
                 self.recv_timeout(20, [line[:-2]])
                 if 'stopscan' in line:
@@ -122,14 +124,15 @@ class Client(object):
 
         except socket.error:
             # Send failed
-            print 'Sending to server failed.'
+            _LOGGER.error('Sending to server failed')
             sys.exit()
 
-        print 'Message sent successfully.'
+        _LOGGER.debug('Message sent successfully')
 
     def close(self):
-        """Close the socket."""
+        """Close socket."""
         self.sock.shutdown(socket.SHUT_RDWR)
         time.sleep(0.5)
         self.sock.close()
-        print('Socket closed.')
+        _LOGGER.info('Socket closed')
+        return
