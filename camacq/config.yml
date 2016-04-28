@@ -16,7 +16,7 @@ logging:
       level: INFO
       formatter: verbose
       filename: camacq.log
-      maxBytes: 1024
+      maxBytes: 1048576
       backupCount: 9
       encoding: utf-8
       delay: 0
