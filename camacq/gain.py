@@ -13,6 +13,27 @@ from image import File
 _LOGGER = logging.getLogger(__name__)
 
 
+def process_output(well, output, dict_list):
+    """Process output from the R scripts."""
+    for channel in output.split():
+        dict_list[well].append(channel)
+    return dict_list
+
+
+def set_gain(command, channels, job_list):
+    """Return a command to set gain for all channels."""
+    for i, channel in enumerate(channels):
+        gain = str(channel)
+        if i < 2:
+            detector = '1'
+            job = job_list[i]
+        if i >= 2:
+            detector = '2'
+            job = job_list[i - 1]
+        command.gain_com(exp=job, num=detector, value=gain)
+    return command
+
+
 class Gain(object):
     """
     Gain class.
@@ -44,18 +65,12 @@ class Gain(object):
         self.green_sorted = defaultdict(list)
         self.medians = defaultdict(int)
 
-    def process_output(self, well, output, dict_list):
-        """Process output from the R scripts."""
-        for c in output.split():
-            dict_list[well].append(c)
-        return dict_list
-
-    def calc_gain(self, filebases, fin_wells):
+    def calc_gain(self, data):
         """Run R scripts and calculate gain values for the wells."""
         # Get a unique set of filebases from the csv paths.
-        filebases = sorted(set(filebases))
+        filebases = sorted(set(data['bases']))
         # Get a unique set of names of the experiment wells.
-        fin_wells = sorted(set(fin_wells))
+        fin_wells = sorted(set(data['wells']))
         for fbase, well in zip(filebases, fin_wells):
             _LOGGER.debug('WELL: %s', well)
             try:
@@ -65,14 +80,13 @@ class Gain(object):
                                                     self.args.imaging_dir,
                                                     fbase,
                                                     self.args.init_gain])
-                self.gain_dict = self.process_output(well, r_output,
-                                                     self.gain_dict)
-            except OSError as e:
-                _LOGGER.error('Execution failed: %s', e)
+                self.gain_dict = process_output(well, r_output, self.gain_dict)
+            except OSError as exc:
+                _LOGGER.error('Execution failed: %s', exc)
                 sys.exit()
-            except subprocess.CalledProcessError as e:
+            except subprocess.CalledProcessError as exc:
                 _LOGGER.error(
-                    'Subprocess returned a non-zero exit status: %s', e)
+                    'Subprocess returned a non-zero exit status: %s', exc)
                 sys.exit()
             _LOGGER.debug(r_output)
         return self.gain_dict
@@ -81,41 +95,27 @@ class Gain(object):
         """Collate gain values and distribute them to the wells."""
         self.green_sorted = defaultdict(list)
         self.medians = defaultdict(int)
-        for i, c in enumerate(['green', 'blue', 'yellow', 'red']):
+        for i, channel in enumerate(['green', 'blue', 'yellow', 'red']):
             mlist = []
-            for k, v in self.gain_dict.iteritems():
+            for key, val in self.gain_dict.iteritems():
                 # Sort gain data into a list dict with green gain as key
                 # and where the value is a list of well ids.
-                if c == 'green':
+                if channel == 'green':
                     # Round gain values to multiples of 10 in green channel
                     if self.args.end_63x:
-                        green_val = int(min(round(int(v[i]), -1), 800))
+                        green_val = int(min(round(int(val[i]), -1), 800))
                     else:
-                        green_val = int(round(int(v[i]), -1))
+                        green_val = int(round(int(val[i]), -1))
                     if self.template:
-                        for well in self.template[k]:
+                        for well in self.template[key]:
                             self.green_sorted[green_val].append(well)
                     else:
-                        self.green_sorted[green_val].append(k)
+                        self.green_sorted[green_val].append(key)
                 else:
                     # Find the median value of all gains in
                     # blue, yellow and red channels.
-                    mlist.append(int(v[i]))
-                    self.medians[c] = int(np.median(mlist))
-        return
-
-    def set_gain(self, com, channels, job_list):
-        """Set gain."""
-        for i, c in enumerate(channels):
-            gain = str(c)
-            if i < 2:
-                detector = '1'
-                job = job_list[i]
-            if i >= 2:
-                detector = '2'
-                job = job_list[i - 1]
-            com.gain_com(exp=job, num=detector, value=gain)
-        return com
+                    mlist.append(int(val[i]))
+                    self.medians[channel] = int(np.median(mlist))
 
     # #FIXME:10 Merge get_com and get_init_com functions, trello:egmsbuN8
     def get_com(self, x_fields, y_fields):
@@ -132,7 +132,7 @@ class Gain(object):
                         self.medians['blue'],
                         self.medians['yellow'],
                         self.medians['red']]
-            com = self.set_gain(com, channels, self.job_list)
+            com = set_gain(com, channels, self.job_list)
             for well in sorted(wells):
                 for i in range(y_fields):
                     for j in range(x_fields):
