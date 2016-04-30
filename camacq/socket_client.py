@@ -1,17 +1,14 @@
+"""Handle socket client."""
 import socket
 import sys
 import time
 
 
 class Client(object):
-
-    """Client class
-
-    Attributes:
-        sock: The socket
-    """
+    """Client class."""
 
     def __init__(self, sock=None):
+        """Set up instance."""
         # Create a TCP/IP socket
         try:
             if sock is None:
@@ -24,10 +21,18 @@ class Client(object):
         print 'Socket Created'
 
     def recv_timeout(self, timeout, test):
-        """Receives reply from server, with a timeout and a list of strings
-        to test. When all test strings are received, the listening loop
-        ends."""
+        """Receive reply from server.
 
+        Use a timeout and a list of strings to test. When all test strings
+        are received, the listening loop ends.
+
+        Parameters
+        ----------
+        timeout : int
+            A timeout.
+        test : list
+            A list of strings to test.
+        """
         # make socket non blocking
         self.sock.setblocking(False)
 
@@ -67,11 +72,16 @@ class Client(object):
         return joined_data
 
     def connect(self, host, port):
-        """Connects to the socket object, on host and port.
-        host: A string representing the ip address of the server to connect.
-        port: An int representing the port address of the server to connect.
-        """
+        """Connect to the socket object, on host and port.
 
+        Parameters
+        ----------
+        host : string
+            Represent the ip address of the server to connect.
+
+        port : int
+            Represent the port address of the server to connect.
+        """
         try:
             # Connect to the server at the port
             server_address = (host, port)
@@ -85,12 +95,13 @@ class Client(object):
             print 'Failed to connect to socket.'
             sys.exit()
 
-        return
-
     def send(self, message):
-        """Function to send data from client to server.
-        message: A string representing the message to send from the client
-                     to the server.
+        """Send data from client to server.
+
+        Parameters
+        ----------
+        message : string
+            Represent the message to send from the client to the server.
         """
         try:
             # Send data
@@ -116,11 +127,9 @@ class Client(object):
 
         print 'Message sent successfully.'
 
-        return
-
     def close(self):
+        """Close the socket."""
         self.sock.shutdown(socket.SHUT_RDWR)
         time.sleep(0.5)
         self.sock.close()
         print('Socket closed.')
-        return

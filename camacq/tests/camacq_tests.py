@@ -1,5 +1,7 @@
 from nose.tools import *
-import cam_acq
+
+import camacq
+
 
 # #DOING:0 Add unit tests, trello:YIxPmdkk
 
