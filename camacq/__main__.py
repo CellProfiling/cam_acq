@@ -211,7 +211,6 @@ def parse_command_line(argv):
         args.input_gain = os.path.normpath(args.input_gain)
     if args.config_dir:
         args.config_dir = os.path.normpath(args.config_dir)
-    # #DONE:0 Finish adding args, parse_command_line(), trello:VjTzfUGv
 
     return args
 

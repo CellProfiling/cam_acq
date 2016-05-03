@@ -1,24 +1,22 @@
+"""Test package."""
 import threading
-
-from nose.tools import *
 
 from test_server import EchoRequestHandler, EchoServer
 
 IP = 'localhost'
 PORT = 8895
-_address = (IP, PORT)
 # Create the test server
-SERVER = EchoServer(_address, EchoRequestHandler)
+SERVER = EchoServer((IP, PORT), EchoRequestHandler)
 
 
 def setup():
+    """Set up test server."""
     # Start new thread for server
-    t = threading.Thread(target=SERVER.serve_forever)
-    t.start()
-    return
+    thread = threading.Thread(target=SERVER.serve_forever)
+    thread.start()
 
 
 def teardown():
+    """Shutdown test server."""
     SERVER.shutdown()
     SERVER.server_close()
-    return
