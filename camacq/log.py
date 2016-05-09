@@ -29,6 +29,8 @@ def enable_log(args, config_instance=None):
             logging.config.dictConfig(config_instance)
         else:  # get log path from default config dir
             path = os.path.join(args.config_dir, LOG_FILENAME)
+            _LOGGER.info(
+                'Using default log path at: %s', path)
             if check_path(path):
                 filelog = logging.handlers.RotatingFileHandler(
                     path, maxBytes=1024, backupCount=9,

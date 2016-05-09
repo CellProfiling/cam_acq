@@ -131,7 +131,7 @@ def get_scan_paths(scan, compartments, conditions):
                     test = test and comp in cond
             else:
                 _LOGGER.error('Conditions must hold tuples or strings')
-                return None
+                return []
         if test:
             paths.append(comp)
     return paths

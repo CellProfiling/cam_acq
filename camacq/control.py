@@ -143,7 +143,7 @@ class Control(object):
             # Reset gain_dict for each iteration.
             gain_dict = defaultdict(list)
             _LOGGER.debug(del_com)
-            _LOGGER.debug(self.cam.send(del_com))
+            _LOGGER.debug(self.cam.send(del_com()))
             send(self.cam, com)
             time.sleep(3)
             # Start scan.
@@ -197,7 +197,8 @@ class Control(object):
                                         f_job=self.args.first_job,
                                         img_save=img_saving,
                                         histo_save=False)
-                    if all(test in reply['relpath'] for test in end_com):
+                    if all(test in reply.get('relpath', [])
+                           for test in end_com):
                         stage4 = False
             _LOGGER.debug(self.cam.stop_scan())
             time.sleep(6)  # Wait for it to come to complete stop.

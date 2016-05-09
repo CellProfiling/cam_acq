@@ -43,22 +43,21 @@ def camstart_com(afjob=None, afrange=None, afsteps=None):
 
     Return a list with parts for the cam command.
     """
-    if afjob is None:
-        afjob = ''
-    else:
-        afjob = afjob
-    if afrange is None:
-        afrange = ''
-    else:
-        afrange = afrange
-    if afsteps is None:
-        afsteps = ''
-    else:
-        afsteps = afsteps
+    if afjob is not None:
+        afjob = ('afj', afjob)
+    if afrange is not None:
+        afrange = ('afr', afrange)
+    if afsteps is not None:
+        afsteps = ('afs', afsteps)
 
-    return [('cmd', 'startcamscan'), ('runtime', '36000'),
-            ('repeattime', '36000'), ('afj', afjob), ('afr', afrange),
-            ('afs', afsteps)]
+    template = [('cmd', 'startcamscan'), ('runtime', '36000'),
+                ('repeattime', '36000')]
+
+    for cmd in [afjob, afrange, afsteps]:
+        if cmd:
+            template.append(cmd)
+
+    return template
 
 
 def camstop_com():

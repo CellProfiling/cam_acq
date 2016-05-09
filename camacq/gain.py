@@ -188,10 +188,12 @@ class Gain(object):
         # Join the list of lists of command lists into a list of a command
         # list if dry a objective is used.
         if self.args.end_10x or self.args.end_40x:
-            com_list_bak = com_list
+            com_list_bak = list(com_list)
             com_list = []
+            inner_com_list = []
             for com in com_list_bak:
-                com_list.extend(com)
+                inner_com_list.extend(com)
+            com_list.append(inner_com_list)
             end_com_list = []
             end_com_list.append(end_com)
         return {'com': com_list, 'end_com': end_com_list}
