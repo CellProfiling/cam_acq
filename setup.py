@@ -70,7 +70,8 @@ CONFIG = {
         'numpy',
         'tifffile',
         'Pillow',
-        'PyYAML'
+        'PyYAML',
+        'matrixscreener',
     ],
     'packages': find_packages(exclude=['contrib', 'docs', 'tests*']),
     'include_package_data': True,

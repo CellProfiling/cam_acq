@@ -1,18 +1,16 @@
-from nose.tools import *
-
-import camacq
-
-
-# #DOING:0 Add unit tests, trello:YIxPmdkk
+"""Test module for camacq."""
 
 
 def setup():
+    """Setup fixture."""
     print "SETUP!"
 
 
 def teardown():
+    """Teardown fixture."""
     print "TEAR DOWN!"
 
 
 def test_basic():
+    """Test dummy."""
     print "I RAN!"

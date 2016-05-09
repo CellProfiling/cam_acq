@@ -8,15 +8,15 @@ logging:
   handlers:
     console:
       class: logging.StreamHandler
-      level: INFO
+      level: DEBUG
       formatter: simple
       stream: ext://sys.stdout
     filelog:
       class: logging.handlers.RotatingFileHandler
-      level: DEBUG
+      level: INFO
       formatter: verbose
-      filename: path/to/cam_acq.log
-      maxBytes: 1024
+      filename: camacq.log
+      maxBytes: 1048576
       backupCount: 9
       encoding: utf-8
       delay: 0

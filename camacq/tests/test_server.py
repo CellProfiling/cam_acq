@@ -1,3 +1,4 @@
+"""Handle test server."""
 # Python socket server example taken from pymotw
 
 import logging
@@ -9,18 +10,23 @@ logging.basicConfig(
 
 
 class EchoRequestHandler(SocketServer.BaseRequestHandler):
+    """Request handler of test server."""
 
     def __init__(self, request, client_address, server):
+        """Set up instance attributes."""
         self.logger = logging.getLogger('EchoRequestHandler')
         self.logger.debug('__init__')
         SocketServer.BaseRequestHandler.__init__(
             self, request, client_address, server)
 
     def setup(self):
+        """Set up handler."""
         self.logger.debug('setup')
+        self.request.send('Welcome')
         return SocketServer.BaseRequestHandler.setup(self)
 
     def handle(self):
+        """Handle requests."""
         self.logger.debug('handle')
 
         # Echo the back to the client
@@ -29,13 +35,16 @@ class EchoRequestHandler(SocketServer.BaseRequestHandler):
         self.request.send(data)
 
     def finish(self):
+        """Finish requests."""
         self.logger.debug('finish')
         return SocketServer.BaseRequestHandler.finish(self)
 
 
 class EchoServer(SocketServer.TCPServer):
+    """Test server."""
 
     def __init__(self, server_address, handler_class=EchoRequestHandler):
+        """Set up instance attributes."""
         self.logger = logging.getLogger('EchoServer')
         self.logger.debug('__init__')
         SocketServer.TCPServer.allow_reuse_address = True
@@ -43,13 +52,13 @@ class EchoServer(SocketServer.TCPServer):
 
 if __name__ == '__main__':
 
-    address = ('localhost', 8895)
-    server = EchoServer(address, EchoRequestHandler)
+    ADDRESS = ('localhost', 8895)
+    SERVER = EchoServer(ADDRESS, EchoRequestHandler)
     # ip, port = server.server_address  # find out what port we were given
 
-    t = threading.Thread(target=server.serve_forever)
-    t.start()
+    THREAD = threading.Thread(target=SERVER.serve_forever)
+    THREAD.start()
 
     # Clean up
-    server.shutdown()
-    server.server_close()
+    SERVER.shutdown()
+    SERVER.server_close()
