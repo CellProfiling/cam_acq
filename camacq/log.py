@@ -21,7 +21,7 @@ def check_path(path):
 def enable_log(args, config_instance=None):
     """Enable logging."""
     # pass the logging part of the config
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(level=logging.DEBUG,
                         format='%(name)-12s: %(levelname)-8s %(message)s')
     if config_instance is not None:  # add try+except to catch wrong config
         if check_path(
@@ -33,7 +33,7 @@ def enable_log(args, config_instance=None):
                 'Using default log path at: %s', path)
             if check_path(path):
                 filelog = logging.handlers.RotatingFileHandler(
-                    path, maxBytes=1024, backupCount=9,
+                    path, maxBytes=1048576, backupCount=9,
                     encoding='utf-8', delay=0)
                 filelog.setLevel(logging.DEBUG)
                 formatter = logging.Formatter(

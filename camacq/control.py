@@ -39,14 +39,17 @@ def handle_imgs(path, imdir, job_order, f_job=2, img_save=True,
     metadata_d = {}
     imgp = ''
     for imgp in imgs:
+        _LOGGER.info('Reading images...')
+        _LOGGER.debug('IMAGE PATH: %s', imgp)
         img_array = read_image(imgp)
         new_name = rename_imgs(scan, imgp, f_job)
+        _LOGGER.debug('NEW NAME: %s', new_name)
         if not (len(img_array) == 16 or len(img_array) == 256):
             new_paths.append(new_name)
             img_attr = attributes(imgp)
             metadata_d['U{}--V{}--X{}--Y{}--C{}'.format(
                 img_attr.U, img_attr.V, img_attr.X, img_attr.Y,
-                img_attr.C)] = meta_data(imgp)
+                img_attr.C)] = meta_data(new_name)
     # Make a max proj per channel and well.
     max_projs = make_proj(new_paths)
     new_dir = os.path.normpath(os.path.join(imdir, 'maxprojs'))
@@ -102,17 +105,22 @@ class Control(object):
         fbs = []
         wells = []
         path = find_image_path(img_ref, self.args.imaging_dir)
+        _LOGGER.debug('CSV PATH: %s', path)
         scan = find_scan(path)
+        _LOGGER.debug('SCAN PATH: %s', scan.path)  # pylint: disable=no-member
         imgs = get_scan_paths(scan, 'images', [path])
         for imgp in imgs:
             img_attr = attributes(imgp)
-            _LOGGER.debug(img_attr)
+            _LOGGER.debug('IMG_ATTR: %s', img_attr)
             if ('X{}--Y{}'.format(img_attr.X, img_attr.Y) ==
                     self.args.last_field and img_attr.c == 31):
-                if self.args.end_63x:
-                    _LOGGER.debug(self.cam.stop_scan())
+                if (self.args.end_63x or
+                        'U{}--V{}'.format(img_attr.U, img_attr.V) ==
+                        self.args.last_well):
+                    _LOGGER.debug('Stop scan after gain in well: %s',
+                                  self.cam.stop_scan())
                 wellp = get_scan_paths(scan, 'wells', [imgp])[0]
-                handle_imgs(wellp, wellp, 'E02', img_save=False)
+                handle_imgs(wellp, wellp, '02', img_save=False)
                 # get all CSVs and wells
                 csvs = glob(wellp + '*.ome.csv')
                 for csvp in csvs:
@@ -142,16 +150,17 @@ class Control(object):
             # Send CAM list for the experiment jobs to server (stage2/stage3).
             # Reset gain_dict for each iteration.
             gain_dict = defaultdict(list)
-            _LOGGER.debug(del_com)
-            _LOGGER.debug(self.cam.send(del_com()))
+            _LOGGER.debug('Delete list: %s', del_com())
+            _LOGGER.debug('Delete list reply: %s', self.cam.send(del_com()))
             send(self.cam, com)
             time.sleep(3)
             # Start scan.
-            _LOGGER.debug(self.cam.start_scan())
+            _LOGGER.debug('Start scan: %s', self.cam.start_scan())
             time.sleep(7)
             # Start CAM scan.
-            _LOGGER.debug(camstart_com)
-            _LOGGER.debug(self.cam.send(camstart_com()))
+            _LOGGER.debug('Start CAM scan: %s', camstart_com())
+            _LOGGER.debug('Start CAM scan reply: %s',
+                          self.cam.send(camstart_com()))
             time.sleep(3)
             _LOGGER.info('Waiting for images...')
             stage4 = True
@@ -163,17 +172,17 @@ class Control(object):
                 for reply in replies:
                     if stage1 and reply.get('relpath'):
                         _LOGGER.info('Stage1')
-                        _LOGGER.debug(reply)
+                        _LOGGER.debug('REPLY: %s', reply)
                         csv_result = self.get_csvs(reply.get('relpath'))
-                        _LOGGER.debug(csv_result['bases'])  # testing
-                        _LOGGER.debug(csv_result['wells'])  # testing
+                        _LOGGER.debug('BASES: %s', csv_result['bases'])
+                        _LOGGER.debug('WELLS: %s', csv_result['wells'])
                         gain_dict = gobj.calc_gain(csv_result)
-                        _LOGGER.debug(gain_dict)  # testing
+                        _LOGGER.debug('GAIN DICT: %s', gain_dict)
                         self.saved_gains.update(gain_dict)
                         if not self.saved_gains:
                             continue
                         # testing
-                        _LOGGER.debug('SAVED_GAINS %s', self.saved_gains)
+                        _LOGGER.debug('SAVED_GAINS: %s', self.saved_gains)
                         self.save_gain(self.saved_gains)
                         gobj.distribute_gain()
                         com_data = gobj.get_com(
@@ -200,7 +209,7 @@ class Control(object):
                     if all(test in reply.get('relpath', [])
                            for test in end_com):
                         stage4 = False
-            _LOGGER.debug(self.cam.stop_scan())
+            _LOGGER.debug('STOP SCAN: %s', self.cam.stop_scan())
             time.sleep(6)  # Wait for it to come to complete stop.
             if gain_dict and stage1:
                 self.send_com(gobj, com_data['com'], com_data['end_com'],

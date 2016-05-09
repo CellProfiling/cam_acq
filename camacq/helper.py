@@ -119,8 +119,10 @@ def get_scan_paths(scan, compartments, conditions):
             compartments)
         return None
     for comp in getattr(scan, compartments):
+        _LOGGER.debug('COMP: %s', comp)
         test = True
         for cond in conditions:
+            _LOGGER.debug('COND: %s', cond)
             if isinstance(cond, tuple):
                 test = test and cond[0] in experiment.attribute_as_str(
                     comp, cond[1])
@@ -132,6 +134,7 @@ def get_scan_paths(scan, compartments, conditions):
             else:
                 _LOGGER.error('Conditions must hold tuples or strings')
                 return []
+        _LOGGER.debug('TEST: %s', test)
         if test:
             paths.append(comp)
     return paths
@@ -142,7 +145,7 @@ def find_image_path(reply, root):
     paths = reply.split('\\')
     for path in paths:
         root = os.path.join(root, path)
-    return root
+    return str(root)
 
 
 def find_scan(path):
@@ -187,7 +190,8 @@ def format_new_name(scan, imgp, root=None, new_attr=None):
         Return new path to image.
     """
     if root is None:
-        root = get_scan_paths(scan, 'slides', [imgp])[0]
+        root = get_scan_paths(scan, 'images', [imgp])[0]
+        root = experiment.Experiment(root).dirname  # pylint: disable=no-member
 
     path = 'U{}--V{}--E{}--X{}--Y{}--Z{}--C{}.ome.tif'.format(
         *(experiment.attribute_as_str(imgp, attr)

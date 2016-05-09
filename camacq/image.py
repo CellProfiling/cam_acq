@@ -17,8 +17,11 @@ def read_image(path):
 
 def meta_data(path):
     """Read a tif image and return the meta data of the description."""
-    with tifffile.TiffFile(path) as tif:
-        return tif[0].image_description
+    try:
+        with tifffile.TiffFile(path) as tif:
+            return tif[0].image_description
+    except IOError as exception:
+        _LOGGER.error('Bad path! %s', exception)
 
 
 def save_image(path, data, metadata=None):
