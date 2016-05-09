@@ -19,7 +19,7 @@ def read(*filenames, **kwargs):
         Encoding to use to open filename. See
         https://docs.python.org/2/library/codecs.html#standard-encodings
         for supported encodings.
-    sep : string, optional
+    sep : str, optional
         Separator to use between joined content of filenames.
 
     Returns
