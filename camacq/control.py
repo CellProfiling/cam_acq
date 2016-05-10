@@ -122,7 +122,7 @@ class Control(object):
                 wellp = get_scan_paths(scan, 'wells', [imgp])[0]
                 handle_imgs(wellp, wellp, '02', img_save=False)
                 # get all CSVs and wells
-                csvs = glob(wellp + '*.ome.csv')
+                csvs = glob(os.path.join(os.path.normpath(wellp), '*.ome.csv'))
                 for csvp in csvs:
                     csv_attr = attributes(csvp)
                     # Get the filebase from the csv path.

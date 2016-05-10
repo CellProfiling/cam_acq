@@ -12,7 +12,11 @@ _LOGGER = logging.getLogger(__name__)
 
 def read_image(path):
     """Read a tif image and return the data."""
-    return np.array(Image.open(path))
+    try:
+        return np.array(Image.open(path))
+    except IOError as exception:
+        _LOGGER.error('Bad path! %s', exception)
+        return np.array([])
 
 
 def meta_data(path):
@@ -22,6 +26,7 @@ def meta_data(path):
             return tif[0].image_description
     except IOError as exception:
         _LOGGER.error('Bad path! %s', exception)
+        return ''
 
 
 def save_image(path, data, metadata=None):
