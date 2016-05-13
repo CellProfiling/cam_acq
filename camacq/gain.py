@@ -190,10 +190,8 @@ class Gain(object):
         if self.args.end_10x or self.args.end_40x:
             com_list_bak = list(com_list)
             com_list = []
-            inner_com_list = []
             for com in com_list_bak:
-                inner_com_list.extend(com)
-            com_list.append(inner_com_list)
-            end_com_list = []
-            end_com_list.append(end_com)
+                com_list.extend(com)
+            com_list = [com_list]
+            end_com_list = [end_com]
         return {'com': com_list, 'end_com': end_com_list}
