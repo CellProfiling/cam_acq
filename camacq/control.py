@@ -29,6 +29,10 @@ PATTERN_40X = 'pattern2'
 JOB_63X = ['job10', 'job11', 'job12']
 PATTERN_63X = 'pattern3'
 
+STAGE1_DEFAULT = True
+STAGE2_DEFAULT = True
+STAGE3_DEFAULT = False
+
 
 def handle_imgs(path, imdir, job_order, f_job=2, img_save=True,
                 histo_save=True):
@@ -196,34 +200,44 @@ class Control(object):
     def control(self):
         """Control the flow."""
         # Booleans etc to control flow.
+        stage1 = STAGE1_DEFAULT
+        stage2 = STAGE2_DEFAULT
+        stage3 = STAGE3_DEFAULT
         gain_dict = defaultdict(list)
-        stage1 = True
-        stage2 = True
-        stage3 = False
-        if self.args.end_10x:
-            pattern_g = PATTERN_G_10X
-            job_list = JOB_10X
-            pattern = PATTERN_10X
-        elif self.args.end_40x:
-            pattern_g = PATTERN_G_40X
-            job_list = JOB_40X
-            pattern = PATTERN_40X
-        elif self.args.end_63x:
-            stage2 = False
-            stage3 = True
-            pattern_g = PATTERN_G_63X
-            job_list = JOB_63X
-            pattern = PATTERN_63X
-        if self.args.gain_only:
-            stage2 = False
-            stage3 = False
-        if self.args.input_gain:
-            stage1 = False
-            gain_dict = read_csv(self.args.input_gain, 'well',
-                                 ['green', 'blue', 'yellow', 'red'])
+        flow_map = {
+            'end_10x': {
+                'job_info': (JOB_10X, PATTERN_G_10X, PATTERN_10X),
+            },
+            'end_40x': {
+                'job_info': (JOB_40X, PATTERN_G_40X, PATTERN_40X),
+            },
+            'end_63x': {
+                'job_info': (JOB_63X, PATTERN_G_63X, PATTERN_63X),
+                'stage2': False,
+                'stage3': True,
+            },
+            'gain_only': {
+                'stage2': False,
+                'stage3': False,
+            },
+            'input_gain': {
+                'stage1': False,
+            },
+        }
+        for attr, settings in flow_map.iteritems():
+            if getattr(self.args, attr, None):
+                stage1 = settings.get('stage1', stage1)
+                stage2 = settings.get('stage2', stage2)
+                stage3 = settings.get('stage3', stage3) if not \
+                    self.args.gain_only else flow_map['gain_only']['stage3']
+                if 'job_info' in settings:
+                    job_info = settings['job_info']
+                if 'input_gain' in attr:
+                    gain_dict = read_csv(self.args.input_gain, 'well',
+                                         ['green', 'blue', 'yellow', 'red'])
 
         # make Gain object
-        gobj = Gain(self.args, job_list, pattern_g, pattern)
+        gobj = Gain(self.args, gain_dict, job_info)
 
         if self.args.input_gain:
             gain_result = gobj.distribute_gain(gain_dict)

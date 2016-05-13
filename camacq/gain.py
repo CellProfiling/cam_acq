@@ -85,12 +85,11 @@ class Gain(object):
         same size as the chosen objective.
     """
 
-    def __init__(self, args, job_list, pattern_g, pattern):
+    def __init__(self, args, gain_dict, job_info):
         """Set up instance."""
         self.args = args
-        self.job_list = job_list
-        self.pattern_g = pattern_g
-        self.pattern = pattern
+        self.gain_dict = gain_dict
+        self.job_list, self.pattern_g, self.pattern = job_info
         if args.template_file is None:
             self.template = None
         else:
