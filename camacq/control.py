@@ -9,7 +9,7 @@ from matrixscreener.cam import CAM
 from matrixscreener.experiment import attribute_as_str, attributes, glob
 
 from command import camstart_com, del_com
-from gain import Gain
+from gain import GainMap
 from helper import (find_image_path, format_new_name, get_field, get_imgs,
                     get_well, read_csv, rename_imgs, save_histogram, send,
                     write_csv)
@@ -91,6 +91,7 @@ class Control(object):
         imgp = find_image_path(img_ref, self.args.imaging_dir)
         _LOGGER.debug('IMAGE PATH: %s', imgp)
         img_attr = attributes(imgp)
+        # This means only ever one well at a time.
         if ('X{}--Y{}'.format(img_attr.X, img_attr.Y) ==
                 'X01--Y01' and img_attr.c == 31):
             if (self.args.end_63x or
@@ -119,7 +120,7 @@ class Control(object):
         write_csv(path, saved_gains, header)
 
     # #FIXME:20 Function send_com is too complex, trello:S4Df369p
-    def send_com(self, gain_dict, gobj, com_list, end_com_list, stage1=None,
+    def send_com(self, gain_dict, gmap, com_list, end_com_list, stage1=None,
                  stage2=None, stage3=None):
         """Send commands to the CAM server."""
         for com, end_com in zip(com_list, end_com_list):
@@ -151,17 +152,14 @@ class Control(object):
                         _LOGGER.info('Stage1')
                         _LOGGER.debug('REPLY: %s', reply)
                         csv_result = self.get_csvs(reply.get('relpath'))
-                        gain_dict = gobj.calc_gain(csv_result, gain_dict)
+                        gain_dict = gmap.calc_gain(csv_result, gain_dict)
                         _LOGGER.debug('GAIN DICT: %s', gain_dict)
                         self.saved_gains.update(gain_dict)
                         if not self.saved_gains:
                             continue
                         _LOGGER.debug('SAVED_GAINS: %s', self.saved_gains)
                         self.save_gain(self.saved_gains)
-                        gain_result = gobj.distribute_gain(gain_dict)
-                        com_data = gobj.get_com(self.args.x_fields,
-                                                self.args.y_fields,
-                                                gain_result)
+                        gmap.distribute_gain(gain_dict)
                     elif reply.get('relpath'):
                         if stage2:
                             _LOGGER.info('Stage2')
@@ -191,9 +189,10 @@ class Control(object):
                     break
             time.sleep(1)  # Wait for it to come to complete stop.
             if gain_dict and stage1:
+                com_data = gmap.get_com(self.args.x_fields, self.args.y_fields)
                 # Reset gain_dict for each iteration.
                 gain_dict = defaultdict(list)
-                self.send_com(gain_dict, gobj, com_data['com'],
+                self.send_com(gain_dict, gmap, com_data['com'],
                               com_data['end_com'], stage1=False, stage2=stage2,
                               stage3=stage3)
 
@@ -233,21 +232,19 @@ class Control(object):
                 if 'job_info' in settings:
                     job_info = settings['job_info']
                 if 'input_gain' in attr:
-                    gain_dict = read_csv(self.args.input_gain, 'well',
-                                         ['green', 'blue', 'yellow', 'red'])
+                    gain_dict = read_csv(self.args.input_gain, 'well')
 
         # make Gain object
-        gobj = Gain(self.args, gain_dict, job_info)
+        gmap = GainMap(self.args, job_info)
 
         if self.args.input_gain:
-            gain_result = gobj.distribute_gain(gain_dict)
-            com_data = gobj.get_com(
-                self.args.x_fields, self.args.y_fields, gain_result)
+            gmap.distribute_gain(gain_dict)
+            com_data = gmap.get_com(self.args.x_fields, self.args.y_fields)
         else:
-            com_data = gobj.get_init_com()
+            com_data = gmap.get_init_com()
 
         if stage1 or stage2 or stage3:
-            self.send_com(gain_dict, gobj, com_data['com'],
+            self.send_com(gain_dict, gmap, com_data['com'],
                           com_data['end_com'], stage1=stage1, stage2=stage2,
                           stage3=stage3)
 
