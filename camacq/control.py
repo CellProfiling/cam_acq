@@ -38,8 +38,8 @@ def handle_imgs(path, imdir, job_order, f_job=2, img_save=True,
     new_paths = []
     metadata_d = {}
     imgp = ''
+    _LOGGER.info('Reading images...')
     for imgp in imgs:
-        _LOGGER.info('Reading images...')
         _LOGGER.debug('IMAGE PATH: %s', imgp)
         img_array = read_image(imgp)
         new_name = rename_imgs(scan, imgp, f_job)
@@ -51,14 +51,17 @@ def handle_imgs(path, imdir, job_order, f_job=2, img_save=True,
                 img_attr.U, img_attr.V, img_attr.X, img_attr.Y,
                 img_attr.C)] = meta_data(new_name)
     # Make a max proj per channel and well.
-    max_projs = make_proj(new_paths)
+    if histo_save or img_save:
+        max_projs = make_proj(new_paths)
+    else:
+        max_projs = {}
     new_dir = os.path.normpath(os.path.join(imdir, 'maxprojs'))
     if not os.path.exists(new_dir):
         os.makedirs(new_dir)
     if img_save:
-        _LOGGER.info('Saving images')
+        _LOGGER.info('Saving images...')
     if histo_save:
-        _LOGGER.info('Calculating histograms')
+        _LOGGER.info('Calculating histograms...')
     for c_id, proj in max_projs.iteritems():
         if img_save:
             save_path = format_new_name(scan, imgp, root=new_dir,
@@ -77,7 +80,7 @@ def handle_imgs(path, imdir, job_order, f_job=2, img_save=True,
             for box, count in enumerate(histo[0]):
                 rows[box].append(count)
             save_path = os.path.normpath(os.path.join(
-                new_dir, 'U{}--V{}--C{}.ome.csv'.format(
+                imdir, 'U{}--V{}--C{}.ome.csv'.format(
                     img_attr.U, img_attr.V, c_id)))
             write_csv(save_path, rows, ['bin', 'count'])
 
@@ -105,13 +108,13 @@ class Control(object):
         fbs = []
         wells = []
         path = find_image_path(img_ref, self.args.imaging_dir)
-        _LOGGER.debug('CSV PATH: %s', path)
+        _LOGGER.debug('IMAGE PATH: %s', path)
         scan = find_scan(path)
         _LOGGER.debug('SCAN PATH: %s', scan.path)  # pylint: disable=no-member
         imgs = get_scan_paths(scan, 'images', [path])
         for imgp in imgs:
             img_attr = attributes(imgp)
-            _LOGGER.debug('IMG_ATTR: %s', img_attr)
+            # _LOGGER.debug('IMG_ATTR: %s', img_attr)
             if ('X{}--Y{}'.format(img_attr.X, img_attr.Y) ==
                     self.args.last_field and img_attr.c == 31):
                 if (self.args.end_63x or
@@ -174,8 +177,8 @@ class Control(object):
                         _LOGGER.info('Stage1')
                         _LOGGER.debug('REPLY: %s', reply)
                         csv_result = self.get_csvs(reply.get('relpath'))
-                        _LOGGER.debug('BASES: %s', csv_result['bases'])
-                        _LOGGER.debug('WELLS: %s', csv_result['wells'])
+                        # _LOGGER.debug('BASES: %s', csv_result['bases'])
+                        # _LOGGER.debug('WELLS: %s', csv_result['wells'])
                         gain_dict = gobj.calc_gain(csv_result)
                         _LOGGER.debug('GAIN DICT: %s', gain_dict)
                         self.saved_gains.update(gain_dict)
@@ -193,7 +196,7 @@ class Control(object):
                             img_saving = False
                         if stage3:
                             _LOGGER.info('Stage3')
-                            img_saving = True
+                            img_saving = False
                         path = find_image_path(
                             reply['relpath'], self.args.imaging_dir)
                         scan = find_scan(path)
@@ -217,8 +220,6 @@ class Control(object):
 
     def control(self):
         """Control the flow."""
-        # #DONE:70 Make sure order of booleans is correct, trello:BST7i275
-        # if they effect eachother
         # Booleans etc to control flow.
         gain_dict = defaultdict(list)
         stage1 = True
@@ -258,4 +259,4 @@ class Control(object):
             self.send_com(gobj, com_data['com'], com_data['end_com'],
                           stage1=stage1, stage2=stage2, stage3=stage3)
 
-        _LOGGER.info('\nExperiment finished!')
+        _LOGGER.info('Experiment finished!')

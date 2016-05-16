@@ -6,8 +6,6 @@ import re
 import socket
 import sys
 
-from pkg_resources import resource_string
-
 import config
 import log
 from control import Control
@@ -83,20 +81,11 @@ def parse_command_line(argv):
     parser = argparse.ArgumentParser(
         description='Control a Leica microscope through CAM interface.')
     parser.add_argument(
-        '--imaging_dir',
+        '--imaging-dir',
+        dest='imaging_dir',
+        required=True,
         type=check_dir_arg,
         help='the path to the directory where images are exported')
-    parser.add_argument(
-        # #TODO:0 Replace working_dir with resource api call for all data files
-        # trello:3kgNjgJs
-        # instead of looking in the working dir.
-        # foo_config = resource_string(__name__, 'foo.conf')
-        '-w',
-        '--working-dir',
-        dest='working_dir',
-        type=check_dir_arg,
-        default=os.path.dirname(os.path.abspath(__file__)),
-        help='the path to the working directory of this program')
     parser.add_argument(
         '-g',
         '--init-gain',
@@ -133,7 +122,7 @@ def parse_command_line(argv):
         '-j',
         '--first-job',
         dest='first_job',
-        default=1,
+        default=2,
         type=int,
         help=('the integer marking the order of the first experiment job in\
               the patterns'))
@@ -186,6 +175,7 @@ def parse_command_line(argv):
     parser.add_argument(
         '--log-level',
         dest='log_level',
+        default='INFO',
         type=check_log_level,
         help='an option to specify lowest log level to log')
     parser.add_argument(
@@ -197,11 +187,7 @@ def parse_command_line(argv):
     args = parser.parse_args(argv)
     if args.imaging_dir:
         args.imaging_dir = os.path.normpath(args.imaging_dir)
-    if args.working_dir:
-        args.working_dir = os.path.normpath(args.working_dir)
-    if args.init_gain is None:
-        args.init_gain = resource_string(__name__, 'data/10x_gain.csv')
-    else:
+    if args.init_gain:
         args.init_gain = os.path.normpath(args.init_gain)
     if args.coord_file:
         args.coord_file = os.path.normpath(args.coord_file)

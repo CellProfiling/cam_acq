@@ -39,7 +39,7 @@ def make_proj(path_list):
 
     Each channel will make one max projection.
     """
-    _LOGGER.info('Making max projections')
+    _LOGGER.info('Making max projections...')
     sorted_images = defaultdict(list)
     max_imgs = {}
     for path in path_list:

@@ -5,7 +5,7 @@ import sys
 from collections import defaultdict
 
 import numpy as np
-from pkg_resources import resource_string
+from pkg_resources import resource_filename
 
 from command import cam_com, gain_com, get_wfx, get_wfy
 from helper import read_csv
@@ -69,7 +69,15 @@ class Gain(object):
         filebases = sorted(set(data['bases']))
         # Get a unique set of names of the experiment wells.
         fin_wells = sorted(set(data['wells']))
-        r_script = resource_string(__name__, 'data/gain.r')
+        r_script = resource_filename(__name__, 'data/gain.r')
+        if self.args.end_10x:
+            init_gain = resource_filename(__name__, 'data/10x_gain.csv')
+        elif self.args.end_40x:
+            init_gain = resource_filename(__name__, 'data/40x_gain.csv')
+        elif self.args.end_63x:
+            init_gain = resource_filename(__name__, 'data/63x_gain.csv')
+        if self.args.init_gain:
+            init_gain = self.args.init_gain
         for fbase, well in zip(filebases, fin_wells):
             _LOGGER.debug('WELL: %s', well)
             try:
@@ -78,7 +86,7 @@ class Gain(object):
                                                     r_script,
                                                     self.args.imaging_dir,
                                                     fbase,
-                                                    self.args.init_gain])
+                                                    init_gain])
                 self.gain_dict = process_output(well, r_output, self.gain_dict)
             except OSError as exc:
                 _LOGGER.error('Execution failed: %s', exc)

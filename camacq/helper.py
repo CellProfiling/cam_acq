@@ -32,7 +32,8 @@ def send(cam, commands):
         _LOGGER.debug(cmd)
         reply = cam.send(cmd)
         _LOGGER.debug(reply)
-        replies.extend(reply)
+        if reply:
+            replies.extend(reply)
     return replies
 
 
@@ -119,10 +120,10 @@ def get_scan_paths(scan, compartments, conditions):
             compartments)
         return None
     for comp in getattr(scan, compartments):
-        _LOGGER.debug('COMP: %s', comp)
+        # _LOGGER.debug('COMP: %s', comp)
         test = True
         for cond in conditions:
-            _LOGGER.debug('COND: %s', cond)
+            # _LOGGER.debug('COND: %s', cond)
             if isinstance(cond, tuple):
                 test = test and cond[0] in experiment.attribute_as_str(
                     comp, cond[1])
@@ -134,7 +135,7 @@ def get_scan_paths(scan, compartments, conditions):
             else:
                 _LOGGER.error('Conditions must hold tuples or strings')
                 return []
-        _LOGGER.debug('TEST: %s', test)
+        # _LOGGER.debug('TEST: %s', test)
         if test:
             paths.append(comp)
     return paths
@@ -210,12 +211,12 @@ def rename_imgs(scan, imgp, f_job):
         new_name = format_new_name(scan, imgp)
     elif (experiment.attribute(imgp, 'E') == f_job + 1 and
           experiment.attribute(imgp, 'C') == 0):
-        new_name = format_new_name(scan, imgp, 'C', '01')
+        new_name = format_new_name(scan, imgp, new_attr={'C': '01'})
     elif (experiment.attribute(imgp, 'E') == f_job + 1 and
           experiment.attribute(imgp, 'C') == 1):
-        new_name = format_new_name(scan, imgp, 'C', '02')
+        new_name = format_new_name(scan, imgp, new_attr={'C': '02'})
     elif experiment.attribute(imgp, 'E') == f_job + 2:
-        new_name = format_new_name(scan, imgp, 'C', '03')
+        new_name = format_new_name(scan, imgp, new_attr={'C': '03'})
     else:
         new_name = imgp
     os.rename(imgp, new_name)

@@ -21,7 +21,7 @@ def check_path(path):
 def enable_log(args, config_instance=None):
     """Enable logging."""
     # pass the logging part of the config
-    logging.basicConfig(level=logging.DEBUG,
+    logging.basicConfig(level=args.log_level,
                         format='%(name)-12s: %(levelname)-8s %(message)s')
     if config_instance is not None:  # add try+except to catch wrong config
         if check_path(
