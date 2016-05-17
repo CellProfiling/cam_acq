@@ -116,7 +116,7 @@ class Control(object):
             img_attr = attributes(imgp)
             # _LOGGER.debug('IMG_ATTR: %s', img_attr)
             if ('X{}--Y{}'.format(img_attr.X, img_attr.Y) ==
-                    self.args.last_field and img_attr.c == 31):
+                    'X01--Y01' and img_attr.c == 31):
                 if (self.args.end_63x or
                         'U{}--V{}'.format(img_attr.U, img_attr.V) ==
                         self.args.last_well):

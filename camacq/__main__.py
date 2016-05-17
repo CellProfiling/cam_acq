@@ -100,13 +100,6 @@ def parse_command_line(argv):
         type=check_well_arg,
         help='the id of the last well in the experiment, e.g. U11--V07')
     parser.add_argument(
-        '-F',
-        '--last-field',
-        dest='last_field',
-        default='X01--Y01',
-        type=check_field_arg,
-        help='the id of the last field in each well, e.g. X01--Y01')
-    parser.add_argument(
         '--x-fields',
         dest='x_fields',
         default=2,
@@ -197,6 +190,8 @@ def parse_command_line(argv):
         args.input_gain = os.path.normpath(args.input_gain)
     if args.config_dir:
         args.config_dir = os.path.normpath(args.config_dir)
+    args.last_field = 'X{0:02d}--Y{1:02d}'.format(
+        args.x_fields - 1, args.y_fields - 1)
 
     return args
 
