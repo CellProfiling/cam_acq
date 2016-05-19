@@ -9,8 +9,8 @@ import numpy as np
 
 from command import camstart_com, del_com
 from gain import Gain
-from helper import (find_image_path, format_new_name, get_field, get_well,
-                    read_csv, rename_imgs, send, write_csv)
+from helper import (find_image_path, format_new_name, get_field, get_imgs,
+                    get_well, read_csv, rename_imgs, send, write_csv)
 from image import make_proj, meta_data, save_image
 from matrixscreener.cam import CAM
 from matrixscreener.experiment import attribute_as_str, attributes, glob
@@ -34,12 +34,11 @@ def handle_imgs(path, imdir, job_order, f_job=2, img_save=True,
     """Handle acquired images, do renaming, make max projections."""
     # Get all image paths in well or field, depending on path and
     # job_order variable.
-    imgs = glob(
-        os.path.join(os.path.normpath(path), '*E{}*.tif'.format(job_order)))
+    imgs = get_imgs(path, search='E{}'.format(job_order))
     new_paths = []
     metadata_d = {}
     imgp = ''
-    _LOGGER.info('Reading images...')
+    _LOGGER.info('Handling images...')
     for imgp in imgs:
         _LOGGER.debug('IMAGE PATH: %s', imgp)
         new_name = rename_imgs(imgp, f_job)

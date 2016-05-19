@@ -161,3 +161,19 @@ def get_well(path):
     """Get path to well from image path."""
     # pylint: disable=no-member
     return experiment.Experiment(get_field(path)).dirname
+
+
+def get_imgs(path, img_type='tif', search=''):
+    """Get all images below path."""
+    if search:
+        search = '{}*'.format(search)
+    patterns = [
+        'slide',
+        'chamber',
+        'field',
+        'image',
+    ]
+    for pattern in patterns:
+        if pattern not in path:
+            path = os.path.join(path, '{}--*'.format(pattern))
+    return experiment.glob('{}{}.{}'.format(path, search, img_type))
