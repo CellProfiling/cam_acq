@@ -3,6 +3,7 @@ import logging
 import os
 
 import yaml
+from pkg_resources import resource_filename
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ def create_default_config(config_dir):
     Return path to new config file if success, None if failed.
     """
     config_path = os.path.join(config_dir, YAML_CONFIG_FILE)
-    default_config_template = 'cam_acq/config.yml'
+    default_config_template = resource_filename(__name__, 'data/config.yml')
     data = load_config_file(default_config_template)
 
     try:
