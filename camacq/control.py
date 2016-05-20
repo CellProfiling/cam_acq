@@ -147,16 +147,16 @@ class Control(object):
             # Send CAM list for the experiment jobs to server (stage2/stage3).
             _LOGGER.debug('Delete list: %s', del_com())
             _LOGGER.debug('Delete list reply: %s', self.cam.send(del_com()))
+            time.sleep(2)
             send(self.cam, com)
-            time.sleep(3)
+            time.sleep(2)
             # Start scan.
             _LOGGER.debug('Start scan: %s', self.cam.start_scan())
-            time.sleep(7)
+            time.sleep(7)  # Wait for it to change objective and start.
             # Start CAM scan.
             _LOGGER.debug('Start CAM scan: %s', camstart_com())
             _LOGGER.debug('Start CAM scan reply: %s',
                           self.cam.send(camstart_com()))
-            time.sleep(3)
             _LOGGER.info('Waiting for images...')
             stage4 = True
             while stage4:
@@ -169,14 +169,11 @@ class Control(object):
                         _LOGGER.info('Stage1')
                         _LOGGER.debug('REPLY: %s', reply)
                         csv_result = self.get_csvs(reply.get('relpath'))
-                        # _LOGGER.debug('BASES: %s', csv_result['bases'])
-                        # _LOGGER.debug('WELLS: %s', csv_result['wells'])
                         gain_dict = gobj.calc_gain(csv_result, gain_dict)
                         _LOGGER.debug('GAIN DICT: %s', gain_dict)
                         self.saved_gains.update(gain_dict)
                         if not self.saved_gains:
                             continue
-                        # testing
                         _LOGGER.debug('SAVED_GAINS: %s', self.saved_gains)
                         self.save_gain(self.saved_gains)
                         gain_result = gobj.distribute_gain(gain_dict)
@@ -203,7 +200,8 @@ class Control(object):
                            for test in end_com):
                         stage4 = False
             _LOGGER.debug('STOP SCAN: %s', self.cam.stop_scan())
-            time.sleep(6)  # Wait for it to come to complete stop.
+            _LOGGER.debug('SCAN FINISHED reply: %s', self.cam.receive())
+            time.sleep(1)  # Wait for it to come to complete stop.
             if gain_dict and stage1:
                 # Reset gain_dict for each iteration.
                 gain_dict = defaultdict(list)

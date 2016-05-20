@@ -76,7 +76,7 @@ class Gain(object):
         if self.args.init_gain:
             init_gain = self.args.init_gain
         for fbase, well in zip(filebases, fin_wells):
-            _LOGGER.debug('WELL: %s', well)
+            _LOGGER.info('WELL: %s', well)
             try:
                 _LOGGER.info('Starting R...')
                 r_output = subprocess.check_output(['Rscript',
@@ -92,7 +92,7 @@ class Gain(object):
                 _LOGGER.error(
                     'Subprocess returned a non-zero exit status: %s', exc)
                 sys.exit()
-            _LOGGER.debug(r_output)
+            _LOGGER.info(r_output)
         return gain_dict
 
     def distribute_gain(self, gain_dict):
