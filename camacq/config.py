@@ -1,4 +1,6 @@
 """Handle the config file."""
+from __future__ import print_function
+
 import logging
 import os
 
@@ -9,6 +11,7 @@ _LOGGER = logging.getLogger(__name__)
 
 CONFIG_DIR_NAME = '.camacq'
 YAML_CONFIG_FILE = 'config.yml'
+DEFAULT_CONFIG_TEMPLATE = 'data/config.yml'
 
 
 def get_default_config_dir():
@@ -48,7 +51,8 @@ def create_default_config(config_dir):
     Return path to new config file if success, None if failed.
     """
     config_path = os.path.join(config_dir, YAML_CONFIG_FILE)
-    default_config_template = resource_filename(__name__, 'data/config.yml')
+    default_config_template = resource_filename(
+        __name__, DEFAULT_CONFIG_TEMPLATE)
     data = load_config_file(default_config_template)
 
     try:

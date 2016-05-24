@@ -137,5 +137,6 @@ class Image(object):
         save_image(path, data, metadata)
 
     def __repr__(self):
+        """Return the representation."""
         return '<Image(path={0!r}, data={1!r}, metadata={2!r})>'.format(
             self.path, self._data, self._metadata)

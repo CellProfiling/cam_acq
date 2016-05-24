@@ -1,17 +1,4 @@
 """Handle commands."""
-import re
-
-
-def get_wfx(compartment):
-    """Return a string representing the well or field X coordinate."""
-    return str(int(re.sub(
-        r'\D', '', re.sub(r'--.\d\d', '', compartment))) + 1)
-
-
-def get_wfy(compartment):
-    """Return a string representing the well or field Y coordinate."""
-    return str(int(re.sub(
-        r'\D', '', re.sub(r'.\d\d--', '', compartment))) + 1)
 
 
 def del_com():
@@ -77,34 +64,31 @@ def gain_com(exp='job', num='1', value='800'):
             ('prop', 'gain'), ('value', value)]
 
 
-def enable_com(well, field, enable):
+def enable_com(wellu, wellv, fieldx, fieldy, enable):
     """Enable a field in a well.
 
     Return a list with parts for the cam command.
-    Get wellx/y and fieldx/y from well and field
-    by calling get_wfx and get_wfy.
     """
-    wellx = get_wfx(well)
-    welly = get_wfy(well)
-    fieldx = get_wfx(field)
-    fieldy = get_wfy(field)
+    wellx = str(wellu + 1)
+    welly = str(wellv + 1)
+    fieldx = str(fieldx + 1)
+    fieldy = str(fieldy + 1)
 
     return [('cmd', 'enable'), ('slide', '0'), ('wellx', wellx),
             ('welly', welly), ('fieldx', fieldx), ('fieldy', fieldy),
             ('value', enable)]
 
 
-def cam_com(exp, well, field, dxcoord, dycoord):
+def cam_com(exp, wellu, wellv, fieldx, fieldy, dxcoord, dycoord):
     """Add a field to the cam list.
 
     Return a list with parts for the cam command.
-    Get wellx/y and fieldx/y from well and field by calling
-    get_wfx and get_wfy.
     """
-    wellx = get_wfx(well)
-    welly = get_wfy(well)
-    fieldx = get_wfx(field)
-    fieldy = get_wfy(field)
+    # pylint: disable=too-many-arguments
+    wellx = str(wellu + 1)
+    welly = str(wellv + 1)
+    fieldx = str(fieldx + 1)
+    fieldy = str(fieldy + 1)
 
     return [('cmd', 'add'), ('tar', 'camlist'), ('exp', exp), ('ext', 'af'),
             ('slide', '0'), ('wellx', wellx), ('welly', welly),
