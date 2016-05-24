@@ -4,14 +4,6 @@ camacq.tests package
 Submodules
 ----------
 
-camacq.tests.camacq_tests module
---------------------------------
-
-.. automodule:: camacq.tests.camacq_tests
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 camacq.tests.test_client module
 -------------------------------
 

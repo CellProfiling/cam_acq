@@ -19,13 +19,17 @@ def send(cam, commands):
         CAM instance.
     commands : list
         List of list of commands as tuples.
-        Example: [[('cmd', 'enableall'), ('value', 'true')],
-                  [('cmd', 'deletelist')]]
 
     Returns
     -------
     list
         Return a list of OrderedDict with all received replies.
+
+    Example
+    -------
+    ::
+
+        send(cam, [[('cmd', 'deletelist')], [('cmd', 'startscan')]])
     """
     replies = []
     for cmd in commands:

@@ -36,11 +36,36 @@ def set_gain(commands, channels, job_list):
 
 class Gain(object):
     """
-    Gain class.
+    Contain the information and methods to calculate gain for each well.
 
-    Attributes:
-        gain_dict: A defaultdict of lists where the keys are the wells and
-        each list (value) contains the gain values of the (four) channels.
+    Parameters
+    ----------
+    args : dict
+        Dict with command line arguments from the start of the program.
+    job_list : list
+        List of names of the jobs for the objective and experiment.
+    pattern_g : str
+        Name of the pattern for the gain job.
+    pattern : str
+        Name of the pattern for the experiment job.
+
+    Attributes
+    ----------
+    args : dict
+        Dict with command line arguments from the start of the program.
+    job_list : list
+        List of names of the jobs for the objective and experiment.
+    pattern_g : str
+        Name of the pattern for the gain job.
+    pattern : str
+        Name of the pattern for the experiment job.
+    template : defaultdict(list)
+        A map of wells and gain analysis wells, where to run the experiment.
+    coords : defaultdict(list)
+        A map of wells and selected positions with pixel coordinates.
+        The coordinates represent where to acquire the images in the wells,
+        relative to the center of each field. The pixel coordinates have the
+        same size as the chosen objective.
     """
 
     def __init__(self, args, job_list, pattern_g, pattern):

@@ -43,6 +43,14 @@ camacq.gain module
     :undoc-members:
     :show-inheritance:
 
+camacq.helper module
+--------------------
+
+.. automodule:: camacq.helper
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 camacq.image module
 -------------------
 
@@ -55,14 +63,6 @@ camacq.log module
 -----------------
 
 .. automodule:: camacq.log
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-camacq.socket_client module
----------------------------
-
-.. automodule:: camacq.socket_client
     :members:
     :undoc-members:
     :show-inheritance:
