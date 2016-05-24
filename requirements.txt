@@ -5,4 +5,4 @@ tifffile >= 0.7.0
 Pillow >= 2.9.0
 PyYAML >= 3.11
 sphinx_rtd_theme >= 0.1.9
-matrixscreener >= 0.5.2
+https://github.com/MartinHjelmare/matrixscreener/archive/fix-receive.zip#matrixscreener==0.5.2

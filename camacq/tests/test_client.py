@@ -1,34 +1,65 @@
 """Test socket client."""
 import logging
-from collections import OrderedDict
 
-from matrixscreener.cam import CAM
+from matrixscreener.cam import CAM, tuples_as_dict
 
-IP = 'localhost'
-PORT = 8895
+_LOGGER = logging.getLogger(__name__)
+
+# From https://github.com/arve0/matrixscreener/blob/master/tests/test_cam.py
 
 
-def test_client():
+class EchoSocket(object):
+    """Dummy echo socket for mocking."""
+
+    msg = ''
+
+    def send(self, msg):
+        """Send message."""
+        self.msg = msg
+        return len(msg)
+
+    def recv(self, buffer_size):
+        """Receive message."""
+        return self.msg[0:buffer_size]
+
+    def connect(self, where):
+        """Connect socket."""
+        pass
+
+    def settimeout(self, timeout):
+        """Set timeout."""
+        pass
+
+    def fileno(self):
+        """Return mock representation of file descriptor."""
+        # pylint: disable=no-self-use
+        return 0
+
+
+def test_client(monkeypatch):
     """Test socket client."""
+    # mock socket
+    monkeypatch.setattr("socket.socket", EchoSocket)
     # Create the client
-    logger = logging.getLogger('client')
-    logger.info('Server on %s:%s', IP, PORT)
-    logger.debug('creating socket')
-    cam = CAM(IP)
+    _LOGGER.debug('creating socket')
+    cam = CAM()
+
+    # monkeypatched EchoSocket will never flush
+    def flush():
+        """Flush socket."""
+        pass
+    cam.flush = flush
 
     # Send the data as a list of tuples.
     message = [('cmd', 'deletelist')]
-    logger.debug('sending data: "%s"', message)
-    response = cam.send(message)
+    _LOGGER.debug('sending data: "%s"', message)
+    response = cam.send(message)[0]
 
-    logger.debug('response from server: "%s"', response)
+    _LOGGER.debug('response from server: "%s"', response)
 
     # Check that sent message and received response are the same, including
     # prefix.
-    for cmd, val in response[0].iteritems():
-        assert OrderedDict(cam.prefix + message)[cmd] == val
+    sent = tuples_as_dict(cam.prefix + message)
+    assert sent == response
 
-    # Clean up
-    logger.debug('closing socket')
-    cam.socket.close()
-    logger.debug('done')
+    _LOGGER.debug('done')

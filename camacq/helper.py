@@ -32,7 +32,8 @@ def send(cam, commands):
         _LOGGER.debug(cmd)
         reply = cam.send(cmd)
         _LOGGER.debug(reply)
-        replies.extend(reply)
+        if reply:
+            replies.extend(reply)
     return replies
 
 
@@ -90,82 +91,15 @@ def write_csv(path, dict_list, header):
             writer.writerow([key] + value)
 
 
-def get_scan_paths(scan, compartments, conditions):
-    """Get all paths for a compartment that match condition.
-
-    Parameters
-    ----------
-    scan : instance
-        Experiment instance.
-    compartments : string
-        The name of the compartments: 'slides', 'wells', 'fields' or 'images'.
-    conditions : list
-        List of tuples or strings that should match the paths of the found
-        compartments. If a condition is a tuple, experiment.attribute_as_str
-        will be used to look up the name of attribute [A-Z] in found path and
-        match against the path provided in the tuple. Tuple[0] should be the
-        provided path and tuple[1] should be the name of attribute to look up.
-
-    Returns
-    -------
-    list
-        Return a list with all found paths in scan for the compartments,
-        that matched the conditions.
-    """
-    paths = []
-    if compartments not in ('slides', 'wells', 'fields', 'images'):
-        _LOGGER.error(
-            'Compartments: %s is not any of: slides, wells, fields or images',
-            compartments)
-        return None
-    for comp in getattr(scan, compartments):
-        test = True
-        for cond in conditions:
-            if isinstance(cond, tuple):
-                test = test and cond[0] in experiment.attribute_as_str(
-                    comp, cond[1])
-            elif isinstance(cond, str):
-                if len(cond) <= len(comp):
-                    test = test and cond in comp
-                else:
-                    test = test and comp in cond
-            else:
-                _LOGGER.error('Conditions must hold tuples or strings')
-                return None
-        if test:
-            paths.append(comp)
-    return paths
-
-
 def find_image_path(reply, root):
     """Parse the reply from the server to find the correct file path."""
     paths = reply.split('\\')
     for path in paths:
         root = os.path.join(root, path)
-    return root
+    return str(root)
 
 
-def find_scan(path):
-    """Find scan path by traversing up the tree from path iteratively.
-
-    Parameters
-    ----------
-    path : string
-        Path to file or directory from where to start searching for scan path.
-
-    Returns
-    -------
-    instance
-        Return Experiment instance with found scan path.
-    """
-    scan = experiment.Experiment(path)
-    # pylint: disable=no-member
-    while scan.basename not in 'slide--S00':
-        scan = experiment.Experiment(scan.dirname)
-    return experiment.Experiment(scan.dirname)
-
-
-def format_new_name(scan, imgp, root=None, new_attr=None):
+def format_new_name(imgp, root=None, new_attr=None):
     """Create filename from image path and replace specific attribute id(s).
 
     Parameters
@@ -187,7 +121,7 @@ def format_new_name(scan, imgp, root=None, new_attr=None):
         Return new path to image.
     """
     if root is None:
-        root = get_scan_paths(scan, 'slides', [imgp])[0]
+        root = get_field(imgp)
 
     path = 'U{}--V{}--E{}--X{}--Y{}--Z{}--C{}.ome.tif'.format(
         *(experiment.attribute_as_str(imgp, attr)
@@ -200,19 +134,46 @@ def format_new_name(scan, imgp, root=None, new_attr=None):
     return os.path.normpath(os.path.join(root, path))
 
 
-def rename_imgs(scan, imgp, f_job):
+def rename_imgs(imgp, f_job):
     """Rename image and return new name."""
     if experiment.attribute(imgp, 'E') == f_job:
-        new_name = format_new_name(scan, imgp)
+        new_name = format_new_name(imgp)
     elif (experiment.attribute(imgp, 'E') == f_job + 1 and
           experiment.attribute(imgp, 'C') == 0):
-        new_name = format_new_name(scan, imgp, 'C', '01')
+        new_name = format_new_name(imgp, new_attr={'C': '01'})
     elif (experiment.attribute(imgp, 'E') == f_job + 1 and
           experiment.attribute(imgp, 'C') == 1):
-        new_name = format_new_name(scan, imgp, 'C', '02')
+        new_name = format_new_name(imgp, new_attr={'C': '02'})
     elif experiment.attribute(imgp, 'E') == f_job + 2:
-        new_name = format_new_name(scan, imgp, 'C', '03')
+        new_name = format_new_name(imgp, new_attr={'C': '03'})
     else:
-        new_name = imgp
+        return None
     os.rename(imgp, new_name)
     return new_name
+
+
+def get_field(path):
+    """Get path to well from image path."""
+    return experiment.Experiment(path).dirname  # pylint: disable=no-member
+
+
+def get_well(path):
+    """Get path to well from image path."""
+    # pylint: disable=no-member
+    return experiment.Experiment(get_field(path)).dirname
+
+
+def get_imgs(path, img_type='tif', search=''):
+    """Get all images below path."""
+    if search:
+        search = '{}*'.format(search)
+    patterns = [
+        'slide',
+        'chamber',
+        'field',
+        'image',
+    ]
+    for pattern in patterns:
+        if pattern not in path:
+            path = os.path.join(path, '{}--*'.format(pattern))
+    return experiment.glob('{}{}.{}'.format(path, search, img_type))

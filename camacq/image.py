@@ -12,13 +12,21 @@ _LOGGER = logging.getLogger(__name__)
 
 def read_image(path):
     """Read a tif image and return the data."""
-    return np.array(Image.open(path))
+    try:
+        return np.array(Image.open(path))
+    except IOError as exception:
+        _LOGGER.error('Bad path! %s', exception)
+        return np.array([])
 
 
 def meta_data(path):
     """Read a tif image and return the meta data of the description."""
-    with tifffile.TiffFile(path) as tif:
-        return tif[0].image_description
+    try:
+        with tifffile.TiffFile(path) as tif:
+            return tif[0].image_description
+    except IOError as exception:
+        _LOGGER.error('Bad path! %s', exception)
+        return ''
 
 
 def save_image(path, data, metadata=None):
@@ -31,7 +39,7 @@ def make_proj(path_list):
 
     Each channel will make one max projection.
     """
-    _LOGGER.info('Making max projections')
+    _LOGGER.info('Making max projections...')
     sorted_images = defaultdict(list)
     max_imgs = {}
     for path in path_list:
