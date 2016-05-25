@@ -71,7 +71,7 @@ CONFIG = {
         'tifffile',
         'Pillow',
         'PyYAML',
-        'matrixscreener==0.5.2',
+        'matrixscreener',
     ],
     'packages': find_packages(exclude=['contrib', 'docs', 'tests*']),
     'include_package_data': True,
@@ -79,9 +79,6 @@ CONFIG = {
     'name': 'camacq',
     'zip_safe': False,
     'classifiers': CLASSIFIERS,
-    'dependency_links': [
-        'https://github.com/MartinHjelmare/matrixscreener/archive/fix-receive'
-        '#egg=matrixscreener-0.5.2'],
 }
 
 setup(**CONFIG)

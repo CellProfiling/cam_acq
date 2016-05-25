@@ -6,14 +6,14 @@ import time
 from collections import defaultdict
 
 import numpy as np
+from matrixscreener.cam import CAM
+from matrixscreener.experiment import attribute_as_str, attributes, glob
 
 from command import camstart_com, del_com
 from gain import Gain
 from helper import (find_image_path, format_new_name, get_field, get_imgs,
                     get_well, read_csv, rename_imgs, send, write_csv)
 from image import make_proj, meta_data, save_image
-from matrixscreener.cam import CAM
-from matrixscreener.experiment import attribute_as_str, attributes, glob
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -199,8 +199,11 @@ class Control(object):
                     if all(test in reply.get('relpath', [])
                            for test in end_com):
                         stage4 = False
-            _LOGGER.debug('STOP SCAN: %s', self.cam.stop_scan())
-            _LOGGER.debug('SCAN FINISHED reply: %s', self.cam.receive())
+            reply = self.cam.stop_scan()
+            _LOGGER.debug('STOP SCAN: %s', reply)
+            while not reply or 'scanfinished' not in reply[-1].values():
+                reply = self.cam.receive()
+                _LOGGER.debug('SCAN FINISHED reply: %s', reply)
             time.sleep(1)  # Wait for it to come to complete stop.
             if gain_dict and stage1:
                 # Reset gain_dict for each iteration.
