@@ -201,9 +201,12 @@ class Control(object):
                         stage4 = False
             reply = self.cam.stop_scan()
             _LOGGER.debug('STOP SCAN: %s', reply)
+            begin = time.time()
             while not reply or 'scanfinished' not in reply[-1].values():
                 reply = self.cam.receive()
                 _LOGGER.debug('SCAN FINISHED reply: %s', reply)
+                if time.time() - begin > 20.0:
+                    break
             time.sleep(1)  # Wait for it to come to complete stop.
             if gain_dict and stage1:
                 # Reset gain_dict for each iteration.
