@@ -134,6 +134,8 @@ for (i in 1:(length(channels))) {
       abline(v=binmax)
       gain[[i]] <- round(min(func2(binmax), gain[[i]]))
     }
+  } else {
+    gain[[i]] <- NA
   }
   dev.off()
 }

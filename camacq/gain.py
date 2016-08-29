@@ -13,6 +13,23 @@ from helper import read_csv
 _LOGGER = logging.getLogger(__name__)
 GAIN_OFFSET = 50
 
+NA = 'NA'
+
+GREEN = 'green'
+BLUE = 'blue'
+YELLOW = 'yellow'
+RED = 'red'
+
+TEN_X = '10x'
+FORTY_X = '40x'
+SIXTYTHREE_X = '63x'
+
+GAIN_DEFAULT = {
+    TEN_X: {GREEN: 1000, BLUE: 985, YELLOW: 805, RED: 705},
+    FORTY_X: {GREEN: 800, BLUE: 585, YELLOW: 655, RED: 630},
+    SIXTYTHREE_X: {GREEN: 800, BLUE: 505, YELLOW: 655, RED: 630},
+}
+
 
 def process_output(well, output, dict_list):
     """Process output from the R scripts."""
@@ -121,33 +138,48 @@ class Gain(object):
             _LOGGER.info(r_output)
         return gain_dict
 
+    def sanitize_gain(self, channel, gain):
+        """Make sure all channels have a reasonable gain value."""
+        if self.args.end_10x:
+            obj = TEN_X
+        elif self.args.end_40x:
+            obj = FORTY_X
+        elif self.args.end_63x:
+            obj = SIXTYTHREE_X
+        if gain == NA:
+            gain = GAIN_DEFAULT[obj][channel]
+        if channel == GREEN:
+            # Round gain values to multiples of 10 in green channel
+            if self.args.end_63x:
+                gain = int(min(round(int(gain), -1),
+                               GAIN_DEFAULT[SIXTYTHREE_X][GREEN]))
+            else:
+                gain = int(round(int(gain), -1))
+        return gain
+
     def distribute_gain(self, gain_dict):
         """Collate gain values and distribute them to the wells."""
         green_sorted = defaultdict(list)
         medians = defaultdict(int)
-        for i, channel in enumerate(['green', 'blue', 'yellow', 'red']):
+        for i, channel in enumerate([GREEN, BLUE, YELLOW, RED]):
             mlist = []
             for key, val in gain_dict.iteritems():
                 # Sort gain data into a list dict with green gain as key
                 # and where the value is a list of well ids.
-                if channel == 'green':
-                    # Round gain values to multiples of 10 in green channel
-                    if self.args.end_63x:
-                        green_val = int(min(round(int(val[i]), -1), 800))
-                    else:
-                        green_val = int(round(int(val[i]), -1))
+                gain = self.sanitize_gain(channel, val[i])
+                if channel == GREEN:
                     if self.template:
                         for well in self.template[key]:
-                            green_sorted[green_val].append(well)
+                            green_sorted[gain].append(well)
                     else:
-                        green_sorted[green_val].append(key)
+                        green_sorted[gain].append(key)
                 else:
                     # Find the median value of all gains in
                     # blue, yellow and red channels.
-                    mlist.append(int(val[i]))
+                    mlist.append(int(gain))
                     medians[channel] = int(np.median(mlist))
             # Add gain offset to blue and red channel.
-            if channel == 'blue' or channel == 'red':
+            if channel == BLUE or channel == RED:
                 medians[channel] += GAIN_OFFSET
         return {'green_sorted': green_sorted, 'medians': medians}
 
