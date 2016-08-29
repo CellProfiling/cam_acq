@@ -11,15 +11,14 @@ from command import cam_com, gain_com, get_wfx, get_wfy
 from helper import read_csv
 
 _LOGGER = logging.getLogger(__name__)
-GAIN_OFFSET = 50
 
+GAIN_OFFSET_BLUE = 50
+GAIN_OFFSET_RED = 25
 NA = 'NA'
-
 GREEN = 'green'
 BLUE = 'blue'
 YELLOW = 'yellow'
 RED = 'red'
-
 TEN_X = '10x'
 FORTY_X = '40x'
 SIXTYTHREE_X = '63x'
@@ -179,8 +178,10 @@ class Gain(object):
                     mlist.append(int(gain))
                     medians[channel] = int(np.median(mlist))
             # Add gain offset to blue and red channel.
-            if channel == BLUE or channel == RED:
-                medians[channel] += GAIN_OFFSET
+            if channel == BLUE:
+                medians[channel] += GAIN_OFFSET_BLUE
+            if channel == RED:
+                medians[channel] += GAIN_OFFSET_RED
         return {'green_sorted': green_sorted, 'medians': medians}
 
     # #FIXME:10 Merge get_com and get_init_com functions, trello:egmsbuN8
