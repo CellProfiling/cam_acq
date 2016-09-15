@@ -12,7 +12,7 @@ from helper import read_csv
 
 _LOGGER = logging.getLogger(__name__)
 
-GAIN_OFFSET_BLUE = 50
+GAIN_OFFSET_BLUE = 0
 GAIN_OFFSET_RED = 25
 NA = 'NA'
 GREEN = 'green'
