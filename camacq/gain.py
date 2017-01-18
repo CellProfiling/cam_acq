@@ -237,7 +237,7 @@ class Gain(object):
             # All wells.
             for ucoord in range(int(get_wfx(self.args.last_well))):
                 for vcoord in range(int(get_wfy(self.args.last_well))):
-                    wells.append('U0' + str(ucoord) + '--V0' + str(vcoord))
+                    wells.append('U{0:02d}--V{1:02d}'.format(ucoord, vcoord))
         # Lists and strings for storing command strings.
         com_list = []
         end_com_list = []

@@ -108,8 +108,6 @@ def format_new_name(imgp, root=None, new_attr=None):
 
     Parameters
     ----------
-    scan : instance
-        Experiment instance.
     imgp : string
         Path to image.
     root : string
