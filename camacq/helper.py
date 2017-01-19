@@ -46,9 +46,9 @@ def read_csv(path, index, header):
 
     Parameters
     ----------
-    path : string
+    path : str
         Path to csv file.
-    index : string
+    index : str
         Index can be any of the column headers of the csv file.
         The column under index will be used as keys in the returned
         defaultdict.
@@ -79,7 +79,7 @@ def write_csv(path, dict_list, header):
 
     Parameters
     ----------
-    path : string
+    path : str
         Path to csv file.
     dict_list : defaultdict(list)
         The defaultdict of lists that should be written as a csv file.
@@ -110,7 +110,7 @@ def format_new_name(imgp, root=None, new_attr=None):
     ----------
     imgp : string
         Path to image.
-    root : string
+    root : str
         Path to directory where path should start.
     new_attr : dict
         Dictionary which maps experiment attributes to new attribute ids.
@@ -119,7 +119,7 @@ def format_new_name(imgp, root=None, new_attr=None):
 
     Returns
     -------
-    string
+    str
         Return new path to image.
     """
     if root is None:
@@ -179,3 +179,11 @@ def get_imgs(path, img_type='tif', search=''):
         if pattern not in path:
             path = os.path.join(path, '{}--*'.format(pattern))
     return experiment.glob('{}{}.{}'.format(path, search, img_type))
+
+
+def save_histogram(path, image):
+    """Save the histogram of an image to path."""
+    rows = defaultdict(list)
+    for box, count in enumerate(image.histogram[0]):
+        rows[box].append(count)
+    write_csv(path, rows, ['bin', 'count'])

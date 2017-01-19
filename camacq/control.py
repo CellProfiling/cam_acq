@@ -5,18 +5,20 @@ import re
 import time
 from collections import defaultdict
 
-import numpy as np
 from matrixscreener.cam import CAM
 from matrixscreener.experiment import attribute_as_str, attributes, glob
 
 from command import camstart_com, del_com
 from gain import Gain
 from helper import (find_image_path, format_new_name, get_field, get_imgs,
-                    get_well, read_csv, rename_imgs, send, write_csv)
-from image import make_proj, meta_data, save_image
+                    get_well, read_csv, rename_imgs, save_histogram, send,
+                    write_csv)
+from image import make_proj
 
 _LOGGER = logging.getLogger(__name__)
 
+# #RFE:0 Assign job vars by config file, trello:UiavT7yP
+# #RFE:10 Assign job vars by parsing the xml/lrp-files, trello:d7eWnJC5
 PATTERN_G_10X = 'pattern7'
 PATTERN_G_40X = 'pattern8'
 PATTERN_G_63X = 'pattern9'
@@ -28,7 +30,6 @@ JOB_63X = ['job10', 'job11', 'job12']
 PATTERN_63X = 'pattern3'
 
 
-# #FIXME:20 Function handle_imgs is too complex, trello:hOc4mqsa
 def handle_imgs(path, imdir, job_order, f_job=2, img_save=True,
                 histo_save=True):
     """Handle acquired images, do renaming, make max projections."""
@@ -36,8 +37,6 @@ def handle_imgs(path, imdir, job_order, f_job=2, img_save=True,
     # job_order variable.
     imgs = get_imgs(path, search='E{}'.format(job_order))
     new_paths = []
-    metadata_d = {}
-    imgp = ''
     _LOGGER.info('Handling images...')
     for imgp in imgs:
         _LOGGER.debug('IMAGE PATH: %s', imgp)
@@ -45,43 +44,26 @@ def handle_imgs(path, imdir, job_order, f_job=2, img_save=True,
         _LOGGER.debug('NEW NAME: %s', new_name)
         if new_name:
             new_paths.append(new_name)
-            img_attr = attributes(imgp)
-            metadata_d['U{}--V{}--X{}--Y{}--C{}'.format(
-                img_attr.U, img_attr.V, img_attr.X, img_attr.Y,
-                img_attr.C)] = meta_data(new_name)
-    # Make a max proj per channel and well.
-    if histo_save or img_save:
-        max_projs = make_proj(new_paths)
-    else:
-        max_projs = {}
     new_dir = os.path.normpath(os.path.join(imdir, 'maxprojs'))
     if not os.path.exists(new_dir):
         os.makedirs(new_dir)
     if img_save:
         _LOGGER.info('Saving images...')
     if histo_save:
-        _LOGGER.info('Calculating histograms...')
-    for c_id, proj in max_projs.iteritems():
+        _LOGGER.info('Calculating histograms')
+    # Make a max proj per channel.
+    for c_id, proj in make_proj(new_paths).iteritems():
         if img_save:
-            save_path = format_new_name(imgp, root=new_dir,
+            save_path = format_new_name(proj.path, root=new_dir,
                                         new_attr={'C': c_id})
-            metadata = metadata_d['U{}--V{}--X{}--Y{}--C{}'.format(
-                img_attr.U, img_attr.V, img_attr.X, img_attr.Y, img_attr.C)]
             # Save meta data and image max proj.
-            save_image(save_path, proj, metadata)
+            proj.save(save_path)
         if histo_save:
-            if proj.dtype.name == 'uint8':
-                max_int = 255
-            if proj.dtype.name == 'uint16':
-                max_int = 65535
-            histo = np.histogram(proj, 256, (0, max_int))
-            rows = defaultdict(list)
-            for box, count in enumerate(histo[0]):
-                rows[box].append(count)
+            img_attr = attributes(proj.path)
             save_path = os.path.normpath(os.path.join(
                 imdir, 'U{}--V{}--C{}.ome.csv'.format(
                     img_attr.U, img_attr.V, c_id)))
-            write_csv(save_path, rows, ['bin', 'count'])
+            save_histogram(save_path, proj)
 
 
 class Control(object):
@@ -92,13 +74,9 @@ class Control(object):
         self.args = args
         self.cam = CAM(self.args.host)
         self.cam.delay = 0.2
-
         # dicts of lists to store wells with gain values for
         # the four channels.
         self.saved_gains = defaultdict(list)
-
-        # #RFE:0 Assign job vars by config file, trello:UiavT7yP
-        # #RFE:10 Assign job vars by parsing the xml/lrp-files, trello:d7eWnJC5
 
     def get_csvs(self, img_ref):
         """Find correct csv files and get their base names."""
