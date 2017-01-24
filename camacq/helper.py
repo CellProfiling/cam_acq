@@ -1,6 +1,7 @@
 """Helper functions for camacq."""
 import csv
 import logging
+import ntpath
 import os
 import re
 from collections import defaultdict
@@ -41,8 +42,8 @@ def send(cam, commands):
     return replies
 
 
-def read_csv(path, index, header):
-    """Read a csv file and return a defaultdict of lists.
+def read_csv(path, index):
+    """Read a csv file and return a dict of dicts.
 
     Parameters
     ----------
@@ -51,56 +52,57 @@ def read_csv(path, index, header):
     index : str
         Index can be any of the column headers of the csv file.
         The column under index will be used as keys in the returned
-        defaultdict.
-    header : list
-        List of strings with any of the column headers of the csv file,
-        except index. Each item in header will be used to add the
-        corresponding column and row value to the list of the row in the
-        returned defaultdict.
+        dict.
 
     Returns
     -------
-    defaultdict(list)
-        Return a defaultdict of lists with the contents of the csv file,
-        indicated by the index and header parameters. Each item in the
-        defaultdict will represent a row or part of a row from the csv file.
+    defaultdict(dict)
+        Return a dict of dicts with the contents of the csv file,
+        indicated by the index parameter. Each item in the
+        dict will represent a row, with index as key, of the csv file.
     """
-    dict_list = defaultdict(list)
+    csv_map = defaultdict(dict)
     with open(path) as file_handle:
         reader = csv.DictReader(file_handle)
-        for dictionary in reader:
-            for key in header:
-                dict_list[dictionary[index]].append(dictionary[key])
-    return dict_list
+        for row in reader:
+            key = row.pop(index)
+            csv_map[key].update(row)
+    return csv_map
 
 
-def write_csv(path, dict_list, header):
-    """Write a defaultdict of lists as a csv file.
+def write_csv(path, csv_map, header):
+    """Write a dict of dicts as a csv file.
 
     Parameters
     ----------
     path : str
         Path to csv file.
-    dict_list : defaultdict(list)
-        The defaultdict of lists that should be written as a csv file.
+    csv_map : dict(dict)
+        The dict of dicts that should be written as a csv file.
     header : list
         List of strings with the wanted column headers of the csv file.
-        The items in header should correspond to the key of the dictionary
-        and all items in the list for a key.
+        The items in header should correspond to the index key of the primary
+        dict and all the keys of the secondary dict.
     """
     with open(path, 'wb') as file_handle:
-        writer = csv.writer(file_handle)
-        writer.writerow(header)
-        for key, value in dict_list.iteritems():
-            writer.writerow([key] + value)
+        writer = csv.DictWriter(file_handle, fieldnames=header)
+        writer.writeheader()
+        for index, cells in csv_map.iteritems():
+            index_dict = {header[0]: index}
+            index_dict.update(cells)
+            writer.writerow(index_dict)
 
 
-def find_image_path(reply, root):
-    """Parse the reply from the server to find the correct file path."""
-    paths = reply.split('\\')
-    for path in paths:
-        root = os.path.join(root, path)
-    return str(root)
+def find_image_path(relpath, root):
+    """Parse the relpath from the server to find the file path from root.
+
+    Convert from windows path to os path.
+    """
+    paths = []
+    while relpath:
+        relpath, tail = ntpath.split(relpath)
+        paths.append(tail)
+    return str(os.path.join(root, *list(reversed(paths))))
 
 
 def format_new_name(imgp, root=None, new_attr=None):

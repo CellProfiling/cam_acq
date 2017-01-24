@@ -4,14 +4,14 @@ import subprocess
 import sys
 from collections import defaultdict
 
-import numpy as np
+from jinja2 import Template
 from pkg_resources import resource_filename
 
 from command import cam_com, gain_com, get_wfx, get_wfy
 from helper import read_csv
 
 _LOGGER = logging.getLogger(__name__)
-
+# Make these constants configurable.
 GAIN_OFFSET_BLUE = 0
 GAIN_OFFSET_RED = 25
 NA = 'NA'
@@ -22,36 +22,56 @@ RED = 'red'
 TEN_X = '10x'
 FORTY_X = '40x'
 SIXTYTHREE_X = '63x'
-
 GAIN_DEFAULT = {
     TEN_X: {GREEN: 1000, BLUE: 985, YELLOW: 805, RED: 705},
     FORTY_X: {GREEN: 800, BLUE: 585, YELLOW: 655, RED: 630},
     SIXTYTHREE_X: {GREEN: 800, BLUE: 505, YELLOW: 655, RED: 630},
 }
+CHANNELS = [GREEN, BLUE, YELLOW, RED, ]
+DETECTOR_MAP = {GREEN: '1', BLUE: '1', YELLOW: '2', RED: '2', }
+JOB_MAP = {GREEN: 0, BLUE: 1, YELLOW: 1, RED: 2, }
 
 
-def process_output(well, output, dict_list):
-    """Process output from the R scripts."""
-    for channel in output.split():
-        dict_list[well].append(channel)
-    return dict_list
+def process_output(well, output, well_map):
+    """Process output from the R script."""
+    channels = output.split()
+    for index, gain in enumerate(channels):
+        well_map[well].update({CHANNELS[index]: gain})
+    return well_map
 
 
 def set_gain(commands, channels, job_list):
     """Return a list of command lists to set gain for all channels."""
-    for i, channel in enumerate(channels):
-        gain = str(channel)
-        if i < 2:
-            detector = '1'
-            job = job_list[i]
-        if i >= 2:
-            detector = '2'
-            job = job_list[i - 1]
+    for channel, gain in channels.iteritems():
+        job = job_list[JOB_MAP[channel]]
+        detector = DETECTOR_MAP[channel]
+        gain = str(gain.gain)
         commands.append(gain_com(exp=job, num=detector, value=gain))
     return commands
 
 
 class Gain(object):
+    """Gain class."""
+
+    __slots__ = ['channel', '_gain', ]
+
+    def __init__(self, channel, gain):
+        """Set up instance."""
+        self.channel = channel
+        self._gain = gain
+
+    @property
+    def gain(self):
+        """Return gain."""
+        return self._gain
+
+    @gain.setter
+    def gain(self, value):
+        """Set gain."""
+        self._gain = int(value)
+
+
+class GainMap(object):
     """
     Contain the information and methods to calculate gain for each well.
 
@@ -76,30 +96,33 @@ class Gain(object):
         Name of the pattern for the gain job.
     pattern : str
         Name of the pattern for the experiment job.
-    template : defaultdict(list)
-        A map of wells and gain analysis wells, where to run the experiment.
-    coords : defaultdict(list)
-        A map of wells and selected positions with pixel coordinates.
-        The coordinates represent where to acquire the images in the wells,
-        relative to the center of each field. The pixel coordinates have the
-        same size as the chosen objective.
+    template : collections.defaultdict
+        A defaultdict of dicts that maps wells and gain analysis wells,
+        where to run the experiment.
+    coords : collections.defaultdict
+        A defaultdict of dicts that map wells and selected positions with
+        pixel coordinates. The coordinates represent where to acquire the
+        images in the wells, relative to the center of each field.
+        The pixel coordinates have the same size as the chosen objective.
+    wells: collections.defaultdict
+        A defaultdict of dicts where the keys are the wells and
+        each sub dict (value) maps the channel and gain object.
     """
 
-    def __init__(self, args, gain_dict, job_info):
+    def __init__(self, args, job_info):
         """Set up instance."""
         self.args = args
-        self.gain_dict = gain_dict
         self.job_list, self.pattern_g, self.pattern = job_info
         if args.template_file is None:
             self.template = None
         else:
-            self.template = read_csv(
-                args.template_file, 'gain_from_well', ['well'])
+            self.template = read_csv(args.template_file, 'well')
             self.args.last_well = sorted(self.template.keys())[-1]
         if args.coord_file is None:
-            self.coords = defaultdict(list)
+            self.coords = defaultdict(dict)
         else:
-            self.coords = read_csv(args.coord_file, 'fov', ['dxPx', 'dyPx'])
+            self.coords = read_csv(args.coord_file, 'fov')
+        self.wells = defaultdict(dict)
 
     def calc_gain(self, data, gain_dict):
         """Run R scripts and calculate gain values for the wells."""
@@ -133,7 +156,7 @@ class Gain(object):
                 _LOGGER.error(
                     'Subprocess returned a non-zero exit status: %s', exc)
                 sys.exit()
-            _LOGGER.info(r_output)
+            _LOGGER.debug(r_output)
         return gain_dict
 
     def sanitize_gain(self, channel, gain):
@@ -149,81 +172,76 @@ class Gain(object):
         if channel == GREEN:
             # Round gain values to multiples of 10 in green channel
             if self.args.end_63x:
-                gain = int(min(round(int(gain), -1),
-                               GAIN_DEFAULT[SIXTYTHREE_X][GREEN]))
+                gain = int(min(
+                    round(int(gain), -1), GAIN_DEFAULT[SIXTYTHREE_X][GREEN]))
             else:
                 gain = int(round(int(gain), -1))
+        # Add gain offset to blue and red channel.
+        if channel == BLUE:
+            gain += GAIN_OFFSET_BLUE
+        if channel == RED:
+            gain += GAIN_OFFSET_RED
         return gain
 
     def distribute_gain(self, gain_dict):
         """Collate gain values and distribute them to the wells."""
-        green_sorted = defaultdict(list)
-        medians = defaultdict(int)
-        for i, channel in enumerate([GREEN, BLUE, YELLOW, RED]):
-            mlist = []
-            for key, val in gain_dict.iteritems():
-                # Sort gain data into a list dict with green gain as key
-                # and where the value is a list of well ids.
-                gain = self.sanitize_gain(channel, val[i])
-                if channel == GREEN:
-                    if self.template:
-                        for well in self.template[key]:
-                            green_sorted[gain].append(well)
-                    else:
-                        green_sorted[gain].append(key)
+        for gain_well, channels in gain_dict.iteritems():
+            for channel, gain in channels.iteritems():
+                gain = self.sanitize_gain(channel, gain)
+                if self.template:
+                    # Add template class with functions and options, later.
+                    tmpl = Template(self.template[gain_well]['template'])
+                    try:
+                        gain = int(tmpl.render(gain=gain))
+                    except ValueError:
+                        pass
+                    wells = [
+                        well for well, settings in self.template.iteritems()
+                        if settings['gain_from_well'] == gain_well]
+                    for well in wells:
+                        self.wells[well].update({channel: Gain(channel, gain)})
                 else:
-                    # Find the median value of all gains in
-                    # blue, yellow and red channels.
-                    mlist.append(int(gain))
-                    medians[channel] = int(np.median(mlist))
-            # Add gain offset to blue and red channel.
-            if channel == BLUE:
-                medians[channel] += GAIN_OFFSET_BLUE
-            if channel == RED:
-                medians[channel] += GAIN_OFFSET_RED
-        return {'green_sorted': green_sorted, 'medians': medians}
+                    self.wells[
+                        gain_well].update({channel: Gain(channel, gain)})
 
     # #FIXME:10 Merge get_com and get_init_com functions, trello:egmsbuN8
-    def get_com(self, x_fields, y_fields, gain_result):
+    def get_com(self, x_fields, y_fields):
         """Get command."""
         dxcoord = 0
         dycoord = 0
         # Lists for storing command strings.
         com_list = []
         end_com_list = []
-        for gain, wells in gain_result['green_sorted'].iteritems():
+        for well, channels in self.wells:
             end_com = []
-            channels = [gain,
-                        gain_result['medians']['blue'],
-                        gain_result['medians']['yellow'],
-                        gain_result['medians']['red']]
             com = set_gain([], channels, self.job_list)
-            for well in sorted(wells):
-                for i in range(y_fields):
-                    for j in range(x_fields):
-                        # Only add selected fovs from file (arg) to cam list
-                        fov = '{}--X0{}--Y0{}'.format(well, j, i)
-                        if fov in self.coords.keys():
-                            dxcoord = self.coords[fov][0]
-                            dycoord = self.coords[fov][1]
-                            fov_is = True
-                        elif not self.coords:
-                            fov_is = True
-                        else:
-                            fov_is = False
-                        if fov_is:
-                            com.append(cam_com(self.pattern,
-                                               well,
-                                               'X0{}--Y0{}'.format(j, i),
-                                               dxcoord,
-                                               dycoord))
-                            end_com = ['CAM',
-                                       well,
-                                       'E0' + str(self.args.first_job + 2),
-                                       'X0{}--Y0{}'.format(j, i)]
+            for i in range(y_fields):
+                for j in range(x_fields):
+                    # Only add selected fovs from file (arg) to cam list
+                    fov = '{}--X0{}--Y0{}'.format(well, j, i)
+                    if fov in self.coords.keys():
+                        dxcoord = self.coords[fov]['dxPx']
+                        dycoord = self.coords[fov]['dyPx']
+                        fov_is = True
+                    elif not self.coords:
+                        fov_is = True
+                    else:
+                        fov_is = False
+                    if fov_is:
+                        com.append(cam_com(self.pattern,
+                                           well,
+                                           'X0{}--Y0{}'.format(j, i),
+                                           dxcoord,
+                                           dycoord))
+                        end_com = ['CAM',
+                                   well,
+                                   'E0' + str(self.args.first_job + 2),
+                                   'X0{}--Y0{}'.format(j, i)]
             # Store the commands in lists.
             com_list.append(com)
             end_com_list.append(end_com)
+        # Empty wells after all commands have been fetched.
+        self.wells = defaultdict(dict)
         return {'com': com_list, 'end_com': end_com_list}
 
     def get_init_com(self):
@@ -231,7 +249,9 @@ class Gain(object):
         wells = []
         if self.template:
             # Selected wells from template file.
-            wells = self.template.keys()
+            for well, row in self.template.iteritems():
+                if 'true' in row['gain_scan']:
+                    wells.append(well)
         else:
             # All wells.
             for ucoord in range(int(get_wfx(self.args.last_well))):
