@@ -1,4 +1,6 @@
 """Main module."""
+from __future__ import print_function
+
 import argparse
 import logging
 import os
@@ -6,9 +8,10 @@ import re
 import socket
 import sys
 
-import config
-import log
-from control import Control
+import camacq.config as config_util
+import camacq.log as log_util
+from camacq.const import END_10X, END_40X, END_63X, GAIN_ONLY, INPUT_GAIN
+from camacq.control import Control
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -134,7 +137,7 @@ def parse_command_line(argv):
     parser.add_argument(
         '-G',
         '--input-gain',
-        dest='input_gain',
+        dest=INPUT_GAIN,
         type=check_file_arg,
         help='the path to the csv file with calculated gain values')
     parser.add_argument(
@@ -144,25 +147,25 @@ def parse_command_line(argv):
     objectives = parser.add_mutually_exclusive_group(required=True)
     objectives.add_argument(
         '--end-10x',
-        dest='end_10x',
+        dest=END_10X,
         action='store_true',
         help='an option to activate 10x objective as last objective in\
              experiment')
     objectives.add_argument(
         '--end-40x',
-        dest='end_40x',
+        dest=END_40X,
         action='store_true',
         help='an option to activate 40x objective as last objective in\
              experiment')
     objectives.add_argument(
         '--end-63x',
-        dest='end_63x',
+        dest=END_63X,
         action='store_true',
         help='an option to activate 63x objective as last objective in\
              experiment')
     parser.add_argument(
         '--gain-only',
-        dest='gain_only',
+        dest=GAIN_ONLY,
         action='store_true',
         help='an option to activate only running the gain job')
     parser.add_argument(
@@ -175,7 +178,7 @@ def parse_command_line(argv):
         '-C',
         '--config',
         dest='config_dir',
-        default=config.get_default_config_dir(),
+        default=config_util.get_default_config_dir(),
         help='the path to camacq configuration directory')
     args = parser.parse_args(argv)
     if args.imaging_dir:
@@ -200,7 +203,7 @@ def ensure_config_path(config_dir):
     """Validate the configuration directory."""
     # Test if configuration directory exists
     if not os.path.isdir(config_dir):
-        if config_dir != config.get_default_config_dir():
+        if config_dir != config_util.get_default_config_dir():
             print(('Fatal Error: Specified configuration directory does '
                    'not exist {} ').format(config_dir))
             sys.exit(1)
@@ -215,7 +218,7 @@ def ensure_config_path(config_dir):
 
 def ensure_config_file(config_dir):
     """Ensure configuration file exists."""
-    config_path = config.ensure_config_exists(config_dir)
+    config_path = config_util.ensure_config_exists(config_dir)
 
     if config_path is None:
         print('Error getting configuration path')
@@ -231,11 +234,11 @@ def main(argv):
     config_dir = os.path.join(os.getcwd(), args.config_dir)
     ensure_config_path(config_dir)
     config_file = ensure_config_file(config_dir)
-    cfg = config.load_config_file(config_file)
+    cfg = config_util.load_config_file(config_file)
     if not cfg:
         print('Could not load config file at:', config_file)
         sys.exit(1)
-    log.enable_log(args, config_instance=cfg['logging'])
+    log_util.enable_log(args, config_instance=cfg['logging'])
     _LOGGER.info('CONFIG: %s', cfg)
 
     control = Control(args)

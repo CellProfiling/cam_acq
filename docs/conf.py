@@ -11,9 +11,9 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
+from __future__ import print_function
 
 import os
-import shlex
 import sys
 
 import pkg_resources
@@ -63,10 +63,10 @@ author = u'Martin Hjelmare'
 try:
     release = pkg_resources.get_distribution('camacq').version
 except pkg_resources.DistributionNotFound:
-    print 'To build the documentation, The distribution information of camacq'
-    print 'Has to be available.  Either install the package into your'
-    print 'development environment or run "setup.py develop" to setup the'
-    print 'metadata.  A virtualenv is recommended!'
+    print('To build the documentation, The distribution information of camacq'
+          'Has to be available.  Either install the package into your'
+          'development environment or run "setup.py develop" to setup the'
+          'metadata.  A virtualenv is recommended!')
     sys.exit(1)
 del pkg_resources
 

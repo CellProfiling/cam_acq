@@ -6,14 +6,17 @@ import time
 from collections import defaultdict
 
 from matrixscreener.cam import CAM
-from matrixscreener.experiment import attribute_as_str, attributes, glob
+from matrixscreener.experiment import attribute, attributes, glob
 
-from command import camstart_com, del_com
-from gain import GainMap
-from helper import (find_image_path, format_new_name, get_field, get_imgs,
-                    get_well, read_csv, rename_imgs, save_histogram, send,
-                    write_csv)
-from image import make_proj
+from camacq.command import camstart_com, del_com
+from camacq.const import (BLUE, END_10X, END_40X, END_63X, FIELD_NAME,
+                          GAIN_ONLY, GREEN, INPUT_GAIN, JOB_ID, RED, WELL,
+                          WELL_NAME, WELL_NAME_CHANNEL, YELLOW)
+from camacq.gain import GainMap
+from camacq.helper import (find_image_path, format_new_name, get_field,
+                           get_imgs, get_well, read_csv, rename_imgs,
+                           save_histogram, send, write_csv)
+from camacq.image import make_proj
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,18 +31,28 @@ JOB_40X = ['job7', 'job8', 'job9']
 PATTERN_40X = 'pattern2'
 JOB_63X = ['job10', 'job11', 'job12']
 PATTERN_63X = 'pattern3'
-
 STAGE1_DEFAULT = True
 STAGE2_DEFAULT = True
 STAGE3_DEFAULT = False
+JOB_INFO = 'job_info'
+MAX_PROJS = 'maxprojs'
+DEFAULT_LAST_FIELD_GAIN = 'X01--Y01'
+DEFAULT_LAST_SEQ_GAIN = 31
+DEFAULT_JOB_ID_GAIN = 2
+REL_IMAGE_PATH = 'relpath'
+SCAN_FINISHED = 'scanfinished'
+STAGE1 = 'stage1'
+STAGE2 = 'stage2'
+STAGE3 = 'stage3'
 
 
-def handle_imgs(path, imdir, job_order, f_job=2, img_save=True,
+def handle_imgs(path, imdir, job_id, f_job=2, img_save=True,
                 histo_save=True):
     """Handle acquired images, do renaming, make max projections."""
+    # pylint: disable=too-many-arguments
     # Get all image paths in well or field, depending on path and
-    # job_order variable.
-    imgs = get_imgs(path, search='E{}'.format(job_order))
+    # job_id variable.
+    imgs = get_imgs(path, search=JOB_ID.format(job_id))
     new_paths = []
     _LOGGER.info('Handling images...')
     for imgp in imgs:
@@ -48,7 +61,9 @@ def handle_imgs(path, imdir, job_order, f_job=2, img_save=True,
         _LOGGER.debug('NEW NAME: %s', new_name)
         if new_name:
             new_paths.append(new_name)
-    new_dir = os.path.normpath(os.path.join(imdir, 'maxprojs'))
+    if not new_paths or not img_save and not histo_save:
+        return
+    new_dir = os.path.normpath(os.path.join(imdir, MAX_PROJS))
     if not os.path.exists(new_dir):
         os.makedirs(new_dir)
     if img_save:
@@ -65,8 +80,8 @@ def handle_imgs(path, imdir, job_order, f_job=2, img_save=True,
         if histo_save:
             img_attr = attributes(proj.path)
             save_path = os.path.normpath(os.path.join(
-                imdir, 'U{}--V{}--C{}.ome.csv'.format(
-                    img_attr.U, img_attr.V, c_id)))
+                imdir, (WELL_NAME_CHANNEL + '.ome.csv').format(
+                    img_attr.u, img_attr.v, int(c_id))))
             save_histogram(save_path, proj)
 
 
@@ -80,7 +95,7 @@ class Control(object):
         self.cam.delay = 0.2
         # dicts of lists to store wells with gain values for
         # the four channels.
-        self.saved_gains = defaultdict(list)
+        self.saved_gains = defaultdict(dict)
 
     def get_csvs(self, img_ref):
         """Find correct csv files and get their base names."""
@@ -92,15 +107,16 @@ class Control(object):
         _LOGGER.debug('IMAGE PATH: %s', imgp)
         img_attr = attributes(imgp)
         # This means only ever one well at a time.
-        if ('X{}--Y{}'.format(img_attr.X, img_attr.Y) ==
-                'X01--Y01' and img_attr.c == 31):
+        if (FIELD_NAME.format(img_attr.X, img_attr.Y) ==
+                DEFAULT_LAST_FIELD_GAIN and
+                img_attr.c == DEFAULT_LAST_SEQ_GAIN):
             if (self.args.end_63x or
-                    'U{}--V{}'.format(img_attr.U, img_attr.V) ==
+                    WELL_NAME.format(img_attr.U, img_attr.V) ==
                     self.args.last_well):
                 _LOGGER.debug('Stop scan after gain in well: %s',
                               self.cam.stop_scan())
             wellp = get_well(imgp)
-            handle_imgs(wellp, wellp, '02', img_save=False)
+            handle_imgs(wellp, wellp, DEFAULT_JOB_ID_GAIN, img_save=False)
             # get all CSVs in well at wellp
             csvs = glob(os.path.join(os.path.normpath(wellp), '*.ome.csv'))
             for csvp in csvs:
@@ -108,21 +124,22 @@ class Control(object):
                 # Get the filebase from the csv path.
                 fbs.append(re.sub(r'C\d\d.+$', '', csvp))
                 #  Get the well from the csv path.
-                well_name = 'U{}--V{}'.format(csv_attr.U, csv_attr.V)
+                well_name = WELL_NAME.format(csv_attr.U, csv_attr.V)
                 wells.append(well_name)
         return {'bases': fbs, 'wells': wells}
 
     def save_gain(self, saved_gains):
         """Save a csv file with gain values per image channel."""
-        header = ['well', 'green', 'blue', 'yellow', 'red']
+        header = [WELL, GREEN, BLUE, YELLOW, RED]
         path = os.path.normpath(
             os.path.join(self.args.imaging_dir, 'output_gains.csv'))
         write_csv(path, saved_gains, header)
 
-    # #FIXME:20 Function send_com is too complex, trello:S4Df369p
     def send_com(self, gain_dict, gmap, com_list, end_com_list, stage1=None,
                  stage2=None, stage3=None):
         """Send commands to the CAM server."""
+        # pylint: disable=too-many-arguments, too-many-locals
+        # pylint: disable=too-many-branches, too-many-statements
         for com, end_com in zip(com_list, end_com_list):
             # Send CAM list for the gain job to the server during stage1.
             # Send gain change command to server in the four channels
@@ -145,13 +162,13 @@ class Control(object):
             while stage4:
                 replies = self.cam.receive()
                 if replies is None:
-                    time.sleep(0.02)
+                    time.sleep(0.02)  # Short sleep to not burn 100% CPU.
                     continue
                 for reply in replies:
-                    if stage1 and reply.get('relpath'):
+                    if stage1 and reply.get(REL_IMAGE_PATH):
                         _LOGGER.info('Stage1')
                         _LOGGER.debug('REPLY: %s', reply)
-                        csv_result = self.get_csvs(reply.get('relpath'))
+                        csv_result = self.get_csvs(reply.get(REL_IMAGE_PATH))
                         gain_dict = gmap.calc_gain(csv_result, gain_dict)
                         _LOGGER.debug('GAIN DICT: %s', gain_dict)
                         self.saved_gains.update(gain_dict)
@@ -160,7 +177,7 @@ class Control(object):
                         _LOGGER.debug('SAVED_GAINS: %s', self.saved_gains)
                         self.save_gain(self.saved_gains)
                         gmap.distribute_gain(gain_dict)
-                    elif reply.get('relpath'):
+                    elif reply.get(REL_IMAGE_PATH):
                         if stage2:
                             _LOGGER.info('Stage2')
                             img_saving = False
@@ -168,21 +185,33 @@ class Control(object):
                             _LOGGER.info('Stage3')
                             img_saving = False
                         imgp = find_image_path(
-                            reply['relpath'], self.args.imaging_dir)
+                            reply[REL_IMAGE_PATH], self.args.imaging_dir)
+                        img_attr = attributes(imgp)
+                        well = gmap.wells.get(
+                            WELL_NAME.format(img_attr.u, img_attr.v))
+                        if not well:
+                            continue
+                        field = well.fields.get(
+                            FIELD_NAME.format(img_attr.x, img_attr.y))
+                        if not field:
+                            continue
+                        well.fields[FIELD_NAME.format(
+                            img_attr.x, img_attr.y)] = field._replace(
+                                img_ok=True)
                         fieldp = get_field(imgp)
                         handle_imgs(fieldp,
                                     self.args.imaging_dir,
-                                    attribute_as_str(imgp, 'E'),
+                                    attribute(imgp, 'E'),
                                     f_job=self.args.first_job,
                                     img_save=img_saving,
                                     histo_save=False)
-                    if all(test in reply.get('relpath', [])
+                    if all(test in reply.get(REL_IMAGE_PATH, [])
                            for test in end_com):
                         stage4 = False
             reply = self.cam.stop_scan()
             _LOGGER.debug('STOP SCAN: %s', reply)
             begin = time.time()
-            while not reply or 'scanfinished' not in reply[-1].values():
+            while not reply or SCAN_FINISHED not in reply[-1].values():
                 reply = self.cam.receive()
                 _LOGGER.debug('SCAN FINISHED reply: %s', reply)
                 if time.time() - begin > 20.0:
@@ -191,7 +220,7 @@ class Control(object):
             if gain_dict and stage1:
                 com_data = gmap.get_com(self.args.x_fields, self.args.y_fields)
                 # Reset gain_dict for each iteration.
-                gain_dict = defaultdict(list)
+                gain_dict = defaultdict(dict)
                 self.send_com(gain_dict, gmap, com_data['com'],
                               com_data['end_com'], stage1=False, stage2=stage2,
                               stage3=stage3)
@@ -202,37 +231,37 @@ class Control(object):
         stage1 = STAGE1_DEFAULT
         stage2 = STAGE2_DEFAULT
         stage3 = STAGE3_DEFAULT
-        gain_dict = defaultdict(list)
+        gain_dict = defaultdict(dict)
         flow_map = {
-            'end_10x': {
-                'job_info': (JOB_10X, PATTERN_G_10X, PATTERN_10X),
+            END_10X: {
+                JOB_INFO: (JOB_10X, PATTERN_G_10X, PATTERN_10X),
             },
-            'end_40x': {
-                'job_info': (JOB_40X, PATTERN_G_40X, PATTERN_40X),
+            END_40X: {
+                JOB_INFO: (JOB_40X, PATTERN_G_40X, PATTERN_40X),
             },
-            'end_63x': {
-                'job_info': (JOB_63X, PATTERN_G_63X, PATTERN_63X),
-                'stage2': False,
-                'stage3': True,
+            END_63X: {
+                JOB_INFO: (JOB_63X, PATTERN_G_63X, PATTERN_63X),
+                STAGE2: False,
+                STAGE3: True,
             },
-            'gain_only': {
-                'stage2': False,
-                'stage3': False,
+            GAIN_ONLY: {
+                STAGE2: False,
+                STAGE3: False,
             },
-            'input_gain': {
-                'stage1': False,
+            INPUT_GAIN: {
+                STAGE1: False,
             },
         }
         for attr, settings in flow_map.iteritems():
             if getattr(self.args, attr, None):
-                stage1 = settings.get('stage1', stage1)
-                stage2 = settings.get('stage2', stage2)
-                stage3 = settings.get('stage3', stage3) if not \
-                    self.args.gain_only else flow_map['gain_only']['stage3']
-                if 'job_info' in settings:
-                    job_info = settings['job_info']
-                if 'input_gain' in attr:
-                    gain_dict = read_csv(self.args.input_gain, 'well')
+                stage1 = settings.get(STAGE1, stage1)
+                stage2 = settings.get(STAGE2, stage2)
+                stage3 = settings.get(STAGE3, stage3) if not \
+                    self.args.gain_only else flow_map[GAIN_ONLY][STAGE3]
+                if JOB_INFO in settings:
+                    job_info = settings[JOB_INFO]
+                if INPUT_GAIN in attr:
+                    gain_dict = read_csv(self.args.input_gain, WELL)
 
         # make Gain object
         gmap = GainMap(self.args, job_info)

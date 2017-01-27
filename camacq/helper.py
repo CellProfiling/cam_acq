@@ -132,8 +132,7 @@ def format_new_name(imgp, root=None, new_attr=None):
           for attr in ('U', 'V', 'E', 'X', 'Y', 'Z', 'C')))
     if new_attr:
         for attr, attr_id in new_attr.iteritems():
-            path = re.sub(
-                attr + r'\d\d', attr + attr_id, path)
+            path = re.sub(attr + r'\d\d', attr + attr_id, path)
 
     return os.path.normpath(os.path.join(root, path))
 
