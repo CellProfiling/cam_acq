@@ -56,8 +56,21 @@ def get_gain_com(commands, channels, job_list):
     return commands
 
 
-class Gain(object):
-    """Gain class."""
+class Channel(object):
+    """Represent a channel with gain.
+
+    Parameters
+    ----------
+    channel : str
+        Name of the channel.
+    gain : int
+        Gain value.
+
+    Attributes
+    ----------
+    channel : str
+        Return name of the channel.
+    """
 
     # pylint: disable=too-few-public-methods
 
@@ -70,13 +83,35 @@ class Gain(object):
 
     @property
     def gain(self):
-        """Return gain."""
+        """:int: Return gain value.
+
+        :setter: Set the gain value and convert to int."""
         return self._gain
 
     @gain.setter
     def gain(self, value):
         """Set gain."""
         self._gain = int(value)
+
+
+class Field(namedtuple('Field', 'X Y dX dY gain_field img_ok')):
+    """Represent a field.
+
+    Parameters
+    ----------
+    X : int
+        Coordinate of field in X.
+    Y : int
+        Coordinate of field in Y.
+    dX : int
+        Pixel coordinate of region of interest within image field in X.
+    dY : int
+        Pixel coordinate of region of interest within image field in Y.
+    gain_field : bool
+        True if field should run gain selection analysis.
+    img_ok : bool
+        True if field has acquired an ok image.
+    """
 
 
 class Well(object):
@@ -104,8 +139,7 @@ class Well(object):
         # pylint: disable=invalid-name
         self.U = attribute('--{}'.format(name), 'U')
         self.V = attribute('--{}'.format(name), 'V')
-        self._field = namedtuple(
-            'Field', ['X', 'Y', 'dX', 'dY', 'gain_field', 'img_ok'])
+        self._field = Field(0, 0, 0, 0, False, False)
         self._fields = {}
         self.channels = {}
 
@@ -159,12 +193,8 @@ class GainMap(object):
     ----------
     args : dict
         Dict with command line arguments from the start of the program.
-    job_list : list
-        List of names of the jobs for the objective and experiment.
-    pattern_g : str
-        Name of the pattern for the gain job.
-    pattern : str
-        Name of the pattern for the experiment job.
+    job_info : tuple
+        Tuple of job_list, pattern_g, and pattern, which will be attributes.
 
     Attributes
     ----------
@@ -269,7 +299,7 @@ class GainMap(object):
         """
         if well not in self.wells:
             self.wells[well] = Well(well)
-        self.wells[well].channels.update({channel: Gain(channel, gain)})
+        self.wells[well].channels.update({channel: Channel(channel, gain)})
 
     def distribute_gain(self, gain_dict):
         """Collate gain values and distribute them to the wells."""
