@@ -9,6 +9,6 @@ addons:
     packages:
     - python-numpy
 # command to install dependencies
-install: "pip install -r requirements.txt"
+install: pip install tox-travis
 # command to run tests
-script: py.test
+script: tox
