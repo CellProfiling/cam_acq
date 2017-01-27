@@ -85,7 +85,8 @@ class Channel(object):
     def gain(self):
         """:int: Return gain value.
 
-        :setter: Set the gain value and convert to int."""
+        :setter: Set the gain value and convert to int.
+        """
         return self._gain
 
     @gain.setter
@@ -154,7 +155,7 @@ class Well(object):
                 (xcoord, ycoord, dxpx, dypx, gain_field, img_ok))})
 
     @property
-    def fields(self):
+    def fields(self):  # noqa D301, D207
         """:dict: Return a dict of field coordinates as named tuples.
 
         :setter: Sets the coordinates of multiple fields.
@@ -168,7 +169,7 @@ class Well(object):
             >>> well.fields = [[1, 3, 0, 1, True, False], ]
             >>> well.fields
             {'X01--Y03': Field(X=1, Y=3, dX=0, dY=1, \
-            gain_field=True, img_ok=False)}
+gain_field=True, img_ok=False)}
         """
         return self._fields
 
