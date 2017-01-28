@@ -3,8 +3,10 @@ import logging
 import os
 import re
 import time
-from collections import defaultdict
+from collections import defaultdict, deque
 
+import zope.event.classhandler as eventhandler
+import zope.event as event
 from matrixscreener.cam import CAM
 from matrixscreener.experiment import attribute, attributes, glob
 
@@ -85,6 +87,19 @@ def handle_imgs(path, imdir, job_id, f_job=2, img_save=True,
             save_histogram(save_path, proj)
 
 
+class Event(object):
+    """Event class."""
+    def __init__(self, reply):
+        self.reply = reply
+
+
+class ImageEvent(Event):
+    """ImageEvent class"""
+    def __init__(self, reply):
+        super(ImageEvent, self).__init__()
+        self.rel_path = self.reply.get(REL_IMAGE_PATH)
+
+
 class Control(object):
     """Represent a control center for the microscope."""
 
@@ -96,6 +111,45 @@ class Control(object):
         # dicts of lists to store wells with gain values for
         # the four channels.
         self.saved_gains = defaultdict(dict)
+        self.com_deq = deque()
+
+    def run(self):
+        """Run, send commands and receive replies.
+
+        Register functions event bus style that are called on event.
+        An event is a reply from the server.
+        """
+        while True:
+            # check for gain_ok in wells
+            # get gain coms for not gain_ok in wells
+            # add coms to deque in wells
+            # add coms from all deques to main deque
+            # send all coms from main deque
+            if not self.com_deq:
+                self.receive()
+                # if reply check reply and call or register correct listener
+                time.sleep(0.02)  # Short sleep to not burn 100% CPU.
+                continue
+            com = self.com_deq.popleft()
+            send(self.cam, com)
+
+    def receive(self):
+        """Receive replies from CAM server and notify an event."""
+        replies = self.cam.receive()
+        if replies is None:
+            return
+        # parse reply and create Event
+        for reply in replies:
+            if REL_IMAGE_PATH not in reply:
+                continue
+            event.notify(ImageEvent(reply))
+
+    def get_commands(self, com_deq=None):
+        """Get and return commands from main command deque."""
+        if com_deq is None:
+            com_deq = self.com_deq
+        commands = [com for com in com_deq]
+        return commands
 
     def get_csvs(self, img_ref):
         """Find correct csv files and get their base names."""

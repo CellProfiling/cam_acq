@@ -7,3 +7,4 @@ PyYAML >= 3.11
 sphinx_rtd_theme >= 0.1.9
 matrixscreener >= 0.6.1
 jinja2 >= 2.8
+zope.event >= 4.2.0
