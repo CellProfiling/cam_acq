@@ -35,6 +35,7 @@ def read(*filenames, **kwargs):
             buf.append(file_open.read())
     return sep.join(buf)
 
+
 LONG_DESCR = read('README.rst')
 DOWNLOAD_URL = 'https://github.com/CellProfiling/cam_acq/archive/master.zip'
 CLASSIFIERS = [

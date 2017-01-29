@@ -8,6 +8,8 @@ from collections import defaultdict
 
 from matrixscreener import experiment
 
+from camacq.const import BLUE, GREEN, RED, WELL, YELLOW
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -98,6 +100,8 @@ def find_image_path(relpath, root):
 
     Convert from windows path to os path.
     """
+    if not relpath:
+        return
     paths = []
     while relpath:
         relpath, tail = ntpath.split(relpath)
@@ -180,6 +184,14 @@ def get_imgs(path, img_type='tif', search=''):
         if pattern not in path:
             path = os.path.join(path, '{}--*'.format(pattern))
     return experiment.glob('{}{}.{}'.format(path, search, img_type))
+
+
+def save_gain(save_dir, saved_gains):
+    """Save a csv file with gain values per image channel."""
+    header = [WELL, GREEN, BLUE, YELLOW, RED]
+    path = os.path.normpath(
+        os.path.join(save_dir, 'output_gains.csv'))
+    write_csv(path, saved_gains, header)
 
 
 def save_histogram(path, image):

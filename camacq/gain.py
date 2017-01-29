@@ -237,6 +237,9 @@ class GainMap(object):
     def calc_gain(self, data, gain_dict):
         """Run R scripts and calculate gain values for the wells."""
         # Get a unique set of filebases from the csv paths.
+        if not data:
+            _LOGGER.error('No data %s', data)
+            return gain_dict
         filebases = sorted(set(data['bases']))
         # Get a unique set of names of the experiment wells.
         fin_wells = sorted(set(data['wells']))
