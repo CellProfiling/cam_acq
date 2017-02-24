@@ -407,5 +407,5 @@ class GainMap(object):
             for com in com_list_bak:
                 com_list.extend(com)
             com_list = [com_list]
-            end_com_list = [end_com]
+            end_com_list = [end_com_list[-1]]
         return {'com': com_list, 'end_com': end_com_list}
