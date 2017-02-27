@@ -42,9 +42,9 @@ def send(cam, commands):
     """
     replies = []
     for cmd in commands:
-        _LOGGER.debug(cmd)
+        _LOGGER.debug('sending: %s', cmd)
         reply = cam.send(cmd)
-        _LOGGER.debug(reply)
+        _LOGGER.debug('receiving: %s', reply)
         if reply:
             replies.extend(reply)
     return replies

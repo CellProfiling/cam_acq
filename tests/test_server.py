@@ -3,10 +3,11 @@
 
 import logging
 import SocketServer
-import threading
+# import threading
 
-logging.basicConfig(
-    level=logging.DEBUG, format='%(name)s: %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(name)s: %(message)s')
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class EchoRequestHandler(SocketServer.BaseRequestHandler):
@@ -57,9 +58,14 @@ if __name__ == '__main__':
     SERVER = EchoServer(ADDRESS, EchoRequestHandler)
     # ip, port = server.server_address  # find out what port we were given
 
-    THREAD = threading.Thread(target=SERVER.serve_forever)
-    THREAD.start()
-
-    # Clean up
-    SERVER.shutdown()
-    SERVER.server_close()
+    # THREAD = threading.Thread(target=SERVER.serve_forever)
+    # THREAD.start()
+    try:
+        _LOGGER.debug('Serve forever')
+        SERVER.serve_forever()
+    except KeyboardInterrupt:
+        # Clean up
+        _LOGGER.debug('Server shutdown')
+        SERVER.shutdown()
+        _LOGGER.debug('Server close')
+        SERVER.server_close()

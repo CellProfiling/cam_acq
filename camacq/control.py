@@ -4,6 +4,7 @@ import time
 from collections import defaultdict, deque
 
 import zope.event as eventbus
+import zope.event.classhandler as event_handler
 from matrixscreener.cam import CAM
 from matrixscreener.experiment import attribute, attributes
 
@@ -103,7 +104,7 @@ def handle_stop_end_stage1(event):
     handle_stop(event)
     if handle_stage1 in event.center.registry.get(ImageEvent, []):
         event.center.registry[ImageEvent].remove(handle_stage1)
-    eventbus.classhandler.handler(ImageEvent, handle_stage2)
+    event_handler.handler(ImageEvent, handle_stage2)
     com_data = event.center.gains.get_com(
         event.center.args.x_fields, event.center.args.y_fields)
     todo = deque(
@@ -122,7 +123,7 @@ def handle_stop_mid_stage2(event):
     """Handle event that should continue with stage2 after stop."""
     handle_stop(event)
     if handle_stage2 not in event.center.registry.get(ImageEvent, []):
-        eventbus.classhandler.handler(ImageEvent, handle_stage2)
+        event_handler.handler(ImageEvent, handle_stage2)
     if event.center.do_later:
         event.center.do_now.append(event.center.do_later.popleft())
 
@@ -132,7 +133,7 @@ def handle_stop_end_stage2(event):
     handle_stop(event)
     if handle_stage2 in event.center.registry.get(ImageEvent, []):
         event.center.registry[ImageEvent].remove(handle_stage2)
-    eventbus.classhandler.handler(ImageEvent, handle_stage1)
+    event_handler.handler(ImageEvent, handle_stage1)
     if event.center.do_later:
         event.center.do_now.append(event.center.do_later.popleft())
 
@@ -184,7 +185,7 @@ class Control(object):
         self.do_now = deque()  # Functions to call asap.
         self.do_later = deque()  # Functions to call at specific events.
         # Use registry for specific recurring events.
-        self.registry = eventbus.classhandler.registry
+        self.registry = event_handler.registry
         # Use subscribers for functions that should be able to unsubscribe.
         self.subscribers = eventbus.subscribers
         # Fix lazy init
@@ -229,6 +230,20 @@ class Control(object):
         for reply in replies:
             eventbus.notify(ImageEvent(self, reply))
 
+    def fill_queue(self, func, args=None, kwargs=None, queue=None):
+        """Add a function to a deque.
+
+        Append the function 'func', a tuple of arguments 'args' and a dict
+        of keyword arguments 'kwargs', as a tuple to the deque.
+        """
+        if args is None:
+            args = ()
+        if kwargs is None:
+            kwargs = {}
+        if queue is None:
+            queue = self.do_now
+        queue.append((func, args, kwargs))
+
     def send_com(self, commands, stop_data, handler):
         """Add commands to outgoing queue for the CAM server."""
         def stop_test(event):
@@ -240,17 +255,17 @@ class Control(object):
 
         def send_start_commands(coms):
             """Send all commands needed to start microscope and run com."""
-            self.do_now.append((self.cam.send, (del_com(), )))
-            self.do_now.append((time.sleep, (2, )))
-            self.do_now.append((send, (self.cam, coms)))
-            self.do_now.append((time.sleep, (2, )))
-            self.do_now.append((self.cam.start_scan))
+            self.fill_queue(self.cam.send, (del_com(), ))
+            self.fill_queue(time.sleep, (2, ))
+            self.fill_queue(send, (self.cam, coms))
+            self.fill_queue(time.sleep, (2, ))
+            self.fill_queue(self.cam.start_scan)
             # Wait for it to change objective and start.
-            self.do_now.append((time.sleep, (7, )))
-            self.do_now.append((self.cam.send, (camstart_com(), )))
+            self.fill_queue(time.sleep, (7, ))
+            self.fill_queue(self.cam.send, (camstart_com(), ))
 
         # Append a tuple with function, args (tuple) and kwargs (dict).
-        self.do_now.append((send_start_commands, (commands, )))
+        self.fill_queue(send_start_commands, (commands, ))
 
     def control(self):
         """Control the flow."""
@@ -296,13 +311,13 @@ class Control(object):
             com_data = self.gains.get_init_com()
 
         if stage1:
-            eventbus.classhandler.handler(ImageEvent, handle_stage1)
+            event_handler.handler(ImageEvent, handle_stage1)
         elif stage2:
-            eventbus.classhandler.handler(ImageEvent, handle_stage2)
+            event_handler.handler(ImageEvent, handle_stage2)
 
         if stage1 or stage2:
-            self.do_later = deque(
-                (self.send_com, (commands, end_com, handle_stop_end_stage1))
-                for commands, end_com
-                in zip(com_data['com'], com_data['end_com']))
-            self.do_now = self.do_later.popleft()
+            for commands, end_com in zip(com_data['com'], com_data['end_com']):
+                self.fill_queue(
+                    self.send_com, (commands, end_com, handle_stop_end_stage1),
+                    queue=self.do_later)
+            self.do_now.append(self.do_later.popleft())
