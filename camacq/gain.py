@@ -346,7 +346,9 @@ class GainMap(object):
         # Lists for storing command strings.
         com_list = []
         end_com_list = []
-        # FIX: CHECK GAINS AND RUN JOBS SMART
+        # FIXME: CHECK GAINS AND RUN JOBS SMART  pylint: disable=fixme
+        # Ie use one job for multiple wells where the gain is the same
+        # or similar.
         for well in self.wells.values():
             self.set_fields(well, x_fields, y_fields)
             if well.img_ok:

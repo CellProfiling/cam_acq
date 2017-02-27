@@ -19,6 +19,6 @@ def setup_dict(config, cmd_args=None):
 def setup_file(config_file, cmd_args=None):
     """Set up control center from config file."""
     config = config_util.load_config_file(config_file)
-    # FIX: Merge cmd_args into config dict.
+    # FIXME: Merge cmd_args into config dict.  pylint: disable=fixme
     center = setup_dict(config, cmd_args)
     return center

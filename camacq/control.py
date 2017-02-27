@@ -230,7 +230,7 @@ class Control(object):
             eventbus.notify(ImageEvent(self, reply))
 
     def send_com(self, commands, stop_data, handler):
-        """Send commands to the CAM server."""
+        """Add commands to outgoing queue for the CAM server."""
         def stop_test(event):
             """Test if stop should be done."""
             if all(test in event.rel_path for test in stop_data):
