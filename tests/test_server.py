@@ -1,71 +1,63 @@
-"""Handle test server."""
-# Python socket server example taken from pymotw
-
+"""Implement test server."""
 import logging
-import SocketServer
-# import threading
+import socket
 
 logging.basicConfig(level=logging.DEBUG, format='%(name)s: %(message)s')
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class EchoRequestHandler(SocketServer.BaseRequestHandler):
-    """Request handler of test server."""
-
-    def __init__(self, request, client_address, server):
-        """Set up instance attributes."""
-        self.logger = logging.getLogger('EchoRequestHandler')
-        self.logger.debug('__init__')
-        SocketServer.BaseRequestHandler.__init__(
-            self, request, client_address, server)
-
-    def setup(self):
-        """Set up handler."""
-        self.logger.debug('setup')
-        self.request.send('Welcome')
-        return SocketServer.BaseRequestHandler.setup(self)
-
-    def handle(self):
-        """Handle requests."""
-        self.logger.debug('handle')
-
-        # Echo the back to the client
-        data = self.request.recv(1024)
-        self.logger.debug('recv()->"%s"', data)
-        self.request.send(data)
-
-    def finish(self):
-        """Finish requests."""
-        self.logger.debug('finish')
-        return SocketServer.BaseRequestHandler.finish(self)
-
-
-class EchoServer(SocketServer.TCPServer):
+class EchoServer(object):
     """Test server."""
 
-    def __init__(self, server_address, handler_class=EchoRequestHandler):
-        """Set up instance attributes."""
+    def __init__(self, server_address):
+        """Set up server."""
         self.logger = logging.getLogger('EchoServer')
-        self.logger.debug('__init__')
-        SocketServer.TCPServer.allow_reuse_address = True
-        SocketServer.TCPServer.__init__(self, server_address, handler_class)
+        self.logger.debug('Setting up server')
+        self.server_address = server_address
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.setup()
+
+    def setup(self):
+        """Bind and listen to incoming connections."""
+        self.sock.bind(self.server_address)
+        self.sock.listen(1)
+
+    def handle(self):
+        """Handle incoming connections."""
+        # pylint: disable=no-member
+        self.logger.debug('Serve incoming connections')
+        conn, addr = self.sock.accept()
+        self.logger.debug('Connected by %s', addr)
+        try:
+            self.logger.debug('Send welcome')
+            conn.sendall('Welcome...'.encode('utf-8'))
+            while True:
+                data = conn.recv(1024)
+                if not data:
+                    self.logger.debug('No data, closing')
+                    break
+                self.logger.debug('Sending: %s', data)
+                conn.sendall(data)
+        except OSError as exc:
+            self.logger.error(exc)
+        finally:
+            self.logger.debug('Closing connection to %s', addr)
+            conn.close()
 
 
 if __name__ == '__main__':
 
     ADDRESS = ('localhost', 8895)
-    SERVER = EchoServer(ADDRESS, EchoRequestHandler)
-    # ip, port = server.server_address  # find out what port we were given
+    SERVER = EchoServer(ADDRESS)
 
-    # THREAD = threading.Thread(target=SERVER.serve_forever)
-    # THREAD.start()
     try:
-        _LOGGER.debug('Serve forever')
-        SERVER.serve_forever()
+        SERVER.handle()
     except KeyboardInterrupt:
-        # Clean up
-        _LOGGER.debug('Server shutdown')
-        SERVER.shutdown()
-        _LOGGER.debug('Server close')
-        SERVER.server_close()
+        try:
+            _LOGGER.debug('Server shutdown')
+            SERVER.sock.shutdown(socket.SHUT_WR)
+            _LOGGER.debug('Server close')
+            SERVER.sock.close()
+        except OSError:
+            _LOGGER.error('Error shutting down server socket')
