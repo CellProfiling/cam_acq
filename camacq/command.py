@@ -31,11 +31,11 @@ def camstart_com(afjob=None, afrange=None, afsteps=None):
     Return a list with parts for the cam command.
     """
     if afjob is not None:
-        afjob = ('afj', afjob)
+        afjob = ('afj', str(afjob))
     if afrange is not None:
-        afrange = ('afr', afrange)
+        afrange = ('afr', str(afrange))
     if afsteps is not None:
-        afsteps = ('afs', afsteps)
+        afsteps = ('afs', str(afsteps))
 
     template = [('cmd', 'startcamscan'), ('runtime', '36000'),
                 ('repeattime', '36000')]
@@ -55,13 +55,13 @@ def camstop_com():
     return [('cmd', 'stopcamscan')]
 
 
-def gain_com(exp='job', num='1', value='800'):
+def gain_com(exp, num, value):
     """Change the pmt gain in a job.
 
     Return a list with parts for the cam command.
     """
-    return [('cmd', 'adjust'), ('tar', 'pmt'), ('num', num), ('exp', exp),
-            ('prop', 'gain'), ('value', value)]
+    return [('cmd', 'adjust'), ('tar', 'pmt'), ('num', str(num)),
+            ('exp', str(exp)), ('prop', 'gain'), ('value', str(value))]
 
 
 def enable_com(wellu, wellv, fieldx, fieldy, enable):
@@ -76,7 +76,7 @@ def enable_com(wellu, wellv, fieldx, fieldy, enable):
 
     return [('cmd', 'enable'), ('slide', '0'), ('wellx', wellx),
             ('welly', welly), ('fieldx', fieldx), ('fieldy', fieldy),
-            ('value', enable)]
+            ('value', str(enable).lower())]
 
 
 def cam_com(exp, wellu, wellv, fieldx, fieldy, dxcoord, dycoord):
@@ -92,5 +92,5 @@ def cam_com(exp, wellu, wellv, fieldx, fieldy, dxcoord, dycoord):
 
     return [('cmd', 'add'), ('tar', 'camlist'), ('exp', exp), ('ext', 'af'),
             ('slide', '0'), ('wellx', wellx), ('welly', welly),
-            ('fieldx', fieldx), ('fieldy', fieldy), ('dxpos', dxcoord),
-            ('dypos', dycoord)]
+            ('fieldx', fieldx), ('fieldy', fieldy), ('dxpos', str(dxcoord)),
+            ('dypos', str(dycoord))]
