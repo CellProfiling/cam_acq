@@ -8,7 +8,15 @@ from collections import defaultdict
 
 from matrixscreener import experiment
 
+from camacq.const import (BLUE, FIELD_NAME, GREEN, JOB_ID, RED, WELL,
+                          WELL_NAME, WELL_NAME_CHANNEL, YELLOW)
+from camacq.image import make_proj
+
 _LOGGER = logging.getLogger(__name__)
+DEFAULT_JOB_ID_GAIN = 2
+DEFAULT_LAST_FIELD_GAIN = 'X01--Y01'
+DEFAULT_LAST_SEQ_GAIN = 31
+MAX_PROJS = 'maxprojs'
 
 
 def send(cam, commands):
@@ -34,9 +42,9 @@ def send(cam, commands):
     """
     replies = []
     for cmd in commands:
-        _LOGGER.debug(cmd)
+        _LOGGER.debug('sending: %s', cmd)
         reply = cam.send(cmd)
-        _LOGGER.debug(reply)
+        _LOGGER.debug('receiving: %s', reply)
         if reply:
             replies.extend(reply)
     return replies
@@ -98,6 +106,8 @@ def find_image_path(relpath, root):
 
     Convert from windows path to os path.
     """
+    if not relpath:
+        return
     paths = []
     while relpath:
         relpath, tail = ntpath.split(relpath)
@@ -182,9 +192,85 @@ def get_imgs(path, img_type='tif', search=''):
     return experiment.glob('{}{}.{}'.format(path, search, img_type))
 
 
+def save_gain(save_dir, saved_gains):
+    """Save a csv file with gain values per image channel."""
+    header = [WELL, GREEN, BLUE, YELLOW, RED]
+    path = os.path.normpath(
+        os.path.join(save_dir, 'output_gains.csv'))
+    write_csv(path, saved_gains, header)
+
+
 def save_histogram(path, image):
     """Save the histogram of an image to path."""
     rows = defaultdict(list)
     for box, count in enumerate(image.histogram[0]):
         rows[box].append(count)
     write_csv(path, rows, ['bin', 'count'])
+
+
+def handle_imgs(path, imdir, job_id, f_job=2, img_save=True, histo_save=True):
+    """Handle acquired images, do renaming, make max projections."""
+    # pylint: disable=too-many-arguments
+    # Get all image paths in well or field, depending on path and
+    # job_id variable.
+    imgs = get_imgs(path, search=JOB_ID.format(job_id))
+    new_paths = []
+    _LOGGER.info('Handling images...')
+    for imgp in imgs:
+        _LOGGER.debug('IMAGE PATH: %s', imgp)
+        new_name = rename_imgs(imgp, f_job)
+        _LOGGER.debug('NEW NAME: %s', new_name)
+        if new_name:
+            new_paths.append(new_name)
+    if not new_paths or not img_save and not histo_save:
+        return
+    new_dir = os.path.normpath(os.path.join(imdir, MAX_PROJS))
+    if not os.path.exists(new_dir):
+        os.makedirs(new_dir)
+    if img_save:
+        _LOGGER.info('Saving images...')
+    if histo_save:
+        _LOGGER.info('Calculating histograms')
+    # Make a max proj per channel.
+    for c_id, proj in make_proj(new_paths).iteritems():
+        if img_save:
+            save_path = format_new_name(proj.path, root=new_dir,
+                                        new_attr={'C': c_id})
+            # Save meta data and image max proj.
+            proj.save(save_path)
+        if histo_save:
+            img_attr = experiment.attributes(proj.path)
+            save_path = os.path.normpath(os.path.join(
+                imdir, (WELL_NAME_CHANNEL + '.ome.csv').format(
+                    img_attr.u, img_attr.v, int(c_id))))
+            save_histogram(save_path, proj)
+
+
+def get_csvs(event):
+    """Find correct csv files and get their base names."""
+    # empty lists for keeping csv file base path names
+    # and corresponding well names
+    fbs = []
+    wells = []
+    imgp = find_image_path(event.rel_path, event.center.args.imaging_dir)
+    _LOGGER.debug('IMAGE PATH: %s', imgp)
+    if not imgp:
+        return {}
+    img_attr = experiment.attributes(imgp)
+    # This means only ever one well at a time.
+    if (FIELD_NAME.format(img_attr.X, img_attr.Y) ==
+            DEFAULT_LAST_FIELD_GAIN and
+            img_attr.c == DEFAULT_LAST_SEQ_GAIN):
+        wellp = get_well(imgp)
+        handle_imgs(wellp, wellp, DEFAULT_JOB_ID_GAIN, img_save=False)
+        # get all CSVs in well at wellp
+        csvs = experiment.glob(
+            os.path.join(os.path.normpath(wellp), '*.ome.csv'))
+        for csvp in csvs:
+            csv_attr = experiment.attributes(csvp)
+            # Get the filebase from the csv path.
+            fbs.append(re.sub(r'C\d\d.+$', '', csvp))
+            #  Get the well from the csv path.
+            well_name = WELL_NAME.format(csv_attr.U, csv_attr.V)
+            wells.append(well_name)
+    return {'bases': fbs, 'wells': wells}

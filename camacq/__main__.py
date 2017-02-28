@@ -8,12 +8,9 @@ import re
 import socket
 import sys
 
+import camacq.bootstrap as bootstrap
 import camacq.config as config_util
-import camacq.log as log_util
 from camacq.const import END_10X, END_40X, END_63X, GAIN_ONLY, INPUT_GAIN
-from camacq.control import Control
-
-_LOGGER = logging.getLogger(__name__)
 
 
 def check_dir_arg(path):
@@ -230,19 +227,16 @@ def ensure_config_file(config_dir):
 def main(argv):
     """Main function."""
     # Parse command line arguments
-    args = parse_command_line(argv)
-    config_dir = os.path.join(os.getcwd(), args.config_dir)
+    cmd_args = parse_command_line(argv)
+    config_dir = os.path.join(os.getcwd(), cmd_args.config_dir)
     ensure_config_path(config_dir)
     config_file = ensure_config_file(config_dir)
-    cfg = config_util.load_config_file(config_file)
-    if not cfg:
+    center = bootstrap.setup_file(config_file, cmd_args)
+    if not center:
         print('Could not load config file at:', config_file)
         sys.exit(1)
-    log_util.enable_log(args, config_instance=cfg['logging'])
-    _LOGGER.info('CONFIG: %s', cfg)
-
-    control = Control(args)
-    control.control()
+    center.start()
+    return center.exit_code
 
 
 if __name__ == '__main__':

@@ -237,6 +237,9 @@ class GainMap(object):
     def calc_gain(self, data, gain_dict):
         """Run R scripts and calculate gain values for the wells."""
         # Get a unique set of filebases from the csv paths.
+        if not data:
+            _LOGGER.error('No data %s', data)
+            return gain_dict
         filebases = sorted(set(data['bases']))
         # Get a unique set of names of the experiment wells.
         fin_wells = sorted(set(data['wells']))
@@ -343,7 +346,9 @@ class GainMap(object):
         # Lists for storing command strings.
         com_list = []
         end_com_list = []
-        # FIX: CHECK GAINS AND RUN JOBS SMART
+        # FIXME: CHECK GAINS AND RUN JOBS SMART  pylint: disable=fixme
+        # Ie use one job for multiple wells where the gain is the same
+        # or similar.
         for well in self.wells.values():
             self.set_fields(well, x_fields, y_fields)
             if well.img_ok:
@@ -404,5 +409,5 @@ class GainMap(object):
             for com in com_list_bak:
                 com_list.extend(com)
             com_list = [com_list]
-            end_com_list = [end_com]
+            end_com_list = [end_com_list[-1]]
         return {'com': com_list, 'end_com': end_com_list}

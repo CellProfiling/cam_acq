@@ -1,22 +1,19 @@
 """Control the microscope."""
 import logging
-import os
-import re
 import time
-from collections import defaultdict
+from collections import defaultdict, deque
 
+import zope.event as eventbus
+import zope.event.classhandler as event_handler
 from matrixscreener.cam import CAM
-from matrixscreener.experiment import attribute, attributes, glob
+from matrixscreener.experiment import attribute, attributes
 
 from camacq.command import camstart_com, del_com
-from camacq.const import (BLUE, END_10X, END_40X, END_63X, FIELD_NAME,
-                          GAIN_ONLY, GREEN, INPUT_GAIN, JOB_ID, RED, WELL,
-                          WELL_NAME, WELL_NAME_CHANNEL, YELLOW)
+from camacq.const import (END_10X, END_40X, END_63X, FIELD_NAME, GAIN_ONLY,
+                          INPUT_GAIN, WELL, WELL_NAME)
 from camacq.gain import GainMap
-from camacq.helper import (find_image_path, format_new_name, get_field,
-                           get_imgs, get_well, read_csv, rename_imgs,
-                           save_histogram, send, write_csv)
-from camacq.image import make_proj
+from camacq.helper import (find_image_path, get_csvs, get_field, handle_imgs,
+                           read_csv, save_gain, send)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,60 +30,149 @@ JOB_63X = ['job10', 'job11', 'job12']
 PATTERN_63X = 'pattern3'
 STAGE1_DEFAULT = True
 STAGE2_DEFAULT = True
-STAGE3_DEFAULT = False
 JOB_INFO = 'job_info'
-MAX_PROJS = 'maxprojs'
-DEFAULT_LAST_FIELD_GAIN = 'X01--Y01'
-DEFAULT_LAST_SEQ_GAIN = 31
-DEFAULT_JOB_ID_GAIN = 2
 REL_IMAGE_PATH = 'relpath'
 SCAN_FINISHED = 'scanfinished'
 STAGE1 = 'stage1'
 STAGE2 = 'stage2'
-STAGE3 = 'stage3'
 
 
-def handle_imgs(path, imdir, job_id, f_job=2, img_save=True,
-                histo_save=True):
-    """Handle acquired images, do renaming, make max projections."""
-    # pylint: disable=too-many-arguments
-    # Get all image paths in well or field, depending on path and
-    # job_id variable.
-    imgs = get_imgs(path, search=JOB_ID.format(job_id))
-    new_paths = []
-    _LOGGER.info('Handling images...')
-    for imgp in imgs:
-        _LOGGER.debug('IMAGE PATH: %s', imgp)
-        new_name = rename_imgs(imgp, f_job)
-        _LOGGER.debug('NEW NAME: %s', new_name)
-        if new_name:
-            new_paths.append(new_name)
-    if not new_paths or not img_save and not histo_save:
+def handle_stage1(event):
+    """Handle events during stage 1."""
+    _LOGGER.info('Stage1')
+    _LOGGER.debug('REPLY: %s', event.reply)
+    csv_result = get_csvs(event)
+    # remove empty dict passed to calc_gain?
+    gain_dict = event.center.gains.calc_gain(csv_result, defaultdict(dict))
+    _LOGGER.debug('GAIN DICT: %s', gain_dict)
+    event.center.saved_gains.update(gain_dict)
+    if not event.center.saved_gains:
         return
-    new_dir = os.path.normpath(os.path.join(imdir, MAX_PROJS))
-    if not os.path.exists(new_dir):
-        os.makedirs(new_dir)
-    if img_save:
-        _LOGGER.info('Saving images...')
-    if histo_save:
-        _LOGGER.info('Calculating histograms')
-    # Make a max proj per channel.
-    for c_id, proj in make_proj(new_paths).iteritems():
-        if img_save:
-            save_path = format_new_name(proj.path, root=new_dir,
-                                        new_attr={'C': c_id})
-            # Save meta data and image max proj.
-            proj.save(save_path)
-        if histo_save:
-            img_attr = attributes(proj.path)
-            save_path = os.path.normpath(os.path.join(
-                imdir, (WELL_NAME_CHANNEL + '.ome.csv').format(
-                    img_attr.u, img_attr.v, int(c_id))))
-            save_histogram(save_path, proj)
+    _LOGGER.debug('SAVED_GAINS: %s', event.center.saved_gains)
+    save_gain(event.center.args.imaging_dir, event.center.saved_gains)
+    event.center.gains.distribute_gain(gain_dict)
+
+
+def handle_stage2(event):
+    """Handle events during stage 2."""
+    _LOGGER.info('Stage2')
+    imgp = find_image_path(event.rel_path, event.center.args.imaging_dir)
+    if not imgp:
+        return
+    img_attr = attributes(imgp)
+    well = event.center.gains.wells.get(
+        WELL_NAME.format(img_attr.u, img_attr.v))
+    if not well:
+        return
+    field = well.fields.get(FIELD_NAME.format(img_attr.x, img_attr.y))
+    if not field:
+        return
+    well.fields[FIELD_NAME.format(
+        img_attr.x, img_attr.y)] = field._replace(
+            img_ok=True)
+    fieldp = get_field(imgp)
+    handle_imgs(
+        fieldp, event.center.args.imaging_dir, attribute(imgp, 'E'),
+        f_job=event.center.args.first_job, img_save=False, histo_save=False)
+
+
+def handle_stop(event):
+    """Handle event that should stop the microscope."""
+    event.center.subscribers.remove(handle_stop)  # Might not be reachable?
+    reply = event.center.cam.stop_scan()
+    _LOGGER.debug('STOP SCAN: %s', reply)
+    begin = time.time()
+    while not reply or SCAN_FINISHED not in reply[-1].values():
+        reply = event.center.cam.receive()
+        _LOGGER.debug('SCAN FINISHED reply: %s', reply)
+        if time.time() - begin > 20.0:
+            break
+    time.sleep(1)  # Wait for it to come to complete stop.
+    imgp = find_image_path(event.rel_path, event.center.args.imaging_dir)
+    if not imgp:
+        return
+    img_attr = attributes(imgp)
+    if (WELL_NAME.format(img_attr.U, img_attr.V) ==
+            event.center.args.last_well and
+            FIELD_NAME.format(img_attr.X, img_attr.Y) ==
+            event.center.last_field):
+        event.center.finished = True
+
+
+def handle_stop_end_stage1(event):
+    """Handle event that should end stage1 after stop."""
+    handle_stop(event)
+    if handle_stage1 in event.center.registry.get(ImageEvent, []):
+        event.center.registry[ImageEvent].remove(handle_stage1)
+    event_handler.handler(ImageEvent, handle_stage2)
+    com_data = event.center.gains.get_com(
+        event.center.args.x_fields, event.center.args.y_fields)
+    todo = deque(
+        (event.center.send_com, (com, end_com, handle_stop_mid_stage2))
+        for com, end_com in zip(com_data['com'], com_data['end_com']))
+    todo.pop()
+    todo.append((
+        event.center.send_com,
+        (com_data['com'][-1], com_data['end_com'][-1],
+         handle_stop_end_stage2)))
+    event.center.do_later = todo.extend(event.center.do_later)
+    event.center.do_now.append(event.center.do_later.popleft())
+
+
+def handle_stop_mid_stage2(event):
+    """Handle event that should continue with stage2 after stop."""
+    handle_stop(event)
+    if handle_stage2 not in event.center.registry.get(ImageEvent, []):
+        event_handler.handler(ImageEvent, handle_stage2)
+    if event.center.do_later:
+        event.center.do_now.append(event.center.do_later.popleft())
+
+
+def handle_stop_end_stage2(event):
+    """Handle event that should end stage2 after stop."""
+    handle_stop(event)
+    if handle_stage2 in event.center.registry.get(ImageEvent, []):
+        event.center.registry[ImageEvent].remove(handle_stage2)
+    event_handler.handler(ImageEvent, handle_stage1)
+    if event.center.do_later:
+        event.center.do_now.append(event.center.do_later.popleft())
+
+
+def handler_factory(handler, test):
+    """Create new handler that should call another handler if test is True."""
+    def handle_logic(event):
+        """Forward event to handler if test is True."""
+        if test(event):
+            handler(event)
+    return handle_logic
+
+
+class Event(object):
+    """Event class."""
+
+    # pylint: disable=too-few-public-methods
+
+    def __init__(self, center, reply):
+        """Set up the event."""
+        self.center = center
+        self.reply = reply
+
+
+class ImageEvent(Event):
+    """ImageEvent class."""
+
+    # pylint: disable=too-few-public-methods
+
+    def __init__(self, center, reply):
+        """Set up the image event."""
+        super(ImageEvent, self).__init__(center, reply)
+        self.rel_path = reply.get(REL_IMAGE_PATH, '')
 
 
 class Control(object):
     """Represent a control center for the microscope."""
+
+    # pylint: disable=too-many-instance-attributes
 
     def __init__(self, args):
         """Set up instance."""
@@ -96,141 +182,96 @@ class Control(object):
         # dicts of lists to store wells with gain values for
         # the four channels.
         self.saved_gains = defaultdict(dict)
+        self.do_now = deque()  # Functions to call asap.
+        self.do_later = deque()  # Functions to call at specific events.
+        # Use registry for specific recurring events.
+        self.registry = event_handler.registry
+        # Use subscribers for functions that should be able to unsubscribe.
+        self.subscribers = eventbus.subscribers
+        # Fix lazy init
+        self.gains = None
+        self.exit_code = None
+        self.finished = False
 
-    def get_csvs(self, img_ref):
-        """Find correct csv files and get their base names."""
-        # empty lists for keeping csv file base path names
-        # and corresponding well names
-        fbs = []
-        wells = []
-        imgp = find_image_path(img_ref, self.args.imaging_dir)
-        _LOGGER.debug('IMAGE PATH: %s', imgp)
-        img_attr = attributes(imgp)
-        # This means only ever one well at a time.
-        if (FIELD_NAME.format(img_attr.X, img_attr.Y) ==
-                DEFAULT_LAST_FIELD_GAIN and
-                img_attr.c == DEFAULT_LAST_SEQ_GAIN):
-            if (self.args.end_63x or
-                    WELL_NAME.format(img_attr.U, img_attr.V) ==
-                    self.args.last_well):
-                _LOGGER.debug('Stop scan after gain in well: %s',
-                              self.cam.stop_scan())
-            wellp = get_well(imgp)
-            handle_imgs(wellp, wellp, DEFAULT_JOB_ID_GAIN, img_save=False)
-            # get all CSVs in well at wellp
-            csvs = glob(os.path.join(os.path.normpath(wellp), '*.ome.csv'))
-            for csvp in csvs:
-                csv_attr = attributes(csvp)
-                # Get the filebase from the csv path.
-                fbs.append(re.sub(r'C\d\d.+$', '', csvp))
-                #  Get the well from the csv path.
-                well_name = WELL_NAME.format(csv_attr.U, csv_attr.V)
-                wells.append(well_name)
-        return {'bases': fbs, 'wells': wells}
+    def start(self):
+        """Run, send commands and receive replies.
 
-    def save_gain(self, saved_gains):
-        """Save a csv file with gain values per image channel."""
-        header = [WELL, GREEN, BLUE, YELLOW, RED]
-        path = os.path.normpath(
-            os.path.join(self.args.imaging_dir, 'output_gains.csv'))
-        write_csv(path, saved_gains, header)
-
-    def send_com(self, gain_dict, gmap, com_list, end_com_list, stage1=None,
-                 stage2=None, stage3=None):
-        """Send commands to the CAM server."""
-        # pylint: disable=too-many-arguments, too-many-locals
-        # pylint: disable=too-many-branches, too-many-statements
-        for com, end_com in zip(com_list, end_com_list):
-            # Send CAM list for the gain job to the server during stage1.
-            # Send gain change command to server in the four channels
-            # during stage2 and stage3.
-            # Send CAM list for the experiment jobs to server (stage2/stage3).
-            _LOGGER.debug('Delete list: %s', del_com())
-            _LOGGER.debug('Delete list reply: %s', self.cam.send(del_com()))
-            time.sleep(2)
-            send(self.cam, com)
-            time.sleep(2)
-            # Start scan.
-            _LOGGER.debug('Start scan: %s', self.cam.start_scan())
-            time.sleep(7)  # Wait for it to change objective and start.
-            # Start CAM scan.
-            _LOGGER.debug('Start CAM scan: %s', camstart_com())
-            _LOGGER.debug('Start CAM scan reply: %s',
-                          self.cam.send(camstart_com()))
-            _LOGGER.info('Waiting for images...')
-            stage4 = True
-            while stage4:
-                replies = self.cam.receive()
-                if replies is None:
+        Register functions event bus style that are called on event.
+        An event is a reply from the server.
+        """
+        self.control()
+        try:
+            while True:
+                if self.finished:
+                    _LOGGER.info('Experiment finished!')
+                    break
+                if not self.do_now:
+                    self.receive()
                     time.sleep(0.02)  # Short sleep to not burn 100% CPU.
                     continue
-                for reply in replies:
-                    if stage1 and reply.get(REL_IMAGE_PATH):
-                        _LOGGER.info('Stage1')
-                        _LOGGER.debug('REPLY: %s', reply)
-                        csv_result = self.get_csvs(reply.get(REL_IMAGE_PATH))
-                        gain_dict = gmap.calc_gain(csv_result, gain_dict)
-                        _LOGGER.debug('GAIN DICT: %s', gain_dict)
-                        self.saved_gains.update(gain_dict)
-                        if not self.saved_gains:
-                            continue
-                        _LOGGER.debug('SAVED_GAINS: %s', self.saved_gains)
-                        self.save_gain(self.saved_gains)
-                        gmap.distribute_gain(gain_dict)
-                    elif reply.get(REL_IMAGE_PATH):
-                        if stage2:
-                            _LOGGER.info('Stage2')
-                            img_saving = False
-                        if stage3:
-                            _LOGGER.info('Stage3')
-                            img_saving = False
-                        imgp = find_image_path(
-                            reply[REL_IMAGE_PATH], self.args.imaging_dir)
-                        img_attr = attributes(imgp)
-                        well = gmap.wells.get(
-                            WELL_NAME.format(img_attr.u, img_attr.v))
-                        if not well:
-                            continue
-                        field = well.fields.get(
-                            FIELD_NAME.format(img_attr.x, img_attr.y))
-                        if not field:
-                            continue
-                        well.fields[FIELD_NAME.format(
-                            img_attr.x, img_attr.y)] = field._replace(
-                                img_ok=True)
-                        fieldp = get_field(imgp)
-                        handle_imgs(fieldp,
-                                    self.args.imaging_dir,
-                                    attribute(imgp, 'E'),
-                                    f_job=self.args.first_job,
-                                    img_save=img_saving,
-                                    histo_save=False)
-                    if all(test in reply.get(REL_IMAGE_PATH, [])
-                           for test in end_com):
-                        stage4 = False
-            reply = self.cam.stop_scan()
-            _LOGGER.debug('STOP SCAN: %s', reply)
-            begin = time.time()
-            while not reply or SCAN_FINISHED not in reply[-1].values():
-                reply = self.cam.receive()
-                _LOGGER.debug('SCAN FINISHED reply: %s', reply)
-                if time.time() - begin > 20.0:
-                    break
-            time.sleep(1)  # Wait for it to come to complete stop.
-            if gain_dict and stage1:
-                com_data = gmap.get_com(self.args.x_fields, self.args.y_fields)
-                # Reset gain_dict for each iteration.
-                gain_dict = defaultdict(dict)
-                self.send_com(gain_dict, gmap, com_data['com'],
-                              com_data['end_com'], stage1=False, stage2=stage2,
-                              stage3=stage3)
+                func, args, kwargs = self.do_now.popleft()
+                _LOGGER.debug('Calling: %s(%s, %s)', func, args, kwargs)
+                replies = func(*args, **kwargs)
+                if replies:
+                    self.receive(replies)
+        except KeyboardInterrupt:
+            _LOGGER.info('Stopping camacq')
+            self.exit_code = 0
+
+    def receive(self, replies=None):
+        """Receive replies from CAM server and notify an event."""
+        if replies is None:
+            replies = self.cam.receive()
+        if replies is None:
+            return
+        # if reply check reply and call or register correct listener
+        # parse reply and create Event
+        # reply must be an iterable
+        for reply in replies:
+            eventbus.notify(ImageEvent(self, reply))
+
+    def fill_queue(self, func, args=None, kwargs=None, queue=None):
+        """Add a function to a deque.
+
+        Append the function 'func', a tuple of arguments 'args' and a dict
+        of keyword arguments 'kwargs', as a tuple to the deque.
+        """
+        if args is None:
+            args = ()
+        if kwargs is None:
+            kwargs = {}
+        if queue is None:
+            queue = self.do_now
+        queue.append((func, args, kwargs))
+
+    def send_com(self, commands, stop_data, handler):
+        """Add commands to outgoing queue for the CAM server."""
+        def stop_test(event):
+            """Test if stop should be done."""
+            if all(test in event.rel_path for test in stop_data):
+                return True
+
+        self.subscribers.append(handler_factory(handler, stop_test))
+
+        def send_start_commands(coms):
+            """Send all commands needed to start microscope and run com."""
+            self.fill_queue(self.cam.send, (del_com(), ))
+            self.fill_queue(time.sleep, (2, ))
+            self.fill_queue(send, (self.cam, coms))
+            self.fill_queue(time.sleep, (2, ))
+            self.fill_queue(self.cam.start_scan)
+            # Wait for it to change objective and start.
+            self.fill_queue(time.sleep, (7, ))
+            self.fill_queue(self.cam.send, (camstart_com(), ))
+
+        # Append a tuple with function, args (tuple) and kwargs (dict).
+        self.fill_queue(send_start_commands, (commands, ))
 
     def control(self):
         """Control the flow."""
         # Booleans etc to control flow.
         stage1 = STAGE1_DEFAULT
         stage2 = STAGE2_DEFAULT
-        stage3 = STAGE3_DEFAULT
         gain_dict = defaultdict(dict)
         flow_map = {
             END_10X: {
@@ -241,12 +282,9 @@ class Control(object):
             },
             END_63X: {
                 JOB_INFO: (JOB_63X, PATTERN_G_63X, PATTERN_63X),
-                STAGE2: False,
-                STAGE3: True,
             },
             GAIN_ONLY: {
                 STAGE2: False,
-                STAGE3: False,
             },
             INPUT_GAIN: {
                 STAGE1: False,
@@ -255,26 +293,31 @@ class Control(object):
         for attr, settings in flow_map.iteritems():
             if getattr(self.args, attr, None):
                 stage1 = settings.get(STAGE1, stage1)
-                stage2 = settings.get(STAGE2, stage2)
-                stage3 = settings.get(STAGE3, stage3) if not \
-                    self.args.gain_only else flow_map[GAIN_ONLY][STAGE3]
+                stage2 = settings.get(STAGE2, stage2) if not \
+                    self.args.gain_only else flow_map[GAIN_ONLY][STAGE2]
                 if JOB_INFO in settings:
                     job_info = settings[JOB_INFO]
                 if INPUT_GAIN in attr:
                     gain_dict = read_csv(self.args.input_gain, WELL)
 
-        # make Gain object
-        gmap = GainMap(self.args, job_info)
+        # make GainMap object, fix lazy init later
+        self.gains = GainMap(self.args, job_info)
 
         if self.args.input_gain:
-            gmap.distribute_gain(gain_dict)
-            com_data = gmap.get_com(self.args.x_fields, self.args.y_fields)
+            self.gains.distribute_gain(gain_dict)
+            com_data = self.gains.get_com(
+                self.args.x_fields, self.args.y_fields)
         else:
-            com_data = gmap.get_init_com()
+            com_data = self.gains.get_init_com()
 
-        if stage1 or stage2 or stage3:
-            self.send_com(gain_dict, gmap, com_data['com'],
-                          com_data['end_com'], stage1=stage1, stage2=stage2,
-                          stage3=stage3)
+        if stage1:
+            event_handler.handler(ImageEvent, handle_stage1)
+        elif stage2:
+            event_handler.handler(ImageEvent, handle_stage2)
 
-        _LOGGER.info('Experiment finished!')
+        if stage1 or stage2:
+            for commands, end_com in zip(com_data['com'], com_data['end_com']):
+                self.fill_queue(
+                    self.send_com, (commands, end_com, handle_stop_end_stage1),
+                    queue=self.do_later)
+            self.do_now.append(self.do_later.popleft())
