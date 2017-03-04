@@ -2,9 +2,22 @@
 import logging
 import socket
 
+from matrixscreener.cam import tuples_as_bytes
+
 logging.basicConfig(level=logging.DEBUG, format='%(name)s: %(message)s')
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def image_event(data):
+    """Send a reply about saved image."""
+    cam_image = [(
+        'relpath',
+        'subfolder/exp1/CAM1/slide--S00/chamber--U00--V00/field--X01--Y01'
+        '/image--L0000--S00--U00--V00--J15--E02--O01'
+        '--X01--Y01--T0000--Z00--C31.ome')]
+    if 'startcamscan' in data.decode():
+        return tuples_as_bytes(cam_image)
 
 
 class EchoServer(object):
@@ -37,13 +50,23 @@ class EchoServer(object):
                 if not data:
                     self.logger.debug('No data, closing')
                     break
-                self.logger.debug('Sending: %s', data)
-                conn.sendall(data)
+                self.send(conn, data)
+                reply = image_event(data)
+                if not reply:
+                    continue
+                self.send(conn, reply)
         except OSError as exc:
             self.logger.error(exc)
         finally:
             self.logger.debug('Closing connection to %s', addr)
             conn.close()
+            self.sock.shutdown(socket.SHUT_WR)
+            self.sock.close()
+
+    def send(self, conn, data):
+        """Send data."""
+        self.logger.debug('Sending: %s', data)
+        conn.sendall(data + b'\n')
 
 
 if __name__ == '__main__':

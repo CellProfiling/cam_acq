@@ -1,27 +1,30 @@
-logging:
-  version: 1
-  formatters:
-    verbose:
-      format: '%(asctime)s;%(name)-24s;%(levelname)-8s;%(message)s'
-    simple:
-      format: '%(name)-24s: %(levelname)-8s %(message)s'
-  handlers:
-    console:
-      class: logging.StreamHandler
-      level: INFO
-      formatter: simple
-      stream: ext://sys.stdout
-    filelog:
-      class: logging.handlers.RotatingFileHandler
-      level: INFO
-      formatter: verbose
-      filename: camacq.log
-      maxBytes: 1048576
-      backupCount: 9
-      encoding: utf-8
-      delay: 0
-  loggers:
-    root:
-      level: DEBUG
-      handlers: [console, file]
-other:
+!!omap
+- logging: !!omap
+  - version: 1
+  - formatters: !!omap
+    - verbose: !!omap
+      - format: '%(asctime)s;%(name)-16s;%(levelname)-8s;%(message)s'
+    - simple: !!omap
+      - format: '%(name)-16s: %(levelname)-8s %(message)s'
+  - handlers: !!omap
+    - console: !!omap
+      - class: logging.StreamHandler
+      - level: INFO
+      - formatter: simple
+      - stream: ext://sys.stdout
+    - filelog: !!omap
+      - class: logging.handlers.RotatingFileHandler
+      - level: WARNING
+      - formatter: verbose
+      - filename:
+      - maxBytes: 1048576
+      - backupCount: 9
+      - encoding: utf-8
+      - delay: 0
+  - loggers: !!omap
+    - root: !!omap
+      - level: DEBUG
+      - handlers:
+        - console
+        - filelog
+- other:

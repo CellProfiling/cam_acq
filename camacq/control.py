@@ -39,23 +39,24 @@ STAGE2 = 'stage2'
 
 def handle_stage1(event):
     """Handle events during stage 1."""
-    _LOGGER.info('Stage1')
-    _LOGGER.debug('REPLY: %s', event.reply)
-    csv_result = get_csvs(event)
-    # remove empty dict passed to calc_gain?
-    gain_dict = event.center.gains.calc_gain(csv_result, defaultdict(dict))
+    _LOGGER.info('Handling event during stage 1...')
+    bases, wells = get_csvs(event)
+    if not bases:
+        return
+    gain_dict = event.center.gains.calc_gain(bases, wells)
+    if not gain_dict:
+        return
     _LOGGER.debug('GAIN DICT: %s', gain_dict)
     event.center.saved_gains.update(gain_dict)
-    if not event.center.saved_gains:
-        return
     _LOGGER.debug('SAVED_GAINS: %s', event.center.saved_gains)
     save_gain(event.center.args.imaging_dir, event.center.saved_gains)
     event.center.gains.distribute_gain(gain_dict)
+    _LOGGER.debug('WELLMAP: %s', event.center.gains)
 
 
 def handle_stage2(event):
     """Handle events during stage 2."""
-    _LOGGER.info('Stage2')
+    _LOGGER.info('Handling event during stage 2...')
     imgp = find_image_path(event.rel_path, event.center.args.imaging_dir)
     if not imgp:
         return
@@ -78,7 +79,6 @@ def handle_stage2(event):
 
 def handle_stop(event):
     """Handle event that should stop the microscope."""
-    event.center.subscribers.remove(handle_stop)  # Might not be reachable?
     reply = event.center.cam.stop_scan()
     _LOGGER.debug('STOP SCAN: %s', reply)
     begin = time.time()
@@ -92,9 +92,9 @@ def handle_stop(event):
     if not imgp:
         return
     img_attr = attributes(imgp)
-    if (WELL_NAME.format(img_attr.U, img_attr.V) ==
+    if (WELL_NAME.format(img_attr.u, img_attr.v) ==
             event.center.args.last_well and
-            FIELD_NAME.format(img_attr.X, img_attr.Y) ==
+            FIELD_NAME.format(img_attr.x, img_attr.y) ==
             event.center.last_field):
         event.center.finished = True
 
@@ -107,15 +107,16 @@ def handle_stop_end_stage1(event):
     event_handler.handler(ImageEvent, handle_stage2)
     com_data = event.center.gains.get_com(
         event.center.args.x_fields, event.center.args.y_fields)
-    todo = deque(
-        (event.center.send_com, (com, end_com, handle_stop_mid_stage2))
-        for com, end_com in zip(com_data['com'], com_data['end_com']))
+    todo = [
+        event.center.create_job(
+            event.center.send_com, (com, end_com, handle_stop_mid_stage2))
+        for com, end_com in zip(com_data['com'], com_data['end_com'])]
     todo.pop()
-    todo.append((
+    event.center.do_later.extendleft([event.center.create_job(
         event.center.send_com,
         (com_data['com'][-1], com_data['end_com'][-1],
-         handle_stop_end_stage2)))
-    event.center.do_later = todo.extend(event.center.do_later)
+         handle_stop_end_stage2))])
+    event.center.do_later.extendleft(reversed(todo))
     event.center.do_now.append(event.center.do_later.popleft())
 
 
@@ -156,6 +157,20 @@ class Event(object):
         """Set up the event."""
         self.center = center
         self.reply = reply
+
+    def __repr__(self):
+        """Return the representation."""
+        return "<{}: {}>".format(type(self).__name__, self.reply)
+
+
+class CommandEvent(Event):
+    """CommandEvent class."""
+
+    # pylint: disable=too-few-public-methods
+
+    def __init__(self, center, reply):
+        """Set up command event."""
+        super(CommandEvent, self).__init__(center, reply)
 
 
 class ImageEvent(Event):
@@ -218,6 +233,12 @@ class Control(object):
             _LOGGER.info('Stopping camacq')
             self.exit_code = 0
 
+    @staticmethod
+    def notify(event):
+        """Notify subscribers of event."""
+        _LOGGER.debug(event)
+        eventbus.notify(event)
+
     def receive(self, replies=None):
         """Receive replies from CAM server and notify an event."""
         if replies is None:
@@ -228,9 +249,13 @@ class Control(object):
         # parse reply and create Event
         # reply must be an iterable
         for reply in replies:
-            eventbus.notify(ImageEvent(self, reply))
+            if 'relpath' in reply:
+                self.notify(ImageEvent(self, reply))
+            else:
+                self.notify(CommandEvent(self, reply))
 
-    def fill_queue(self, func, args=None, kwargs=None, queue=None):
+    @staticmethod
+    def create_job(func, args=None, kwargs=None):
         """Add a function to a deque.
 
         Append the function 'func', a tuple of arguments 'args' and a dict
@@ -240,9 +265,7 @@ class Control(object):
             args = ()
         if kwargs is None:
             kwargs = {}
-        if queue is None:
-            queue = self.do_now
-        queue.append((func, args, kwargs))
+        return (func, args, kwargs)
 
     def send_com(self, commands, stop_data, handler):
         """Add commands to outgoing queue for the CAM server."""
@@ -251,21 +274,22 @@ class Control(object):
             if all(test in event.rel_path for test in stop_data):
                 return True
 
-        self.subscribers.append(handler_factory(handler, stop_test))
+        event_handler.handler(ImageEvent, handler_factory(handler, stop_test))
 
         def send_start_commands(coms):
             """Send all commands needed to start microscope and run com."""
-            self.fill_queue(self.cam.send, (del_com(), ))
-            self.fill_queue(time.sleep, (2, ))
-            self.fill_queue(send, (self.cam, coms))
-            self.fill_queue(time.sleep, (2, ))
-            self.fill_queue(self.cam.start_scan)
+            self.do_now.append(self.create_job(self.cam.send, (del_com(), )))
+            self.do_now.append(self.create_job(time.sleep, (2, )))
+            self.do_now.append(self.create_job(send, (self.cam, coms)))
+            self.do_now.append(self.create_job(time.sleep, (2, )))
+            self.do_now.append(self.create_job(self.cam.start_scan))
             # Wait for it to change objective and start.
-            self.fill_queue(time.sleep, (7, ))
-            self.fill_queue(self.cam.send, (camstart_com(), ))
+            self.do_now.append(self.create_job(time.sleep, (7, )))
+            self.do_now.append(self.create_job(
+                self.cam.send, (camstart_com(), )))
 
         # Append a tuple with function, args (tuple) and kwargs (dict).
-        self.fill_queue(send_start_commands, (commands, ))
+        self.do_now.append(self.create_job(send_start_commands, (commands, )))
 
     def control(self):
         """Control the flow."""
@@ -317,7 +341,7 @@ class Control(object):
 
         if stage1 or stage2:
             for commands, end_com in zip(com_data['com'], com_data['end_com']):
-                self.fill_queue(
-                    self.send_com, (commands, end_com, handle_stop_end_stage1),
-                    queue=self.do_later)
+                self.do_later.append(self.create_job(
+                    self.send_com, (
+                        commands, end_com, handle_stop_end_stage1)))
             self.do_now.append(self.do_later.popleft())
