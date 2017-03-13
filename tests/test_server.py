@@ -8,16 +8,23 @@ logging.basicConfig(level=logging.DEBUG, format='%(name)s: %(message)s')
 
 _LOGGER = logging.getLogger(__name__)
 
-
-def image_event(data):
-    """Send a reply about saved image."""
-    cam_image = [(
+CAM_REPLY = [
+    [(
+        'relpath',
+        'subfolder/exp1/CAM1/slide--S00/chamber--U00--V00/field--X01--Y01'
+        '/image--L0000--S00--U00--V00--J15--E04--O01'
+        '--X01--Y01--T0000--Z00--C00.ome')],
+    [(
         'relpath',
         'subfolder/exp1/CAM1/slide--S00/chamber--U00--V00/field--X01--Y01'
         '/image--L0000--S00--U00--V00--J15--E02--O01'
-        '--X01--Y01--T0000--Z00--C31.ome')]
+        '--X01--Y01--T0000--Z00--C31.ome')]]
+
+
+def image_event(data):
+    """Send a reply about saved image."""
     if 'startcamscan' in data.decode():
-        return tuples_as_bytes(cam_image)
+        return tuples_as_bytes(CAM_REPLY.pop())
 
 
 class EchoServer(object):

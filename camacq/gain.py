@@ -2,7 +2,7 @@
 import logging
 import subprocess
 import sys
-from collections import defaultdict, namedtuple
+from collections import defaultdict, namedtuple, OrderedDict
 
 from jinja2 import Template
 from matrixscreener.experiment import attribute
@@ -145,7 +145,7 @@ class Well(object):
         self.U = attribute('--{}'.format(name), 'U')
         self.V = attribute('--{}'.format(name), 'V')
         self._field = Field(0, 0, 0, 0, False, False)
-        self._fields = {}
+        self._fields = OrderedDict()
         self.channels = {}
 
     def __repr__(self):

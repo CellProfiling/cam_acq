@@ -39,7 +39,7 @@ STAGE2 = 'stage2'
 
 def handle_stage1(event):
     """Handle events during stage 1."""
-    _LOGGER.info('Handling event during stage 1...')
+    _LOGGER.info('Handling image event during stage 1...')
     bases, wells = get_csvs(event)
     if not bases:
         return
@@ -56,7 +56,7 @@ def handle_stage1(event):
 
 def handle_stage2(event):
     """Handle events during stage 2."""
-    _LOGGER.info('Handling event during stage 2...')
+    _LOGGER.info('Handling image event during stage 2...')
     imgp = find_image_path(event.rel_path, event.center.args.imaging_dir)
     if not imgp:
         return
@@ -91,19 +91,11 @@ def handle_stop(event):
         if time.time() - begin > 20.0:
             break
     time.sleep(1)  # Wait for it to come to complete stop.
-    imgp = find_image_path(event.rel_path, event.center.args.imaging_dir)
-    if not imgp:
-        return
-    img_attr = attributes(imgp)
-    if (WELL_NAME.format(img_attr.u, img_attr.v) ==
-            event.center.args.last_well and
-            FIELD_NAME.format(img_attr.x, img_attr.y) ==
-            event.center.last_field):
-        event.center.finished = True
 
 
 def handle_stop_end_stage1(event):
     """Handle event that should end stage1 after stop."""
+    _LOGGER.info('Handling stop event at end stage 1...')
     handle_stop(event)
     event_handler.handler(ImageEvent, handle_stage2)
     com_data = event.center.gains.get_com(
@@ -123,6 +115,7 @@ def handle_stop_end_stage1(event):
 
 def handle_stop_mid_stage2(event):
     """Handle event that should continue with stage2 after stop."""
+    _LOGGER.info('Handling stop event during stage 2...')
     handle_stop(event)
     event_handler.handler(ImageEvent, handle_stage2)
     if event.center.do_later:
@@ -131,10 +124,20 @@ def handle_stop_mid_stage2(event):
 
 def handle_stop_end_stage2(event):
     """Handle event that should end stage2 after stop."""
+    _LOGGER.info('Handling stop event at end stage 2...')
     handle_stop(event)
     event_handler.handler(ImageEvent, handle_stage1)
     if event.center.do_later:
         event.center.do_now.append(event.center.do_later.popleft())
+    imgp = find_image_path(event.rel_path, event.center.args.imaging_dir)
+    if not imgp:
+        return
+    img_attr = attributes(imgp)
+    if (WELL_NAME.format(img_attr.u, img_attr.v) ==
+            event.center.args.last_well and
+            FIELD_NAME.format(img_attr.x, img_attr.y) ==
+            event.center.args.last_field):
+        event.center.finished = True
 
 
 def handler_factory(handler, test):
