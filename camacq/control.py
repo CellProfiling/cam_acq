@@ -79,6 +79,9 @@ def handle_stage2(event):
 
 def handle_stop(event):
     """Handle event that should stop the microscope."""
+    # Limitation in zope requires at least one item in registry to avoid
+    # adding another dispatch function to the list of subscribers.
+    event.center.registry[ImageEvent] = []
     reply = event.center.cam.stop_scan()
     _LOGGER.debug('STOP SCAN: %s', reply)
     begin = time.time()
@@ -102,8 +105,6 @@ def handle_stop(event):
 def handle_stop_end_stage1(event):
     """Handle event that should end stage1 after stop."""
     handle_stop(event)
-    if handle_stage1 in event.center.registry.get(ImageEvent, []):
-        event.center.registry[ImageEvent].remove(handle_stage1)
     event_handler.handler(ImageEvent, handle_stage2)
     com_data = event.center.gains.get_com(
         event.center.args.x_fields, event.center.args.y_fields)
@@ -123,8 +124,7 @@ def handle_stop_end_stage1(event):
 def handle_stop_mid_stage2(event):
     """Handle event that should continue with stage2 after stop."""
     handle_stop(event)
-    if handle_stage2 not in event.center.registry.get(ImageEvent, []):
-        event_handler.handler(ImageEvent, handle_stage2)
+    event_handler.handler(ImageEvent, handle_stage2)
     if event.center.do_later:
         event.center.do_now.append(event.center.do_later.popleft())
 
@@ -132,8 +132,6 @@ def handle_stop_mid_stage2(event):
 def handle_stop_end_stage2(event):
     """Handle event that should end stage2 after stop."""
     handle_stop(event)
-    if handle_stage2 in event.center.registry.get(ImageEvent, []):
-        event.center.registry[ImageEvent].remove(handle_stage2)
     event_handler.handler(ImageEvent, handle_stage1)
     if event.center.do_later:
         event.center.do_now.append(event.center.do_later.popleft())
