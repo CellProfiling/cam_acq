@@ -5,6 +5,7 @@ import logging
 import os
 
 import yaml
+import ruamel.yaml as ruyml
 from pkg_resources import resource_filename
 
 _LOGGER = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ def load_config_file(path):
     """Parse a YAML configuration file."""
     try:
         with open(path, 'r') as yml_file:
-            cfg = yaml.safe_load(yml_file)
+            cfg = ruyml.safe_load(yml_file, ruyml.RoundTripLoader)
         if not isinstance(cfg, dict):
             _LOGGER.error(
                 'The configuration file %s does not contain a dictionary',
@@ -57,7 +58,8 @@ def create_default_config(config_dir):
 
     try:
         with open(config_path, 'w') as config_file:
-            config_file.write(yaml.dump(data, default_flow_style=True))
+            config_file.write(ruyml.dump(
+                data, Dumper=ruyml.RoundTripDumper))
 
         return config_path
 

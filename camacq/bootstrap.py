@@ -11,7 +11,7 @@ _LOGGER = logging.getLogger(__name__)
 def setup_dict(config, cmd_args=None):
     """Set up control center from config dict."""
     log_util.enable_log(cmd_args, config_instance=config['logging'])
-    _LOGGER.info('CONFIG: %s', config)
+    _LOGGER.debug('CONFIG: %s', config)
     center = Control(cmd_args)
     return center
 

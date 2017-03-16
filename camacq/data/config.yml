@@ -2,9 +2,9 @@ logging:
   version: 1
   formatters:
     verbose:
-      format: '%(asctime)s;%(name)-24s;%(levelname)-8s;%(message)s'
+      format: '%(asctime)s;%(name)-16s;%(levelname)-8s;%(message)s'
     simple:
-      format: '%(name)-24s: %(levelname)-8s %(message)s'
+      format: '%(name)-16s: %(levelname)-8s %(message)s'
   handlers:
     console:
       class: logging.StreamHandler
@@ -13,9 +13,9 @@ logging:
       stream: ext://sys.stdout
     filelog:
       class: logging.handlers.RotatingFileHandler
-      level: INFO
+      level: WARNING
       formatter: verbose
-      filename: camacq.log
+      filename:
       maxBytes: 1048576
       backupCount: 9
       encoding: utf-8
@@ -23,5 +23,7 @@ logging:
   loggers:
     root:
       level: DEBUG
-      handlers: [console, file]
+      handlers:
+        console
+        filelog
 other:

@@ -2,7 +2,7 @@
 import logging
 import subprocess
 import sys
-from collections import defaultdict, namedtuple
+from collections import defaultdict, namedtuple, OrderedDict
 
 from jinja2 import Template
 from matrixscreener.experiment import attribute
@@ -42,7 +42,7 @@ def process_output(well, output, well_map):
     """Process output from the R script."""
     channels = output.split()
     for index, gain in enumerate(channels):
-        well_map[well].update({CHANNELS[index]: gain})
+        well_map[well].update({CHANNELS[index]: int(gain)})
     return well_map
 
 
@@ -80,6 +80,10 @@ class Channel(object):
         """Set up instance."""
         self.channel = channel
         self._gain = gain
+
+    def __repr__(self):
+        """Return the representation."""
+        return "<Channel {}: gain {}>".format(self.channel, self._gain)
 
     @property
     def gain(self):
@@ -141,8 +145,13 @@ class Well(object):
         self.U = attribute('--{}'.format(name), 'U')
         self.V = attribute('--{}'.format(name), 'V')
         self._field = Field(0, 0, 0, 0, False, False)
-        self._fields = {}
+        self._fields = OrderedDict()
         self.channels = {}
+
+    def __repr__(self):
+        """Return the representation."""
+        return "<Well {}: channels {}>".format(
+            WELL_NAME.format(int(self.U), int(self.V)), self.channels)
 
     def add_field(
             self, xcoord, ycoord, dxpx=0, dypx=0,
@@ -165,7 +174,7 @@ class Well(object):
         -------
         ::
 
-            >>> well = Well('U00-V00')
+            >>> well = Well('U00--V00')
             >>> well.fields = [[1, 3, 0, 1, True, False], ]
             >>> well.fields
             {'X01--Y03': Field(X=1, Y=3, dX=0, dY=1, \
@@ -234,15 +243,17 @@ class GainMap(object):
             self.coords = read_csv(args.coord_file, FOV)
         self.wells = {}
 
-    def calc_gain(self, data, gain_dict):
+    def __repr__(self):
+        """Return the representation."""
+        return "<Wells {}>".format(self.wells)
+
+    def calc_gain(self, bases, wells):
         """Run R scripts and calculate gain values for the wells."""
         # Get a unique set of filebases from the csv paths.
-        if not data:
-            _LOGGER.error('No data %s', data)
-            return gain_dict
-        filebases = sorted(set(data['bases']))
+        gain_dict = defaultdict(dict)
+        filebases = sorted(set(bases))
         # Get a unique set of names of the experiment wells.
-        fin_wells = sorted(set(data['wells']))
+        fin_wells = sorted(set(wells))
         r_script = resource_filename(__name__, 'data/gain.r')
         if self.args.end_10x:
             init_gain = resource_filename(__name__, 'data/10x_gain.csv')
@@ -356,7 +367,7 @@ class GainMap(object):
                 continue
             end_com = []
             com = get_gain_com([], well.channels, self.job_list)
-            for field in well.fields:
+            for field in well.fields.values():
                 com.append(cam_com(
                     self.pattern, well.U, well.V, field.X, field.Y, field.dX,
                     field.dY))

@@ -202,9 +202,8 @@ def save_gain(save_dir, saved_gains):
 
 def save_histogram(path, image):
     """Save the histogram of an image to path."""
-    rows = defaultdict(list)
-    for box, count in enumerate(image.histogram[0]):
-        rows[box].append(count)
+    rows = {box: {'count': count}
+            for box, count in enumerate(image.histogram[0])}
     write_csv(path, rows, ['bin', 'count'])
 
 
@@ -225,12 +224,12 @@ def handle_imgs(path, imdir, job_id, f_job=2, img_save=True, histo_save=True):
     if not new_paths or not img_save and not histo_save:
         return
     new_dir = os.path.normpath(os.path.join(imdir, MAX_PROJS))
-    if not os.path.exists(new_dir):
+    if img_save and not os.path.exists(new_dir):
         os.makedirs(new_dir)
     if img_save:
         _LOGGER.info('Saving images...')
     if histo_save:
-        _LOGGER.info('Calculating histograms')
+        _LOGGER.info('Calculating histograms...')
     # Make a max proj per channel.
     for c_id, proj in make_proj(new_paths).iteritems():
         if img_save:
@@ -253,12 +252,12 @@ def get_csvs(event):
     fbs = []
     wells = []
     imgp = find_image_path(event.rel_path, event.center.args.imaging_dir)
-    _LOGGER.debug('IMAGE PATH: %s', imgp)
     if not imgp:
-        return {}
+        return fbs, wells
+    _LOGGER.debug('IMAGE PATH: %s', imgp)
     img_attr = experiment.attributes(imgp)
     # This means only ever one well at a time.
-    if (FIELD_NAME.format(img_attr.X, img_attr.Y) ==
+    if (FIELD_NAME.format(img_attr.x, img_attr.y) ==
             DEFAULT_LAST_FIELD_GAIN and
             img_attr.c == DEFAULT_LAST_SEQ_GAIN):
         wellp = get_well(imgp)
@@ -271,6 +270,6 @@ def get_csvs(event):
             # Get the filebase from the csv path.
             fbs.append(re.sub(r'C\d\d.+$', '', csvp))
             #  Get the well from the csv path.
-            well_name = WELL_NAME.format(csv_attr.U, csv_attr.V)
+            well_name = WELL_NAME.format(csv_attr.u, csv_attr.v)
             wells.append(well_name)
-    return {'bases': fbs, 'wells': wells}
+    return fbs, wells
