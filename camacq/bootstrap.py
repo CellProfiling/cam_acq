@@ -8,17 +8,17 @@ from camacq.control import Control
 _LOGGER = logging.getLogger(__name__)
 
 
-def setup_dict(config, cmd_args=None):
+def setup_dict(config):
     """Set up control center from config dict."""
-    log_util.enable_log(cmd_args, config_instance=config['logging'])
+    log_util.enable_log(config)
     _LOGGER.debug('CONFIG: %s', config)
-    center = Control(cmd_args)
+    center = Control(config)
     return center
 
 
-def setup_file(config_file, cmd_args=None):
-    """Set up control center from config file."""
+def setup_file(config_file, cmd_args):
+    """Set up control center from config file and command line args."""
     config = config_util.load_config_file(config_file)
-    # FIXME: Merge cmd_args into config dict.  pylint: disable=fixme
-    center = setup_dict(config, cmd_args)
+    config.update(vars(cmd_args))  # merge config dict with command line args
+    center = setup_dict(config)
     return center

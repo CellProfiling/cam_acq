@@ -9,8 +9,9 @@ from matrixscreener.cam import CAM
 from matrixscreener.experiment import attribute, attributes
 
 from camacq.command import camstart_com, del_com
-from camacq.const import (END_10X, END_40X, END_63X, FIELD_NAME, GAIN_ONLY,
-                          INPUT_GAIN, WELL, WELL_NAME)
+from camacq.const import (END_10X, END_40X, END_63X, FIELD_NAME, FIELDS_X,
+                          FIELDS_Y, FIRST_JOB, GAIN_ONLY, HOST, IMAGING_DIR,
+                          INPUT_GAIN, LAST_FIELD, LAST_WELL, WELL, WELL_NAME)
 from camacq.gain import GainMap
 from camacq.helper import (find_image_path, get_csvs, get_field, handle_imgs,
                            read_csv, save_gain, send)
@@ -49,7 +50,7 @@ def handle_stage1(event):
     _LOGGER.debug('GAIN DICT: %s', gain_dict)
     event.center.saved_gains.update(gain_dict)
     _LOGGER.debug('SAVED_GAINS: %s', event.center.saved_gains)
-    save_gain(event.center.args.imaging_dir, event.center.saved_gains)
+    save_gain(event.center.config[IMAGING_DIR], event.center.saved_gains)
     event.center.gains.distribute_gain(gain_dict)
     _LOGGER.debug('WELLMAP: %s', event.center.gains)
 
@@ -57,7 +58,7 @@ def handle_stage1(event):
 def handle_stage2(event):
     """Handle events during stage 2."""
     _LOGGER.info('Handling image event during stage 2...')
-    imgp = find_image_path(event.rel_path, event.center.args.imaging_dir)
+    imgp = find_image_path(event.rel_path, event.center.config[IMAGING_DIR])
     if not imgp:
         return
     img_attr = attributes(imgp)
@@ -73,8 +74,9 @@ def handle_stage2(event):
             img_ok=True)
     fieldp = get_field(imgp)
     handle_imgs(
-        fieldp, event.center.args.imaging_dir, attribute(imgp, 'E'),
-        f_job=event.center.args.first_job, img_save=False, histo_save=False)
+        fieldp, event.center.config[IMAGING_DIR], attribute(imgp, 'E'),
+        f_job=event.center.config[FIRST_JOB], img_save=False,
+        histo_save=False)
 
 
 def handle_stop(event):
@@ -99,7 +101,7 @@ def handle_stop_end_stage1(event):
     handle_stop(event)
     event_handler.handler(ImageEvent, handle_stage2)
     com_data = event.center.gains.get_com(
-        event.center.args.x_fields, event.center.args.y_fields)
+        event.center.config[FIELDS_X], event.center.config[FIELDS_Y])
     todo = [
         event.center.create_job(
             event.center.send_com, (com, end_com, handle_stop_mid_stage2))
@@ -129,14 +131,14 @@ def handle_stop_end_stage2(event):
     event_handler.handler(ImageEvent, handle_stage1)
     if event.center.do_later:
         event.center.do_now.append(event.center.do_later.popleft())
-    imgp = find_image_path(event.rel_path, event.center.args.imaging_dir)
+    imgp = find_image_path(event.rel_path, event.center.config[IMAGING_DIR])
     if not imgp:
         return
     img_attr = attributes(imgp)
     if (WELL_NAME.format(img_attr.u, img_attr.v) ==
-            event.center.args.last_well and
+            event.center.config[LAST_WELL] and
             FIELD_NAME.format(img_attr.x, img_attr.y) ==
-            event.center.args.last_field):
+            event.center.config[LAST_FIELD]):
         event.center.finished = True
 
 
@@ -190,10 +192,10 @@ class Control(object):
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, args):
+    def __init__(self, config):
         """Set up instance."""
-        self.args = args
-        self.cam = CAM(self.args.host)
+        self.config = config
+        self.cam = CAM(self.config[HOST])
         self.cam.delay = 0.2
         # dicts of lists to store wells with gain values for
         # the four channels.
@@ -316,22 +318,22 @@ class Control(object):
             },
         }
         for attr, settings in flow_map.iteritems():
-            if getattr(self.args, attr, None):
+            if self.config.get(attr):
                 stage1 = settings.get(STAGE1, stage1)
                 stage2 = settings.get(STAGE2, stage2) if not \
-                    self.args.gain_only else flow_map[GAIN_ONLY][STAGE2]
+                    self.config['gain_only'] else flow_map[GAIN_ONLY][STAGE2]
                 if JOB_INFO in settings:
                     job_info = settings[JOB_INFO]
                 if INPUT_GAIN in attr:
-                    gain_dict = read_csv(self.args.input_gain, WELL)
+                    gain_dict = read_csv(self.config['input_gain'], WELL)
 
         # make GainMap object, fix lazy init later
-        self.gains = GainMap(self.args, job_info)
+        self.gains = GainMap(self.config, job_info)
 
-        if self.args.input_gain:
+        if self.config['input_gain']:
             self.gains.distribute_gain(gain_dict)
             com_data = self.gains.get_com(
-                self.args.x_fields, self.args.y_fields)
+                self.config[FIELDS_X], self.config[FIELDS_Y])
         else:
             com_data = self.gains.get_init_com()
 
