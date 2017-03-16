@@ -8,8 +8,8 @@ from collections import defaultdict
 
 from matrixscreener import experiment
 
-from camacq.const import (BLUE, FIELD_NAME, GREEN, JOB_ID, RED, WELL,
-                          WELL_NAME, WELL_NAME_CHANNEL, YELLOW)
+from camacq.const import (BLUE, FIELD_NAME, GREEN, IMAGING_DIR, JOB_ID, RED,
+                          WELL, WELL_NAME, WELL_NAME_CHANNEL, YELLOW)
 from camacq.image import make_proj
 
 _LOGGER = logging.getLogger(__name__)
@@ -251,7 +251,7 @@ def get_csvs(event):
     # and corresponding well names
     fbs = []
     wells = []
-    imgp = find_image_path(event.rel_path, event.center.args.imaging_dir)
+    imgp = find_image_path(event.rel_path, event.center.config[IMAGING_DIR])
     if not imgp:
         return fbs, wells
     _LOGGER.debug('IMAGE PATH: %s', imgp)

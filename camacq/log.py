@@ -6,6 +6,8 @@ import os
 
 import colorlog
 
+from camacq.const import CONFIG_DIR, LOG_LEVEL
+
 LOG_FILENAME = 'camacq.log'
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,9 +23,9 @@ def check_path(path):
         return False
 
 
-def enable_log(args, config_instance=None):
+def enable_log(config):
     """Enable logging."""
-    logging.basicConfig(level=args.log_level)
+    logging.basicConfig(level=config[LOG_LEVEL])
     root_logger = logging.getLogger()
     # basicConfig has added a StreamHandler
     # '%(log_color)s%(levelname)s:%(name)s:%(message)s'
@@ -36,23 +38,23 @@ def enable_log(args, config_instance=None):
             'WARNING': 'yellow',
             'ERROR': 'red',
             'CRITICAL': 'red', }))
-    # pass the logging part of the config
-    if config_instance is not None:  # add try+except to catch wrong config
-        log_path = config_instance['handlers']['filelog']['filename']
-        if log_path and check_path(log_path):
-            logging.config.dictConfig(config_instance)
-        else:  # get log path from default config dir
-            log_path = os.path.join(args.config_dir, LOG_FILENAME)
-            _LOGGER.info(
-                'Using default log path at: %s', log_path)
-            if check_path(log_path):
-                filelog = logging.handlers.RotatingFileHandler(
-                    log_path, maxBytes=1048576, backupCount=9,
-                    encoding='utf-8', delay=0)
-                filelog.setLevel(logging.WARNING)
-                formatter = logging.Formatter(
-                    '%(asctime)s;%(name)-16s;%(levelname)-8s;%(message)s')
-                filelog.setFormatter(formatter)
-                logging.getLogger('').addHandler(filelog)
-    else:
+    log_config = config.get('logging')
+    if not log_config:
         _LOGGER.info('No config for logging supplied')
+        return
+    log_path = log_config['handlers']['filelog']['filename']
+    if log_path and check_path(log_path):
+        logging.config.dictConfig(log_config)
+    else:  # get log path from default config dir
+        log_path = os.path.join(config[CONFIG_DIR], LOG_FILENAME)
+        _LOGGER.info(
+            'Using default log path at: %s', log_path)
+        if check_path(log_path):
+            filelog = logging.handlers.RotatingFileHandler(
+                log_path, maxBytes=1048576, backupCount=9,
+                encoding='utf-8', delay=0)
+            filelog.setLevel(logging.WARNING)
+            formatter = logging.Formatter(
+                '%(asctime)s;%(name)-16s;%(levelname)-8s;%(message)s')
+            filelog.setFormatter(formatter)
+            logging.getLogger('').addHandler(filelog)

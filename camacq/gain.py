@@ -2,40 +2,43 @@
 import logging
 import subprocess
 import sys
-from collections import defaultdict, namedtuple, OrderedDict
+from collections import OrderedDict, defaultdict, namedtuple
 
 from jinja2 import Template
 from matrixscreener.experiment import attribute
 from pkg_resources import resource_filename
 
 from camacq.command import cam_com, gain_com
-from camacq.const import (BLUE, FIELD_NAME, FOV_NAME, GREEN, JOB_ID, RED, WELL,
-                          WELL_NAME, YELLOW)
+from camacq.const import (BLUE, COORD_FILE, END_10X, END_40X, END_63X,
+                          FIELD_NAME, FIRST_JOB, FOV_NAME, GREEN, IMAGING_DIR,
+                          INIT_GAIN, JOB_ID, LAST_WELL, RED, TEMPLATE_FILE,
+                          WELL, WELL_NAME, YELLOW)
 from camacq.helper import read_csv
 
 _LOGGER = logging.getLogger(__name__)
 # Make these constants configurable.
-GAIN_OFFSET_BLUE = 0
-GAIN_OFFSET_RED = 25
+
 NA = 'NA'
 TEN_X = '10x'
 FORTY_X = '40x'
 SIXTYTHREE_X = '63x'
+CAM = 'CAM'
+CHANNELS = [GREEN, BLUE, YELLOW, RED, ]
+DETECTOR_MAP = {GREEN: '1', BLUE: '1', YELLOW: '2', RED: '2', }
+DX_PX = 'dxPx'
+DY_PX = 'dyPx'
+FOV = 'fov'
 GAIN_DEFAULT = {
     TEN_X: {GREEN: 1000, BLUE: 985, YELLOW: 805, RED: 705},
     FORTY_X: {GREEN: 800, BLUE: 585, YELLOW: 655, RED: 630},
     SIXTYTHREE_X: {GREEN: 800, BLUE: 505, YELLOW: 655, RED: 630},
 }
-CHANNELS = [GREEN, BLUE, YELLOW, RED, ]
-DETECTOR_MAP = {GREEN: '1', BLUE: '1', YELLOW: '2', RED: '2', }
-JOB_MAP = {GREEN: 0, BLUE: 1, YELLOW: 1, RED: 2, }
+GAIN_OFFSET_BLUE = 0
+GAIN_OFFSET_RED = 25
 GAIN_SCAN = 'gain_scan'
 GAIN_FROM_WELL = 'gain_from_well'
+JOB_MAP = {GREEN: 0, BLUE: 1, YELLOW: 1, RED: 2, }
 TEMPLATE = 'template'
-FOV = 'fov'
-DX_PX = 'dxPx'
-DY_PX = 'dyPx'
-CAM = 'CAM'
 
 
 def process_output(well, output, well_map):
@@ -201,15 +204,15 @@ class GainMap(object):
 
     Parameters
     ----------
-    args : dict
-        Dict with command line arguments from the start of the program.
+    config : dict
+        Dict with configuration key value pairs.
     job_info : tuple
         Tuple of job_list, pattern_g, and pattern, which will be attributes.
 
     Attributes
     ----------
-    args : dict
-        Dict with command line arguments from the start of the program.
+    config : dict
+        Dict with configuration key value pairs.
     job_list : list
         List of names of the jobs for the objective and experiment.
     pattern_g : str
@@ -228,19 +231,19 @@ class GainMap(object):
         A dict where the keys are the wells and each value is Well object.
     """
 
-    def __init__(self, args, job_info):
+    def __init__(self, config, job_info):
         """Set up instance."""
-        self.args = args
+        self.config = config
         self.job_list, self.pattern_g, self.pattern = job_info
-        if args.template_file is None:
+        if config[TEMPLATE_FILE] is None:
             self.template = None
         else:
-            self.template = read_csv(args.template_file, WELL)
-            self.args.last_well = sorted(self.template.keys())[-1]
-        if args.coord_file is None:
+            self.template = read_csv(config[TEMPLATE_FILE], WELL)
+            self.config[LAST_WELL] = sorted(self.template.keys())[-1]
+        if config[COORD_FILE] is None:
             self.coords = defaultdict(dict)
         else:
-            self.coords = read_csv(args.coord_file, FOV)
+            self.coords = read_csv(config[COORD_FILE], FOV)
         self.wells = {}
 
     def __repr__(self):
@@ -255,21 +258,21 @@ class GainMap(object):
         # Get a unique set of names of the experiment wells.
         fin_wells = sorted(set(wells))
         r_script = resource_filename(__name__, 'data/gain.r')
-        if self.args.end_10x:
+        if self.config[END_10X]:
             init_gain = resource_filename(__name__, 'data/10x_gain.csv')
-        elif self.args.end_40x:
+        elif self.config[END_40X]:
             init_gain = resource_filename(__name__, 'data/40x_gain.csv')
-        elif self.args.end_63x:
+        elif self.config[END_63X]:
             init_gain = resource_filename(__name__, 'data/63x_gain.csv')
-        if self.args.init_gain:
-            init_gain = self.args.init_gain
+        if self.config[INIT_GAIN]:
+            init_gain = self.config[INIT_GAIN]
         for fbase, well in zip(filebases, fin_wells):
             _LOGGER.info('WELL: %s', well)
             try:
                 _LOGGER.info('Starting R...')
                 r_output = subprocess.check_output(['Rscript',
                                                     r_script,
-                                                    self.args.imaging_dir,
+                                                    self.config[IMAGING_DIR],
                                                     fbase,
                                                     init_gain])
                 gain_dict = process_output(well, r_output, gain_dict)
@@ -285,17 +288,17 @@ class GainMap(object):
 
     def sanitize_gain(self, channel, gain):
         """Make sure all channels have a reasonable gain value."""
-        if self.args.end_10x:
+        if self.config[END_10X]:
             obj = TEN_X
-        elif self.args.end_40x:
+        elif self.config[END_40X]:
             obj = FORTY_X
-        elif self.args.end_63x:
+        elif self.config[END_63X]:
             obj = SIXTYTHREE_X
         if gain == NA:
             gain = GAIN_DEFAULT[obj][channel]
         if channel == GREEN:
             # Round gain values to multiples of 10 in green channel
-            if self.args.end_63x:
+            if self.config[END_63X]:
                 gain = int(min(
                     round(int(gain), -1), GAIN_DEFAULT[SIXTYTHREE_X][GREEN]))
             else:
@@ -336,10 +339,10 @@ class GainMap(object):
                 else:
                     self.set_gain(gain_well, channel, gain)
 
-    def set_fields(self, well, x_fields, y_fields):
+    def set_fields(self, well, fields_x, fields_y):
         """Set fields."""
-        for i in range(y_fields):
-            for j in range(x_fields):
+        for i in range(fields_y):
+            for j in range(fields_x):
                 # Only add selected fovs from file (arg) to cam list
                 fov = FOV_NAME.format(well.U, well.V, j, i)
                 if fov in self.coords.keys():
@@ -352,7 +355,7 @@ class GainMap(object):
                     well.add_field(
                         j, i, 0, 0, j == 0 and i == 0 or j == 1 and i == 1)
 
-    def get_com(self, x_fields, y_fields):
+    def get_com(self, fields_x, fields_y):
         """Get command."""
         # Lists for storing command strings.
         com_list = []
@@ -361,7 +364,7 @@ class GainMap(object):
         # Ie use one job for multiple wells where the gain is the same
         # or similar.
         for well in self.wells.values():
-            self.set_fields(well, x_fields, y_fields)
+            self.set_fields(well, fields_x, fields_y)
             if well.img_ok:
                 # Only get commands for wells that are not imaged ok.
                 continue
@@ -373,7 +376,7 @@ class GainMap(object):
                     field.dY))
                 end_com = [
                     CAM, WELL_NAME.format(well.U, well.V),
-                    JOB_ID.format(self.args.first_job + 2),
+                    JOB_ID.format(self.config[FIRST_JOB] + 2),
                     FIELD_NAME.format(field.X, field.Y)]
             # Store the commands in lists.
             com_list.append(com)
@@ -391,9 +394,10 @@ class GainMap(object):
         else:
             # All wells.
             for ucoord in range(
-                    attribute('--{}'.format(self.args.last_well), 'U') + 1):
+                    attribute('--{}'.format(
+                        self.config[LAST_WELL]), 'U') + 1):
                 for vcoord in range(attribute(
-                        '--{}'.format(self.args.last_well), 'V') + 1):
+                        '--{}'.format(self.config[LAST_WELL]), 'V') + 1):
                     wells.append(WELL_NAME.format(ucoord, vcoord))
         # Lists and strings for storing command strings.
         com_list = []
@@ -414,7 +418,7 @@ class GainMap(object):
 
         # Join the list of lists of command lists into a list of a command
         # list if dry a objective is used.
-        if self.args.end_10x or self.args.end_40x:
+        if self.config[END_10X] or self.config[END_40X]:
             com_list_bak = list(com_list)
             com_list = []
             for com in com_list_bak:

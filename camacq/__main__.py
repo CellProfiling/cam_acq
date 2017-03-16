@@ -10,7 +10,10 @@ import sys
 
 import camacq.bootstrap as bootstrap
 import camacq.config as config_util
-from camacq.const import END_10X, END_40X, END_63X, GAIN_ONLY, INPUT_GAIN
+from camacq.const import (CONFIG_DIR, COORD_FILE, END_10X, END_40X, END_63X,
+                          FIELD_NAME, FIELDS_X, FIELDS_Y, FIRST_JOB, GAIN_ONLY,
+                          HOST, IMAGING_DIR, INIT_GAIN, INPUT_GAIN, LAST_WELL,
+                          LOG_LEVEL, TEMPLATE_FILE)
 
 
 def check_dir_arg(path):
@@ -82,39 +85,39 @@ def parse_command_line(argv):
         description='Control a Leica microscope through CAM interface.')
     parser.add_argument(
         '--imaging-dir',
-        dest='imaging_dir',
+        dest=IMAGING_DIR,
         required=True,
         type=check_dir_arg,
         help='the path to the directory where images are exported')
     parser.add_argument(
         '-g',
         '--init-gain',
-        dest='init_gain',
+        dest=INIT_GAIN,
         type=check_file_arg,
         help='the path to the csv file with start gain values')
     parser.add_argument(
         '-W',
         '--last-well',
-        dest='last_well',
+        dest=LAST_WELL,
         default='U11--V07',
         type=check_well_arg,
         help='the id of the last well in the experiment, e.g. U11--V07')
     parser.add_argument(
         '--x-fields',
-        dest='x_fields',
+        dest=FIELDS_X,
         default=2,
         type=int,
         help='the number (int) of fields on x axis in each well, e.g. 2')
     parser.add_argument(
         '--y-fields',
-        dest='y_fields',
+        dest=FIELDS_Y,
         default=2,
         type=int,
         help='the number (int) of fields on y axis in each well, e.g. 2')
     parser.add_argument(
         '-j',
         '--first-job',
-        dest='first_job',
+        dest=FIRST_JOB,
         default=2,
         type=int,
         help=('the integer marking the order of the first experiment job in\
@@ -122,13 +125,13 @@ def parse_command_line(argv):
     parser.add_argument(
         '-c',
         '--coord-file',
-        dest='coord_file',
+        dest=COORD_FILE,
         type=check_file_arg,
         help='the path to the csv file with selected coordinates')
     parser.add_argument(
         '-t',
         '--template-file',
-        dest='template_file',
+        dest=TEMPLATE_FILE,
         type=check_file_arg,
         help='the path to the csv file with template layout')
     parser.add_argument(
@@ -138,7 +141,7 @@ def parse_command_line(argv):
         type=check_file_arg,
         help='the path to the csv file with calculated gain values')
     parser.add_argument(
-        'host',
+        HOST,
         type=check_ip_arg,
         help='the ip address of the host server, i.e. the microscope')
     objectives = parser.add_mutually_exclusive_group(required=True)
@@ -167,14 +170,14 @@ def parse_command_line(argv):
         help='an option to activate only running the gain job')
     parser.add_argument(
         '--log-level',
-        dest='log_level',
+        dest=LOG_LEVEL,
         default='INFO',
         type=check_log_level,
         help='an option to specify lowest log level to log')
     parser.add_argument(
         '-C',
         '--config',
-        dest='config_dir',
+        dest=CONFIG_DIR,
         default=config_util.get_default_config_dir(),
         help='the path to camacq configuration directory')
     args = parser.parse_args(argv)
@@ -190,8 +193,7 @@ def parse_command_line(argv):
         args.input_gain = os.path.normpath(args.input_gain)
     if args.config_dir:
         args.config_dir = os.path.normpath(args.config_dir)
-    args.last_field = 'X{0:02d}--Y{1:02d}'.format(
-        args.x_fields - 1, args.y_fields - 1)
+    args.last_field = FIELD_NAME.format(args.fields_x - 1, args.fields_y - 1)
 
     return args
 
