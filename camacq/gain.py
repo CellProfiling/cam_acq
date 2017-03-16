@@ -326,11 +326,12 @@ class GainMap(object):
                 gain = self.sanitize_gain(channel, gain)
                 if self.template:
                     # Add template class with functions and options, later.
-                    tmpl = Template(self.template[gain_well][TEMPLATE])
+                    tmpl = self.template[gain_well][TEMPLATE]
+                    tmpl = Template(tmpl) if tmpl else Template('{{ gain }}')
                     try:
                         gain = int(tmpl.render(gain=gain))
                     except ValueError:
-                        pass
+                        _LOGGER.error('Failed to render template')
                     wells = [
                         well for well, settings in self.template.iteritems()
                         if settings[GAIN_FROM_WELL] == gain_well]
