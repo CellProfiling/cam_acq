@@ -4,6 +4,9 @@ MINOR_VERSION = 4
 PATCH_VERSION = '0.dev0'
 __version__ = '{}.{}.{}'.format(MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION)
 
+CONF_CONDITION = 'condition'
+CONF_ID = 'id'
+CONF_TRIGGER = 'trigger'
 CONFIG_DIR = 'config_dir'
 COORD_FILE = 'coord_file'
 JOB_ID = '--E{:02d}'
@@ -21,7 +24,6 @@ HOST = 'host'
 PORT = 'port'
 IMAGING_DIR = 'imaging_dir'
 INIT_GAIN = 'init_gain'
-LAST_FIELD = 'last_field'
 LAST_WELL = 'last_well'
 DEFAULT_LAST_WELL = 'U11--V07'
 LOG_LEVEL = 'log_level'
