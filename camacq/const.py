@@ -4,6 +4,9 @@ MINOR_VERSION = 4
 PATCH_VERSION = '0.dev0'
 __version__ = '{}.{}.{}'.format(MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION)
 
+CONF_DATA = 'data'
+CONF_ID = 'id'
+CONF_TRIGGER = 'trigger'
 CONFIG_DIR = 'config_dir'
 JOB_ID = '--E{:02d}'
 WELL_U_ID = '--U{:02d}'

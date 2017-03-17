@@ -11,4 +11,4 @@ PyYAML >= 3.12
 ruamel.yaml == 0.13.14
 setuptools >= 38.4.0
 scipy >= 1.0.0
-tifffile >= 0.13.0
+tifffile == 0.13.0

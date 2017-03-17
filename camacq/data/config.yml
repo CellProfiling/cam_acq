@@ -59,3 +59,149 @@ fields_y: 2
 
 api:
   leica:
+
+automations:
+  - name: start
+    trigger:
+      - type: event
+        id: camacq_start
+    action:
+      - type: sample
+        id: set_well
+        data:
+          well_x: 1
+          well_y: 1
+  - name: image_next_well
+    trigger:
+      - type: event
+        id: well_event
+    condition:
+      type: AND
+      conditions:
+        - "{{ not trigger.event.well.images }}"
+    action:
+      - type: command
+        id: send
+        data:
+          command: >
+            /cmd:add /tar:camlist /exp:gain_job /ext:af /slide:0
+            /wellx:{{ trigger.event.well.x }} /welly:{{ trigger.event.well.y }}
+            /fieldx:1 /fieldy:1 /dxpos:0 /dypos:0
+      - type: command
+        id: send
+        data:
+          command: >
+            /cmd:add /tar:camlist /exp:gain_job /ext:af /slide:0
+            /wellx:{{ trigger.event.well.x }} /welly:{{ trigger.event.well.y }}
+            /fieldx:2 /fieldy:2 /dxpos:0 /dypos:0
+      - type: command
+        id: start_scan
+  - name: analyze_gain
+    trigger:
+      - type: event
+        id: image_event
+        data:
+          field_x: 2
+          field_y: 2
+          job_id: 2
+    action:
+      - type: command
+        id: stop_scan
+      - type: plugin
+        id: calc_gain
+        data:
+          images: >
+            {{ sample.images(
+              trigger.event.image.well_x, trigger.event.image.well_y) }}
+  - name: set_exp_gain
+    trigger:
+      - type: event
+        id: channel_event
+    action:
+      - type: command
+        id: send
+        data:
+          command: >
+            /cmd:adjust /tar:pmt
+            /num:{% if trigger.event.channel_name == 'green' %}1
+            {% elif trigger.event.channel_name == 'blue' %}1
+            {% elif trigger.event.channel_name == 'yellow' %}2
+            {% elif trigger.event.channel_name == 'red' %}2
+            {% endif %}
+            /exp:gain_job /prop:gain /value:{{ trigger.event.channel.gain }}
+  - name: add_exp_job
+    trigger:
+      - type: event
+        id: command_event
+        data:
+          id: send
+    condition:
+      type: AND
+      conditions:
+        - "{{ '/cmd:adjust /tar:pmt' in trigger.event.command }}"
+        - >
+          {% for well in sample %}
+            {% if not well.channels %}
+              true
+            {% elif well.channels | length == 4 %}
+              true
+            {% else %}
+              false
+            {% endif %}
+          {% endfor %}
+    action:
+      - type: command
+        id: send
+        data:
+          # add exp job for sample state wells that are not done
+          command: >
+            {% for well in sample.wells %}
+              {% if not well_is_done(well.name) %}
+                {% for field in well.fields %}
+                  /cmd:add /tar:camlist /exp:exp_job /ext:af /slide:0
+                  /wellx:well.x /welly:well.y /fieldx:field.x
+                  /fieldy:field.y /dxpos:0 /dypos:0
+                {% endfor %}
+              {% endif %}
+            {% endfor %}
+      - type: command
+        id: start_scan
+  - name: add_next_well
+    trigger:
+      - type: event
+        id: well_event
+        data:
+          img_ok: true
+    action:
+      - type: command
+        id: stop_scan
+      - type: sample
+        id: set_well
+        data:
+          # add next sample well with 6 fields
+          # for wells in 1-96 if well is not done
+          # FIXME: fix the template.
+          well_x: >
+            {% for y_number in range(1, 9) %}
+              {% for x_number in range(1, 13) %}
+                {% if not well_is_done(x_number, y_number) and
+                  loop.previtem is not defined or
+                  not well_is_done(x_number, y_number) and
+                  loop.previtem is defined and
+                  well_is_done(loop.previtem, y_number) %}
+                  x_number
+                {% endif %}
+              {% endfor %}
+            {% endfor %}
+          well_y: >
+            {% for x_number in range(1, 13) %}
+              {% for y_number in range(1, 9) %}
+                {% if not well_is_done(x_number, y_number) and
+                  loop.previtem is not defined or
+                  not well_is_done(x_number, y_number) and
+                  loop.previtem is defined and
+                  well_is_done(x_number, loop.previtem) %}
+                  y_number
+                {% endif %}
+              {% endfor %}
+            {% endfor %}
