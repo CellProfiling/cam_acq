@@ -5,6 +5,8 @@ from setuptools import find_packages, setup
 
 import camacq
 
+GITHUB_URL = 'https://github.com/CellProfiling/cam_acq'
+
 
 def read(*filenames, **kwargs):
     """Return joined content of *filenames.
@@ -37,7 +39,7 @@ def read(*filenames, **kwargs):
 
 
 LONG_DESCR = read('README.rst')
-DOWNLOAD_URL = 'https://github.com/CellProfiling/cam_acq/archive/master.zip'
+DOWNLOAD_URL = '{}/archive/master.zip'.format(GITHUB_URL)
 CLASSIFIERS = [
     # How mature is this project? Common values are
     #   3 - Alpha
@@ -61,7 +63,7 @@ CONFIG = {
     'description': 'Control microscope through client server program.',
     'long_description': LONG_DESCR,
     'author': 'Martin Hjelmare',
-    'url': 'https://github.com/CellProfiling/cam_acq',
+    'url': GITHUB_URL,
     'download_url': DOWNLOAD_URL,
     'license': 'GPLv3',
     'author_email': 'marhje52@kth.se',
@@ -79,7 +81,8 @@ CONFIG = {
     ],
     'packages': find_packages(exclude=['contrib', 'docs', 'tests*']),
     'include_package_data': True,
-    'scripts': ['scripts/camacq'],
+    'entry_points': {
+        'console_scripts': ['camacq = camacq.__main__:main']},
     'name': 'camacq',
     'zip_safe': False,
     'classifiers': CLASSIFIERS,
