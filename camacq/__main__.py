@@ -79,7 +79,7 @@ def check_log_level(loglevel):
         return numeric_level
 
 
-def parse_command_line(argv):
+def parse_command_line():
     """Parse the provided command line."""
     parser = argparse.ArgumentParser(
         description='Control a Leica microscope through CAM interface.')
@@ -180,7 +180,7 @@ def parse_command_line(argv):
         dest=CONFIG_DIR,
         default=config_util.get_default_config_dir(),
         help='the path to camacq configuration directory')
-    args = parser.parse_args(argv)
+    args = parser.parse_args()
     if args.imaging_dir:
         args.imaging_dir = os.path.normpath(args.imaging_dir)
     if args.init_gain:
@@ -226,10 +226,10 @@ def ensure_config_file(config_dir):
     return config_path
 
 
-def main(argv):
+def main():
     """Main function."""
     # Parse command line arguments
-    cmd_args = parse_command_line(argv)
+    cmd_args = parse_command_line()
     config_dir = os.path.join(os.getcwd(), cmd_args.config_dir)
     ensure_config_path(config_dir)
     config_file = ensure_config_file(config_dir)
@@ -242,4 +242,4 @@ def main(argv):
 
 
 if __name__ == '__main__':
-    main(sys.argv)
+    main()
