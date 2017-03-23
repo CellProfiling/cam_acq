@@ -1,5 +1,7 @@
 """Control the microscope."""
 import logging
+import socket
+import sys
 import time
 from collections import defaultdict, deque
 
@@ -195,7 +197,12 @@ class Control(object):
     def __init__(self, config):
         """Set up instance."""
         self.config = config
-        self.cam = CAM(self.config[HOST])
+        try:
+            self.cam = CAM(self.config[HOST])
+        except socket.error as exc:
+            _LOGGER.error(
+                'Connecting to server %s failed: %s', self.config[HOST], exc)
+            sys.exit(1)
         self.cam.delay = 0.2
         # dicts of lists to store wells with gain values for
         # the four channels.
@@ -217,6 +224,7 @@ class Control(object):
         Register functions event bus style that are called on event.
         An event is a reply from the server.
         """
+        _LOGGER.info('Starting camacq')
         self.control()
         try:
             while True:

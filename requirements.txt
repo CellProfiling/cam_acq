@@ -6,6 +6,6 @@ matrixscreener >= 0.6.1
 numpy >= 1.6
 Pillow >= 2.9.0
 PyYAML >= 3.11
-ruamel.yaml >= 0.13.14
+ruamel.yaml == 0.13.14
 tifffile >= 0.7.0
 zope.event >= 4.2.0
