@@ -30,7 +30,7 @@ Bug reports in the issue tracker and pull requests are welcome.
 7. Test with tox and make sure existing tests don't fail. Linting will also be checked when tox is run.
 
   ```
-  $ pip3 install tox
+  $ pip install tox
   $ tox
   ```
 8. Add and commit your work and describe the additions and or changes in the commit message. Use an editor for the commit message, not the command line. Try to keep the header of the commit message within 50 characters and the body within 72 characters per line. A blank line should separate the header from the body of the commit message. Markdown is cool.
