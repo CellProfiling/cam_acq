@@ -39,13 +39,12 @@ def enable_log(config):
             'ERROR': 'red',
             'CRITICAL': 'red', }))
     log_config = config.get('logging')
-    if not log_config:
-        _LOGGER.info('No config for logging supplied')
-        return
-    log_path = log_config['handlers']['filelog']['filename']
-    if log_path and check_path(log_path):
-        logging.config.dictConfig(log_config)
+    if log_config:
+        log_path = log_config['handlers']['filelog']['filename']
+        if log_path and check_path(log_path):
+            logging.config.dictConfig(log_config)
     else:  # get log path from default config dir
+        _LOGGER.info('No config for logging supplied')
         log_path = os.path.join(config[CONFIG_DIR], LOG_FILENAME)
         _LOGGER.info(
             'Using default log path at: %s', log_path)
