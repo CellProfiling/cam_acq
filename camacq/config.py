@@ -64,7 +64,8 @@ def create_default_config(config_dir):
         return config_path
 
     except IOError:
-        print('Unable to create default configuration file', config_path)
+        _LOGGER.error(
+            'Unable to create default configuration file %s', config_path)
         return None
 
 

@@ -1,5 +1,4 @@
 --index-url https://pypi.python.org/simple/
--e .
 colorlog >= 2.10.0
 jinja2 >= 2.8
 matrixscreener >= 0.6.1
