@@ -31,6 +31,7 @@ Install prerequisites
   camacq -h
 
 - Run camcaq with 63x objective.
+
   - You need to know the ip address of the microscope computer, ie host option.
     In this example we assume it is 127.0.0.1.
   - You need to know the directory where images are exported from the microscope, ie  --imaging-dir option.
