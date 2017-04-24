@@ -82,7 +82,7 @@ def check_log_level(loglevel):
 def parse_command_line():
     """Parse the provided command line."""
     parser = argparse.ArgumentParser(
-        description='Control a Leica microscope through CAM interface.')
+        description='Control microscope through client-server program.')
     parser.add_argument(
         '--imaging-dir',
         dest=IMAGING_DIR,
