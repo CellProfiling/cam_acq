@@ -58,3 +58,6 @@ target/
 
 # imdone
 .imdone/
+
+# IPython notebook
+.ipynb_checkpoints/
