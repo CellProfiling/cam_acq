@@ -13,7 +13,8 @@ from matrixscreener.experiment import attribute, attributes
 from camacq.command import camstart_com, del_com
 from camacq.const import (END_10X, END_40X, END_63X, FIELD_NAME, FIELDS_X,
                           FIELDS_Y, FIRST_JOB, GAIN_ONLY, HOST, IMAGING_DIR,
-                          INPUT_GAIN, LAST_FIELD, LAST_WELL, WELL, WELL_NAME)
+                          INPUT_GAIN, LAST_FIELD, LAST_WELL, PORT, WELL,
+                          WELL_NAME)
 from camacq.gain import GainMap
 from camacq.helper import (find_image_path, get_csvs, get_field, handle_imgs,
                            read_csv, save_gain, send)
@@ -198,7 +199,7 @@ class Control(object):
         """Set up instance."""
         self.config = config
         try:
-            self.cam = CAM(self.config[HOST])
+            self.cam = CAM(self.config[HOST], self.config[PORT])
         except socket.error as exc:
             _LOGGER.error(
                 'Connecting to server %s failed: %s', self.config[HOST], exc)

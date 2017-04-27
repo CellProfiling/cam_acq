@@ -14,6 +14,7 @@ FIELD_NAME = (FIELD_X_ID + FIELD_Y_ID)[2:]
 FIRST_JOB = 'first_job'
 FOV_NAME = WELL_NAME + '--' + FIELD_NAME
 HOST = 'host'
+PORT = 'port'
 IMAGING_DIR = 'imaging_dir'
 INIT_GAIN = 'init_gain'
 LAST_FIELD = 'last_field'

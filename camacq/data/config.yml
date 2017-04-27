@@ -35,4 +35,4 @@ logging:
       handlers:
         - console
         - filelog
-other:
+port: 8895

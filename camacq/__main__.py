@@ -13,7 +13,7 @@ import camacq.config as config_util
 from camacq.const import (CONFIG_DIR, COORD_FILE, END_10X, END_40X, END_63X,
                           FIELD_NAME, FIELDS_X, FIELDS_Y, FIRST_JOB, GAIN_ONLY,
                           HOST, IMAGING_DIR, INIT_GAIN, INPUT_GAIN, LAST_WELL,
-                          LOG_LEVEL, TEMPLATE_FILE)
+                          LOG_LEVEL, PORT, TEMPLATE_FILE)
 
 
 def check_dir_arg(path):
@@ -144,6 +144,13 @@ def parse_command_line():
         HOST,
         type=check_ip_arg,
         help='the ip address of the host server, i.e. the microscope')
+    parser.add_argument(
+        '-P',
+        '--port',
+        dest=PORT,
+        default=8895,
+        type=int,
+        help='the tcp port of the host server, i.e. the microscope')
     objectives = parser.add_mutually_exclusive_group(required=True)
     objectives.add_argument(
         '--end-10x',
