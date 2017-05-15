@@ -1,38 +1,56 @@
 """Handle default gain feedback plugin."""
 import logging
 import os
-import re
-import subprocess
-import sys
 import time
-from collections import defaultdict, deque
+from collections import defaultdict, deque, namedtuple
+from itertools import groupby
 
+import matplotlib.pyplot as plt
+import pandas as pd
 from jinja2 import Template
-from matrixscreener.experiment import attribute, attributes, glob
+from matrixscreener.experiment import attribute, attributes
 from pkg_resources import resource_filename
+from scipy.optimize import curve_fit
 
 from camacq.bootstrap import PACKAGE
 from camacq.command import cam_com, gain_com
-from camacq.const import (BLUE, DEFAULT_FIELDS_X, DEFAULT_FIELDS_Y, END_10X,
-                          END_40X, END_63X, FIELD_NAME, FIELDS_X, FIELDS_Y,
-                          FIRST_JOB, GAIN_ONLY, GREEN, IMAGING_DIR, INIT_GAIN,
-                          INPUT_GAIN, JOB_ID, LAST_WELL, RED,
-                          TEMPLATE_FILE, WELL, WELL_NAME, WELL_NAME_CHANNEL,
-                          YELLOW)
+from camacq.config import load_config_file
+from camacq.const import (DEFAULT_FIELDS_X, DEFAULT_FIELDS_Y,
+                          FIELD_NAME, FIELDS_X, FIELDS_Y,
+                          FIRST_JOB, IMAGING_DIR,
+                          JOB_ID, LAST_WELL, WELL,
+                          WELL_NAME, WELL_NAME_CHANNEL)
 from camacq.control import ImageEvent
 from camacq.helper import (find_image_path, format_new_name, get_field,
-                           get_imgs, get_well, read_csv, save_histogram,
-                           send_com_and_start, write_csv)
+                           get_imgs, get_well, read_csv, send_com_and_start,
+                           write_csv)
 from camacq.image import make_proj
+from camacq.plate import Channel
 
 _LOGGER = logging.getLogger(__name__)
+BOX = 'box'
+COUNT = 'count'
+VALID = 'valid'
+IMAGE = 'image'
+CONF_CHANNEL = 'channel'
+CONF_CHANNELS = 'channels'
+CONF_GAIN = 'gain'
+CONF_INIT_GAIN = 'init_gain'
+COUNT_CLOSE_TO_ZERO = 2
 DEFAULT_JOB_ID_GAIN = 2
 DEFAULT_LAST_FIELD_GAIN = 'X01--Y01'
 DEFAULT_LAST_SEQ_GAIN = 31
 DEFAULT_LAST_WELL = 'U11--V07'
-MAX_PROJS = 'maxprojs'
+END_10X = 'end_10x'
+END_40X = 'end_40x'
+END_63X = 'end_63x'
 SAVED_GAINS = 'saved_gains'
 SCAN_FINISHED = 'scanfinished'
+
+GREEN = 'green'
+BLUE = 'blue'
+YELLOW = 'yellow'
+RED = 'red'
 
 NA = 'NA'
 CAM = 'CAM'
@@ -50,8 +68,10 @@ GAIN_MAX = {
 }
 GAIN_OFFSET_BLUE = 0
 GAIN_OFFSET_RED = 25
+GAIN_ONLY = 'gain_only'
 GAIN_SCAN = 'gain_scan'
 GAIN_FROM_WELL = 'gain_from_well'
+INPUT_GAIN = 'input_gain'
 JOB_MAP = {GREEN: 0, BLUE: 1, YELLOW: 1, RED: 2, }
 TEMPLATE = 'template'
 GAIN = 'gain'
@@ -69,9 +89,11 @@ STAGE2_DEFAULT = True
 JOB_INFO = 'job_info'
 STAGE1 = 'stage1'
 STAGE2 = 'stage2'
+TEMPLATE_FILE = 'template_file'
 OBJECTIVE = 'objective'
 LISTENERS = 'listeners'
 COMMANDS = 'commands'
+Data = namedtuple('Data', [BOX, GAIN, VALID])  # pylint: disable=invalid-name
 
 
 def setup_module(center, config):
@@ -139,14 +161,6 @@ def setup_module(center, config):
         center.data[GAIN][LISTENERS].append(center.call_saved(call))
 
 
-def process_output(well, output, well_map):
-    """Process output from the R script."""
-    channels = output.split()
-    for index, gain in enumerate(channels):
-        well_map[well].update({CHANNELS[index]: gain})
-    return well_map
-
-
 def get_gain_com(commands, channels, job_list):
     """Return a list of command lists to set gain for all channels."""
     for channel, gain in channels.iteritems():
@@ -157,40 +171,131 @@ def get_gain_com(commands, channels, job_list):
     return commands
 
 
-def calc_gain(config, bases, wells):
-    """Run R scripts and calculate gain values for the wells."""
-    # Get a unique set of filebases from the csv paths.
+def calc_gain(config, imgp, projs):
+    """Calculate gain values for the well."""
     objective = config[GAIN].get(OBJECTIVE)
-    gain_dict = defaultdict(dict)
-    filebases = sorted(set(bases))
-    # Get a unique set of names of the experiment wells.
-    fin_wells = sorted(set(wells))
-    r_script = resource_filename(PACKAGE, 'data/gain.r')
     if objective == END_10X:
-        init_gain = resource_filename(PACKAGE, 'data/10x_gain.csv')
+        init_gain = resource_filename(PACKAGE, 'data/10x_gain.yml')
     elif objective == END_40X:
-        init_gain = resource_filename(PACKAGE, 'data/40x_gain.csv')
+        init_gain = resource_filename(PACKAGE, 'data/40x_gain.yml')
     elif objective == END_63X:
-        init_gain = resource_filename(PACKAGE, 'data/63x_gain.csv')
-    if config[GAIN].get(INIT_GAIN):
-        init_gain = config[GAIN][INIT_GAIN]
-    for fbase, well in zip(filebases, fin_wells):
-        _LOGGER.info('WELL: %s', well)
-        try:
-            _LOGGER.info('Starting R...')
-            r_output = subprocess.check_output([
-                'Rscript', r_script, config.get(IMAGING_DIR), fbase,
-                init_gain])
-            gain_dict = process_output(well, r_output, gain_dict)
-        except OSError as exc:
-            _LOGGER.error('Execution failed: %s', exc)
-            sys.exit()
-        except subprocess.CalledProcessError as exc:
-            _LOGGER.error(
-                'Subprocess returned a non-zero exit status: %s', exc)
-            sys.exit()
-        _LOGGER.debug(r_output)
-    return gain_dict
+        init_gain = resource_filename(PACKAGE, 'data/63x_gain.yml')
+    if not config[GAIN].get(CONF_CHANNELS):
+        init_gain = load_config_file(init_gain)
+        config[GAIN][CONF_CHANNELS] = init_gain[CONF_CHANNELS]
+    _LOGGER.info('Calculating gain...')
+    init_gain = [
+        Channel(channel[CONF_CHANNEL], gain)
+        for channel in config[GAIN][CONF_CHANNELS]
+        for gain in channel[CONF_INIT_GAIN]]
+
+    return _calc_gain(imgp, init_gain, projs)
+
+
+def _power_func(inp, alpha, beta):
+    """Return the value of function of inp, alpha and beta."""
+    return alpha * inp**beta
+
+
+def _check_upward(points):
+    """Return a function that checks if points move upward."""
+    def wrapped(point):
+        """Return True if trend for point and neighbouring points is upward."""
+        idx, item = point
+        valid = item.valid and item.box <= 600
+        prev = next_ = True
+        if idx > 0:
+            prev = item.box >= points[idx - 1].box
+        if idx < len(points) - 1:
+            next_ = item.box <= points[idx + 1].box
+        return valid and (prev or next_)
+    return wrapped
+
+
+def _plot(path, x_data, y_data, coeffs, label):
+    """Plot and save plot to path."""
+    plt.ioff()
+    plt.clf()
+    plt.yscale('log')
+    plt.xscale('log')
+    plt.plot(
+        x_data, y_data, 'bo',
+        x_data, _power_func(x_data, *coeffs), 'g-', label=label)
+    plt.savefig(path)
+
+
+def _calc_gain(imgp, init_gain, projs):
+    """Calculate gain values for the well.
+
+    Do the actual math.
+    """
+    # pylint: disable=too-many-locals
+    img_attr = attributes(imgp)
+    wellp = get_well(imgp)
+    box_vs_gain = defaultdict(list)
+
+    _LOGGER.info('WELL_PATH: %s', wellp)
+    for c_id, proj in projs.iteritems():
+        channel = init_gain[int(c_id)]
+        hist_data = pd.DataFrame({
+            BOX: range(len(proj.histogram[0])),
+            COUNT: proj.histogram[0]})
+        # Find the max box holding pixels
+        box_max_count = hist_data[
+            (hist_data[COUNT] > 0) &
+            (hist_data[BOX] > 0)][BOX].iloc[-1]
+        # Select only histo data where count is > 0 and 255 > box > 0.
+        # Only use values in interval 10-100 and
+        # > (max box holding pixels - 175).
+        roi = hist_data[
+            (hist_data[COUNT] > 0) & (hist_data[BOX] > 0) &
+            (hist_data[BOX] < 255) & (hist_data[COUNT] >= 10) &
+            (hist_data[COUNT] <= 100) &
+            (hist_data[BOX] > (box_max_count - 175))]
+        if roi.shape[0] < 3:
+            continue
+        x_data = roi[COUNT].astype(float).values
+        y_data = roi[BOX].astype(float).values
+        coeffs, _ = curve_fit(_power_func, x_data, y_data, p0=(1000, -1))
+        save_path = os.path.normpath(os.path.join(
+            wellp, (WELL_NAME_CHANNEL + '.ome.png').format(
+                img_attr.u, img_attr.v, int(c_id))))
+        _plot(save_path, hist_data[COUNT], hist_data[BOX], coeffs, 'count-box')
+        # Find box value where count is close to zero.
+        # Store that box value and it's corresponding gain value.
+        # Store boolean saying if second slope coefficient is negative.
+        box_vs_gain[channel.channel].append(Data._make((
+            _power_func(COUNT_CLOSE_TO_ZERO, *coeffs),
+            channel.gain, coeffs[1] < 0)))
+
+    gains = {}
+    for channel, points in box_vs_gain.iteritems():
+        # Sort points with ascendning gain, to allow grouping.
+        points = sorted(points, key=lambda item: item.gain)
+        long_group = []
+        for key, group in groupby(enumerate(points), _check_upward(points)):
+            # Find the group with the most points and use that below.
+            stored_group = list(group)
+            if key and len(stored_group) > len(long_group):
+                long_group = stored_group
+
+        # Curve fit the longest group with power function.
+        # Plot the points and the fit.
+        # Return the calculated gains at bin 255, using fit function.
+        if len(long_group) < 3:
+            gains[channel] = NA
+            continue
+        coeffs, _ = curve_fit(
+            _power_func, [p[1].box for p in long_group],
+            [p[1].gain for p in long_group], p0=(1, 1))
+        save_path = os.path.normpath(os.path.join(
+            wellp, ('{}.png').format(channel)))
+        _plot(
+            save_path, [p.box for p in points],
+            [p.gain for p in points], coeffs, 'box-gain')
+        gains[channel] = _power_func(255, *coeffs)
+
+    return {WELL_NAME.format(img_attr.u, img_attr.v): gains}
 
 
 def sanitize_gain(config, channel, gain):
@@ -346,9 +451,8 @@ def rename_imgs(imgp, f_job):
     return new_name
 
 
-def handle_imgs(path, imdir, job_id, f_job=2, img_save=True, histo_save=True):
+def handle_imgs(path, job_id, f_job=2):
     """Handle acquired images, do renaming, make max projections."""
-    # pylint: disable=too-many-arguments
     # Get all image paths in well or field, depending on path and
     # job_id variable.
     imgs = get_imgs(path, search=JOB_ID.format(job_id))
@@ -360,77 +464,31 @@ def handle_imgs(path, imdir, job_id, f_job=2, img_save=True, histo_save=True):
         _LOGGER.debug('NEW NAME: %s', new_name)
         if new_name:
             new_paths.append(new_name)
-    if not new_paths or not img_save and not histo_save:
+    if not new_paths:
         return
-    new_dir = os.path.normpath(os.path.join(imdir, MAX_PROJS))
-    if img_save and not os.path.exists(new_dir):
-        os.makedirs(new_dir)
-    if img_save:
-        _LOGGER.info('Saving images...')
-    if histo_save:
-        _LOGGER.info('Calculating histograms...')
     # Make a max proj per channel.
-    for c_id, proj in make_proj(new_paths).iteritems():
-        if img_save:
-            save_path = format_new_name(proj.path, root=new_dir,
-                                        new_attr={'C': c_id})
-            # Save meta data and image max proj.
-            proj.save(save_path)
-        if histo_save:
-            img_attr = attributes(proj.path)
-            save_path = os.path.normpath(os.path.join(
-                imdir, (WELL_NAME_CHANNEL + '.ome.csv').format(
-                    img_attr.u, img_attr.v, int(c_id))))
-            save_histogram(save_path, proj)
-
-
-def get_csvs(well_path):
-    """Find correct csv files and get their base names."""
-    # empty lists for keeping csv file base path names
-    # and corresponding well names
-    fbs = []
-    wells = []
-    # get all CSVs in well at wellp
-    csvs = glob(
-        os.path.join(os.path.normpath(well_path), '*.ome.csv'))
-    for csvp in csvs:
-        csv_attr = attributes(csvp)
-        # Get the filebase from the csv path.
-        fbs.append(re.sub(r'C\d\d.+$', '', csvp))
-        #  Get the well from the csv path.
-        well_name = WELL_NAME.format(csv_attr.u, csv_attr.v)
-        wells.append(well_name)
-    return fbs, wells
-
-
-def stage1_ready(image_path):
-    """Check if stage 1 is finished."""
-    if not image_path:
-        return False
-    img_attr = attributes(image_path)
-    # This means only ever one well at a time.
-    if (FIELD_NAME.format(img_attr.x, img_attr.y) ==
-            DEFAULT_LAST_FIELD_GAIN and
-            img_attr.c == DEFAULT_LAST_SEQ_GAIN):
-        return True
-    return False
+    projs = make_proj(new_paths)
+    return projs
 
 
 def handle_stage1(center, event):
     """Handle saved image during stage 1."""
     _LOGGER.info('Handling image during stage 1...')
-    imgp = find_image_path(event.rel_path, event.center.config[IMAGING_DIR])
+    imgp = find_image_path(event.rel_path, center.config[IMAGING_DIR])
+    if not imgp:
+        return
     _LOGGER.debug('IMAGE PATH: %s', imgp)
-    if not stage1_ready(imgp):
+    img_attr = attributes(imgp)
+    # This means only ever one well at a time.
+    if (FIELD_NAME.format(img_attr.x, img_attr.y) !=
+            DEFAULT_LAST_FIELD_GAIN or
+            img_attr.c != DEFAULT_LAST_SEQ_GAIN):
         return
     wellp = get_well(imgp)
-    handle_imgs(wellp, wellp, DEFAULT_JOB_ID_GAIN, img_save=False)
-    bases, wells = get_csvs(wellp)
-    if not bases:
+    projs = handle_imgs(wellp, DEFAULT_JOB_ID_GAIN)
+    if not projs:
         return
-    gain_dict = calc_gain(center.config, bases, wells)
-    if not gain_dict:
-        return
+    gain_dict = calc_gain(center.config, imgp, projs)
     _LOGGER.debug('Gain dict: %s', gain_dict)
     if SAVED_GAINS not in center.data:
         center.data[SAVED_GAINS] = defaultdict(dict)
@@ -460,9 +518,7 @@ def handle_stage2(center, event):
         img_attr.x, img_attr.y)] = field._replace(
             img_ok=True)
     fieldp = get_field(imgp)
-    handle_imgs(
-        fieldp, center.config[IMAGING_DIR], attribute(imgp, 'E'),
-        f_job=center.config[FIRST_JOB], img_save=False, histo_save=False)
+    handle_imgs(fieldp, attribute(imgp, 'E'), f_job=center.config[FIRST_JOB])
 
 
 def stop(center, event):  # pylint: disable=unused-argument
@@ -482,6 +538,7 @@ def stop(center, event):  # pylint: disable=unused-argument
 
 def stop_end_stage1(center, event):
     """Handle event that should end stage1 after stop."""
+    # pylint:disable=unused-argument
     _LOGGER.info('Handling stop event at end stage 1...')
     stop(center, event)
     center.data[GAIN][LISTENERS].append(center.bus.register(
@@ -502,6 +559,7 @@ def stop_end_stage1(center, event):
 
 def stop_mid_stage2(center, event):
     """Handle event that should continue with stage2 after stop."""
+    # pylint:disable=unused-argument
     _LOGGER.info('Handling stop event during stage 2...')
     stop(center, event)
     center.data[GAIN][LISTENERS].append(center.bus.register(
@@ -513,6 +571,7 @@ def stop_mid_stage2(center, event):
 
 def stop_end_stage2(center, event):
     """Handle event that should end stage2 after stop."""
+    # pylint:disable=unused-argument
     _LOGGER.info('Handling stop event at end stage 2...')
     stop(center, event)
     center.data[GAIN][LISTENERS].append(center.bus.register(

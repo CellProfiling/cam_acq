@@ -4,6 +4,7 @@ import socket
 import sys
 import time
 from collections import deque
+from functools import partial
 from importlib import import_module
 
 from matrixscreener.cam import CAM
@@ -64,8 +65,9 @@ def dummy_handler(event):  # pylint: disable=unused-argument
 class EventBus(object):
     """EventBus class."""
 
-    def __init__(self):
+    def __init__(self, center):
         """Set up instance."""
+        self.center = center
         self._event = import_module('zope.event')
         self.handler = import_module('zope.event.classhandler')
         # Limitation in zope requires at least one item in registry to avoid
@@ -74,6 +76,7 @@ class EventBus(object):
 
     def register(self, event_type, handler):
         """Register an event listener and return a function to remove it."""
+        handler = partial(handler, self.center)
         self.handler.handler(event_type, handler)
 
         def remove():
@@ -133,7 +136,7 @@ class Center(object):
         self.cam.delay = 0.2
         self.data = {}  # dict to store data from modules outside control
         self.do_now = deque()  # Functions to call asap.
-        self.bus = EventBus()
+        self.bus = EventBus(self)
         self.actions = ActionsRegistry()
         self.exit_code = None
         self.plate = Plate()

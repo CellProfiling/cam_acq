@@ -1,4 +1,2 @@
 include README.rst
-include camacq/data/*.csv
 include camacq/data/*.yml
-include camacq/data/*.r
