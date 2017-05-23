@@ -11,10 +11,9 @@ from matrixscreener.cam import CAM
 from matrixscreener.experiment import attribute, attributes
 
 from camacq.command import camstart_com, del_com
-from camacq.const import (END_10X, END_40X, END_63X, FIELD_NAME, FIELDS_X,
-                          FIELDS_Y, FIRST_JOB, GAIN_ONLY, HOST, IMAGING_DIR,
-                          INPUT_GAIN, LAST_FIELD, LAST_WELL, PORT, WELL,
-                          WELL_NAME)
+from camacq.const import (END_10X, END_40X, END_63X, FIELD_NAME, FIRST_JOB,
+                          GAIN_ONLY, HOST, IMAGING_DIR, INPUT_GAIN, LAST_FIELD,
+                          LAST_WELL, PORT, WELL, WELL_NAME)
 from camacq.gain import GainMap
 from camacq.helper import (find_image_path, get_csvs, get_field, handle_imgs,
                            read_csv, save_gain, send)
@@ -103,8 +102,7 @@ def handle_stop_end_stage1(event):
     _LOGGER.info('Handling stop event at end stage 1...')
     handle_stop(event)
     event_handler.handler(ImageEvent, handle_stage2)
-    com_data = event.center.gains.get_com(
-        event.center.config[FIELDS_X], event.center.config[FIELDS_Y])
+    com_data = event.center.gains.get_com()
     todo = [
         event.center.create_job(
             event.center.send_com, (com, end_com, handle_stop_mid_stage2))
@@ -341,8 +339,7 @@ class Control(object):
 
         if self.config['input_gain']:
             self.gains.distribute_gain(gain_dict)
-            com_data = self.gains.get_com(
-                self.config[FIELDS_X], self.config[FIELDS_Y])
+            com_data = self.gains.get_com()
         else:
             com_data = self.gains.get_init_com()
 
