@@ -411,7 +411,7 @@ class GainMap(object):
             self.wells[well] = Well(well)
             self.set_fields(self.wells[well])
             com = []
-            for field in self.wells[well].fields:
+            for field in self.wells[well].fields.values():
                 if not field.gain_field:
                     continue
                 com.append(cam_com(
