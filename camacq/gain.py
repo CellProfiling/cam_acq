@@ -194,8 +194,10 @@ gain_field=True, img_ok=False)}
 
     @property
     def img_ok(self):
-        """:bool: Return True if all fields of the well are imaged ok."""
-        return all(field.img_ok for field in self.fields.values())
+        """:bool: Return True if there are fields and all are imaged ok."""
+        if self.fields and all(field.img_ok for field in self.fields.values()):
+            return True
+        return False
 
 
 class GainMap(object):
@@ -239,7 +241,6 @@ class GainMap(object):
             self.template = None
         else:
             self.template = read_csv(config[TEMPLATE_FILE], WELL)
-            self.config[LAST_WELL] = sorted(self.template.keys())[-1]
         if config[COORD_FILE] is None:
             self.coords = defaultdict(dict)
         else:
