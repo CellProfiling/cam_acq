@@ -11,8 +11,9 @@ from matrixscreener.cam import CAM
 from matrixscreener.experiment import attribute, attributes
 
 from camacq.command import camstart_com, del_com
-from camacq.const import (END_10X, END_40X, END_63X, FIELD_NAME, FIRST_JOB,
-                          GAIN_ONLY, HOST, IMAGING_DIR, INPUT_GAIN, PORT, WELL,
+from camacq.const import (END_10X, END_40X, END_63X, FIELD_NAME, FIELDS_X,
+                          FIELDS_Y, FIRST_JOB, GAIN_ONLY, HOST, IMAGING_DIR,
+                          INPUT_GAIN, LAST_FIELD, OBJECTIVE, PORT, WELL,
                           WELL_NAME)
 from camacq.gain import GainMap
 from camacq.helper import (find_image_path, get_csvs, get_field, handle_imgs,
@@ -263,7 +264,7 @@ class Control(object):
         # parse reply and create Event
         # reply must be an iterable
         for reply in replies:
-            if 'relpath' in reply:
+            if REL_IMAGE_PATH in reply:
                 self.notify(ImageEvent(self, reply))
             else:
                 self.notify(CommandEvent(self, reply))
@@ -312,14 +313,13 @@ class Control(object):
         stage2 = STAGE2_DEFAULT
         gain_dict = defaultdict(dict)
         flow_map = {
-            END_10X: {
-                JOB_INFO: (JOB_10X, PATTERN_G_10X, PATTERN_10X),
-            },
-            END_40X: {
-                JOB_INFO: (JOB_40X, PATTERN_G_40X, PATTERN_40X),
-            },
-            END_63X: {
-                JOB_INFO: (JOB_63X, PATTERN_G_63X, PATTERN_63X),
+            OBJECTIVE: {
+                END_10X: {
+                    JOB_INFO: (JOB_10X, PATTERN_G_10X, PATTERN_10X)},
+                END_40X: {
+                    JOB_INFO: (JOB_40X, PATTERN_G_40X, PATTERN_40X)},
+                END_63X: {
+                    JOB_INFO: (JOB_63X, PATTERN_G_63X, PATTERN_63X)},
             },
             GAIN_ONLY: {
                 STAGE2: False,
@@ -332,16 +332,19 @@ class Control(object):
             if self.config.get(attr):
                 stage1 = settings.get(STAGE1, stage1)
                 stage2 = settings.get(STAGE2, stage2) if not \
-                    self.config['gain_only'] else flow_map[GAIN_ONLY][STAGE2]
-                if JOB_INFO in settings:
-                    job_info = settings[JOB_INFO]
+                    self.config[GAIN_ONLY] else flow_map[GAIN_ONLY][STAGE2]
+                if self.config[attr] in settings:
+                    job_info = settings[self.config[attr]][JOB_INFO]
                 if INPUT_GAIN in attr:
-                    gain_dict = read_csv(self.config['input_gain'], WELL)
+                    gain_dict = read_csv(self.config[INPUT_GAIN], WELL)
+
+        self.config[LAST_FIELD] = FIELD_NAME.format(
+            self.config[FIELDS_X] - 1, self.config[FIELDS_Y] - 1)
 
         # make GainMap object, fix lazy init later
         self.gains = GainMap(self.config, job_info)
 
-        if self.config['input_gain']:
+        if self.config[INPUT_GAIN]:
             self.gains.distribute_gain(gain_dict)
             com_data = self.gains.get_com()
         else:

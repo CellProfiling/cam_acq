@@ -12,7 +12,8 @@ from camacq.command import cam_com, gain_com
 from camacq.const import (BLUE, COORD_FILE, END_10X, END_40X, END_63X,
                           FIELD_NAME, FIELDS_X, FIELDS_Y, FIRST_JOB, FOV_NAME,
                           GREEN, IMAGING_DIR, INIT_GAIN, JOB_ID, LAST_WELL,
-                          RED, TEMPLATE_FILE, WELL, WELL_NAME, YELLOW)
+                          OBJECTIVE, RED, TEMPLATE_FILE, WELL, WELL_NAME,
+                          YELLOW)
 from camacq.helper import read_csv
 
 _LOGGER = logging.getLogger(__name__)
@@ -259,13 +260,13 @@ class GainMap(object):
         # Get a unique set of names of the experiment wells.
         fin_wells = sorted(set(wells))
         r_script = resource_filename(__name__, 'data/gain.r')
-        if self.config[END_10X]:
+        if self.config[OBJECTIVE] == END_10X:
             init_gain = resource_filename(__name__, 'data/10x_gain.csv')
-        elif self.config[END_40X]:
+        elif self.config[OBJECTIVE] == END_40X:
             init_gain = resource_filename(__name__, 'data/40x_gain.csv')
-        elif self.config[END_63X]:
+        elif self.config[OBJECTIVE] == END_63X:
             init_gain = resource_filename(__name__, 'data/63x_gain.csv')
-        if self.config[INIT_GAIN]:
+        if self.config.get(INIT_GAIN):
             init_gain = self.config[INIT_GAIN]
         for fbase, well in zip(filebases, fin_wells):
             _LOGGER.info('WELL: %s', well)
@@ -289,18 +290,18 @@ class GainMap(object):
 
     def sanitize_gain(self, channel, gain):
         """Make sure all channels have a reasonable gain value."""
-        if self.config[END_10X]:
+        if self.config[OBJECTIVE] == END_10X:
             obj = TEN_X
-        elif self.config[END_40X]:
+        elif self.config[OBJECTIVE] == END_40X:
             obj = FORTY_X
-        elif self.config[END_63X]:
+        elif self.config[OBJECTIVE] == END_63X:
             obj = SIXTYTHREE_X
         if gain == NA:
             gain = GAIN_DEFAULT[obj][channel]
         gain = int(gain)
         if channel == GREEN:
             # Round gain values to multiples of 10 in green channel
-            if self.config[END_63X]:
+            if self.config[OBJECTIVE] == END_63X:
                 gain = int(min(
                     round(gain, -1), GAIN_DEFAULT[SIXTYTHREE_X][GREEN]))
             else:
@@ -426,7 +427,8 @@ class GainMap(object):
 
         # Join the list of lists of command lists into a list of a command
         # list if dry a objective is used.
-        if self.config[END_10X] or self.config[END_40X]:
+        if (self.config[OBJECTIVE] == END_10X or
+                self.config[OBJECTIVE] == END_40X):
             com_list_bak = list(com_list)
             com_list = []
             for com in com_list_bak:
