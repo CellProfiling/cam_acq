@@ -177,7 +177,6 @@ def parse_command_line():
     parser.add_argument(
         '--log-level',
         dest=LOG_LEVEL,
-        default='INFO',
         type=check_log_level,
         help='an option to specify lowest log level to log')
     parser.add_argument(
