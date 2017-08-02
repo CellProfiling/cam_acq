@@ -36,3 +36,4 @@ logging:
         - console
         - filelog
 port: 8895
+host: localhost

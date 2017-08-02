@@ -54,16 +54,14 @@ def check_field_arg(arg):
             'String {} does not match required format'.format(arg))
 
 
-def check_ip_arg(addr):
-    """Check that addr argument is valid ip address."""
+def check_socket_address(value):
+    """Check that value is a valid address."""
     try:
-        socket.inet_aton(addr)
-        # legal
-        return addr
-    except socket.error:
-        # not legal
+        socket.getaddrinfo(value, None)
+        return value
+    except OSError:
         raise argparse.ArgumentTypeError(
-            'String {} is not a valid ip address'.format(addr))
+            'String {} is not a valid domain name or ip address'.format(value))
 
 
 def check_log_level(loglevel):
@@ -142,8 +140,8 @@ def parse_command_line():
         help='the path to the csv file with calculated gain values')
     parser.add_argument(
         HOST,
-        type=check_ip_arg,
-        help='the ip address of the host server, i.e. the microscope')
+        type=check_socket_address,
+        help='the address of the host server, i.e. the microscope')
     parser.add_argument(
         '-P',
         '--port',
