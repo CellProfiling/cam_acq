@@ -25,7 +25,7 @@ def check_path(path):
 
 def enable_log(config):
     """Enable logging."""
-    logging.basicConfig(level=config[LOG_LEVEL])
+    logging.basicConfig()
     root_logger = logging.getLogger()
     # basicConfig has added a StreamHandler
     # '%(log_color)s%(levelname)s:%(name)s:%(message)s'
@@ -57,3 +57,5 @@ def enable_log(config):
                 '%(asctime)s;%(name)-16s;%(levelname)-8s;%(message)s')
             filelog.setFormatter(formatter)
             logging.getLogger('').addHandler(filelog)
+    if config[LOG_LEVEL]:
+        root_logger.handlers[0].setLevel(config[LOG_LEVEL])
