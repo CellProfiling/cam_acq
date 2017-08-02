@@ -10,9 +10,9 @@ from pkg_resources import resource_filename
 
 from camacq.command import cam_com, gain_com
 from camacq.const import (BLUE, COORD_FILE, END_10X, END_40X, END_63X,
-                          FIELD_NAME, FIRST_JOB, FOV_NAME, GREEN, IMAGING_DIR,
-                          INIT_GAIN, JOB_ID, LAST_WELL, RED, TEMPLATE_FILE,
-                          WELL, WELL_NAME, YELLOW)
+                          FIELD_NAME, FIELDS_X, FIELDS_Y, FIRST_JOB, FOV_NAME,
+                          GREEN, IMAGING_DIR, INIT_GAIN, JOB_ID, LAST_WELL,
+                          RED, TEMPLATE_FILE, WELL, WELL_NAME, YELLOW)
 from camacq.helper import read_csv
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ def process_output(well, output, well_map):
     """Process output from the R script."""
     channels = output.split()
     for index, gain in enumerate(channels):
-        well_map[well].update({CHANNELS[index]: int(gain)})
+        well_map[well].update({CHANNELS[index]: gain})
     return well_map
 
 
@@ -194,8 +194,10 @@ gain_field=True, img_ok=False)}
 
     @property
     def img_ok(self):
-        """:bool: Return True if all fields of the well are imaged ok."""
-        return all(field.img_ok for field in self.fields.values())
+        """:bool: Return True if there are fields and all are imaged ok."""
+        if self.fields and all(field.img_ok for field in self.fields.values()):
+            return True
+        return False
 
 
 class GainMap(object):
@@ -239,7 +241,6 @@ class GainMap(object):
             self.template = None
         else:
             self.template = read_csv(config[TEMPLATE_FILE], WELL)
-            self.config[LAST_WELL] = sorted(self.template.keys())[-1]
         if config[COORD_FILE] is None:
             self.coords = defaultdict(dict)
         else:
@@ -296,19 +297,36 @@ class GainMap(object):
             obj = SIXTYTHREE_X
         if gain == NA:
             gain = GAIN_DEFAULT[obj][channel]
+        gain = int(gain)
         if channel == GREEN:
             # Round gain values to multiples of 10 in green channel
             if self.config[END_63X]:
                 gain = int(min(
-                    round(int(gain), -1), GAIN_DEFAULT[SIXTYTHREE_X][GREEN]))
+                    round(gain, -1), GAIN_DEFAULT[SIXTYTHREE_X][GREEN]))
             else:
-                gain = int(round(int(gain), -1))
+                gain = int(round(gain, -1))
         # Add gain offset to blue and red channel.
         if channel == BLUE:
             gain += GAIN_OFFSET_BLUE
         if channel == RED:
             gain += GAIN_OFFSET_RED
         return gain
+
+    def set_fields(self, well):
+        """Set fields."""
+        for i in range(self.config[FIELDS_Y]):
+            for j in range(self.config[FIELDS_X]):
+                # Only add selected fovs from file (arg) to cam list
+                fov = FOV_NAME.format(well.U, well.V, j, i)
+                if fov in self.coords.keys():
+                    dxcoord = self.coords[fov][DX_PX]
+                    dycoord = self.coords[fov][DY_PX]
+                    well.add_field(
+                        j, i, dxcoord, dycoord,
+                        j == 0 and i == 0 or j == 1 and i == 1)
+                elif not self.coords:
+                    well.add_field(
+                        j, i, 0, 0, j == 0 and i == 0 or j == 1 and i == 1)
 
     def set_gain(self, well, channel, gain):
         """Set gain in a channel in a well.
@@ -318,6 +336,7 @@ class GainMap(object):
         if well not in self.wells:
             self.wells[well] = Well(well)
         self.wells[well].channels.update({channel: Channel(channel, gain)})
+        self.set_fields(self.wells[well])
 
     def distribute_gain(self, gain_dict):
         """Collate gain values and distribute them to the wells."""
@@ -340,23 +359,7 @@ class GainMap(object):
                 else:
                     self.set_gain(gain_well, channel, gain)
 
-    def set_fields(self, well, fields_x, fields_y):
-        """Set fields."""
-        for i in range(fields_y):
-            for j in range(fields_x):
-                # Only add selected fovs from file (arg) to cam list
-                fov = FOV_NAME.format(well.U, well.V, j, i)
-                if fov in self.coords.keys():
-                    dxcoord = self.coords[fov][DX_PX]
-                    dycoord = self.coords[fov][DY_PX]
-                    well.add_field(
-                        j, i, dxcoord, dycoord,
-                        j == 0 and i == 0 or j == 1 and i == 1)
-                elif not self.coords:
-                    well.add_field(
-                        j, i, 0, 0, j == 0 and i == 0 or j == 1 and i == 1)
-
-    def get_com(self, fields_x, fields_y):
+    def get_com(self):
         """Get command."""
         # Lists for storing command strings.
         com_list = []
@@ -365,9 +368,9 @@ class GainMap(object):
         # Ie use one job for multiple wells where the gain is the same
         # or similar.
         for well in self.wells.values():
-            self.set_fields(well, fields_x, fields_y)
-            if well.img_ok:
-                # Only get commands for wells that are not imaged ok.
+            if well.img_ok or not well.channels:
+                # Only get commands for wells that are not imaged ok and
+                # wells that have channels with gain set.
                 continue
             end_com = []
             com = get_gain_com([], well.channels, self.job_list)
@@ -406,14 +409,18 @@ class GainMap(object):
         end_com = []
         # Selected objective gain job cam command in wells.
         for well in sorted(wells):
+            self.wells[well] = Well(well)
+            self.set_fields(self.wells[well])
             com = []
-            well_u_id = attribute('--{}'.format(well), 'U')
-            well_v_id = attribute('--{}'.format(well), 'V')
-            for i in range(2):
+            for field in self.wells[well].fields.values():
+                if not field.gain_field:
+                    continue
                 com.append(cam_com(
-                    self.pattern_g, well_u_id, well_v_id, i, i, '0', '0'))
+                    self.pattern_g, self.wells[well].U, self.wells[well].V,
+                    field.X, field.Y, field.dX, field.dY))
                 end_com = [
-                    CAM, well, JOB_ID.format(2), FIELD_NAME.format(i, i)]
+                    CAM, well, JOB_ID.format(2),
+                    FIELD_NAME.format(field.X, field.Y)]
             com_list.append(com)
             end_com_list.append(end_com)
 

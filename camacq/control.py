@@ -11,9 +11,8 @@ from matrixscreener.cam import CAM
 from matrixscreener.experiment import attribute, attributes
 
 from camacq.command import camstart_com, del_com
-from camacq.const import (END_10X, END_40X, END_63X, FIELD_NAME, FIELDS_X,
-                          FIELDS_Y, FIRST_JOB, GAIN_ONLY, HOST, IMAGING_DIR,
-                          INPUT_GAIN, LAST_FIELD, LAST_WELL, PORT, WELL,
+from camacq.const import (END_10X, END_40X, END_63X, FIELD_NAME, FIRST_JOB,
+                          GAIN_ONLY, HOST, IMAGING_DIR, INPUT_GAIN, PORT, WELL,
                           WELL_NAME)
 from camacq.gain import GainMap
 from camacq.helper import (find_image_path, get_csvs, get_field, handle_imgs,
@@ -103,8 +102,7 @@ def handle_stop_end_stage1(event):
     _LOGGER.info('Handling stop event at end stage 1...')
     handle_stop(event)
     event_handler.handler(ImageEvent, handle_stage2)
-    com_data = event.center.gains.get_com(
-        event.center.config[FIELDS_X], event.center.config[FIELDS_Y])
+    com_data = event.center.gains.get_com()
     todo = [
         event.center.create_job(
             event.center.send_com, (com, end_com, handle_stop_mid_stage2))
@@ -137,11 +135,7 @@ def handle_stop_end_stage2(event):
     imgp = find_image_path(event.rel_path, event.center.config[IMAGING_DIR])
     if not imgp:
         return
-    img_attr = attributes(imgp)
-    if (WELL_NAME.format(img_attr.u, img_attr.v) ==
-            event.center.config[LAST_WELL] and
-            FIELD_NAME.format(img_attr.x, img_attr.y) ==
-            event.center.config[LAST_FIELD]):
+    if all(well.img_ok for well in event.center.gains.wells.values()):
         event.center.finished = True
 
 
@@ -219,6 +213,11 @@ class Control(object):
         self.exit_code = None
         self.finished = False
 
+    def end(self, code):
+        """Prepare app for exit."""
+        _LOGGER.info('Stopping camacq')
+        self.exit_code = code
+
     def start(self):
         """Run, send commands and receive replies.
 
@@ -227,6 +226,10 @@ class Control(object):
         """
         _LOGGER.info('Starting camacq')
         self.control()
+        if not self.do_now:
+            _LOGGER.info('Nothing to do')
+            self.end(0)
+            return
         try:
             while True:
                 if self.finished:
@@ -242,8 +245,7 @@ class Control(object):
                 if replies:
                     self.receive(replies)
         except KeyboardInterrupt:
-            _LOGGER.info('Stopping camacq')
-            self.exit_code = 0
+            self.end(0)
 
     @staticmethod
     def notify(event):
@@ -341,8 +343,7 @@ class Control(object):
 
         if self.config['input_gain']:
             self.gains.distribute_gain(gain_dict)
-            com_data = self.gains.get_com(
-                self.config[FIELDS_X], self.config[FIELDS_Y])
+            com_data = self.gains.get_com()
         else:
             com_data = self.gains.get_init_com()
 
