@@ -1,5 +1,6 @@
 """Configure and set up control center."""
 import logging
+import pprint
 
 import camacq.config as config_util
 import camacq.log as log_util
@@ -11,7 +12,7 @@ _LOGGER = logging.getLogger(__name__)
 def setup_dict(config):
     """Set up control center from config dict."""
     log_util.enable_log(config)
-    _LOGGER.debug('CONFIG: %s', config)
+    _LOGGER.debug('Contents of config:\n%s', pprint.pformat(config))
     center = Control(config)
     return center
 
