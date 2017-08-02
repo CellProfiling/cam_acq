@@ -11,9 +11,9 @@ import sys
 import camacq.bootstrap as bootstrap
 import camacq.config as config_util
 from camacq.const import (CONFIG_DIR, COORD_FILE, END_10X, END_40X, END_63X,
-                          FIELD_NAME, FIELDS_X, FIELDS_Y, FIRST_JOB, GAIN_ONLY,
-                          HOST, IMAGING_DIR, INIT_GAIN, INPUT_GAIN, LAST_WELL,
-                          LOG_LEVEL, PORT, TEMPLATE_FILE)
+                          FIELDS_X, FIELDS_Y, FIRST_JOB, GAIN_ONLY, HOST,
+                          IMAGING_DIR, INIT_GAIN, INPUT_GAIN, LOG_LEVEL,
+                          OBJECTIVE, PORT, TEMPLATE_FILE)
 
 
 def check_dir_arg(path):
@@ -77,6 +77,16 @@ def check_log_level(loglevel):
         return numeric_level
 
 
+def check_obj(value):
+    """Check that value is a objective lens."""
+    if value in [END_10X, END_40X, END_63X]:
+        return value
+    else:
+        raise argparse.ArgumentTypeError(
+            'String {} is not one of: {}, {}, {}'.format(
+                value, *[END_10X, END_40X, END_63X]))
+
+
 def parse_command_line():
     """Parse the provided command line."""
     parser = argparse.ArgumentParser(
@@ -94,27 +104,22 @@ def parse_command_line():
     parser.add_argument(
         '-W',
         '--last-well',
-        dest=LAST_WELL,
-        default='U11--V07',
         type=check_well_arg,
         help='the id of the last well in the experiment, e.g. U11--V07')
     parser.add_argument(
         '--x-fields',
         dest=FIELDS_X,
-        default=2,
         type=int,
         help='the number (int) of fields on x axis in each well, e.g. 2')
     parser.add_argument(
         '--y-fields',
         dest=FIELDS_Y,
-        default=2,
         type=int,
         help='the number (int) of fields on y axis in each well, e.g. 2')
     parser.add_argument(
         '-j',
         '--first-job',
         dest=FIRST_JOB,
-        default=2,
         type=int,
         help=('the integer marking the order of the first experiment job in\
               the patterns'))
@@ -146,29 +151,14 @@ def parse_command_line():
         '-P',
         '--port',
         dest=PORT,
-        default=8895,
         type=int,
         help='the tcp port of the host server, i.e. the microscope')
-    objectives = parser.add_mutually_exclusive_group(required=False)
-    objectives.add_argument(
-        '--end-10x',
-        dest=END_10X,
-        action='store_true',
-        help='an option to activate 10x objective as last objective in\
-             experiment')
-    objectives.add_argument(
-        '--end-40x',
-        dest=END_40X,
-        action='store_true',
-        help='an option to activate 40x objective as last objective in\
-             experiment')
-    objectives.add_argument(
-        '--end-63x',
-        dest=END_63X,
-        action='store_true',
-        default=True,
-        help='an option to activate 63x objective as last objective in\
-             experiment')
+    parser.add_argument(
+        '-O',
+        '--objective',
+        dest=OBJECTIVE,
+        type=check_obj,
+        help='select what objective to use as last objective in experiment')
     parser.add_argument(
         '--gain-only',
         dest=GAIN_ONLY,
@@ -198,9 +188,11 @@ def parse_command_line():
         args.input_gain = os.path.normpath(args.input_gain)
     if args.config_dir:
         args.config_dir = os.path.normpath(args.config_dir)
-    args.last_field = FIELD_NAME.format(args.fields_x - 1, args.fields_y - 1)
+    cmd_args_dict = vars(args)
+    cmd_args_dict = {
+        key: val for key, val in cmd_args_dict.iteritems() if val}
 
-    return args
+    return cmd_args_dict
 
 
 def ensure_config_path(config_dir):
@@ -235,7 +227,7 @@ def main():
     """Main function."""
     # Parse command line arguments
     cmd_args = parse_command_line()
-    config_dir = os.path.join(os.getcwd(), cmd_args.config_dir)
+    config_dir = os.path.join(os.getcwd(), cmd_args[CONFIG_DIR])
     ensure_config_path(config_dir)
     config_file = ensure_config_file(config_dir)
     center = bootstrap.setup_file(config_file, cmd_args)

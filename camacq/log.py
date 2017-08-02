@@ -57,5 +57,5 @@ def enable_log(config):
                 '%(asctime)s;%(name)-16s;%(levelname)-8s;%(message)s')
             filelog.setFormatter(formatter)
             logging.getLogger('').addHandler(filelog)
-    if config[LOG_LEVEL]:
+    if config.get(LOG_LEVEL):
         root_logger.handlers[0].setLevel(config[LOG_LEVEL])
