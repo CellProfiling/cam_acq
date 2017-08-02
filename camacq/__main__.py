@@ -82,9 +82,7 @@ def parse_command_line():
     parser = argparse.ArgumentParser(
         description='Control microscope through client-server program.')
     parser.add_argument(
-        '--imaging-dir',
-        dest=IMAGING_DIR,
-        required=True,
+        IMAGING_DIR,
         type=check_dir_arg,
         help='the path to the directory where images are exported')
     parser.add_argument(
@@ -139,7 +137,9 @@ def parse_command_line():
         type=check_file_arg,
         help='the path to the csv file with calculated gain values')
     parser.add_argument(
-        HOST,
+        '-H',
+        '--host',
+        dest=HOST,
         type=check_socket_address,
         help='the address of the host server, i.e. the microscope')
     parser.add_argument(
@@ -149,7 +149,7 @@ def parse_command_line():
         default=8895,
         type=int,
         help='the tcp port of the host server, i.e. the microscope')
-    objectives = parser.add_mutually_exclusive_group(required=True)
+    objectives = parser.add_mutually_exclusive_group(required=False)
     objectives.add_argument(
         '--end-10x',
         dest=END_10X,
@@ -166,6 +166,7 @@ def parse_command_line():
         '--end-63x',
         dest=END_63X,
         action='store_true',
+        default=True,
         help='an option to activate 63x objective as last objective in\
              experiment')
     parser.add_argument(
