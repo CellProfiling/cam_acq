@@ -3,7 +3,7 @@ import io
 
 from setuptools import find_packages, setup
 
-import camacq
+from camacq.const import __version__
 
 GITHUB_URL = 'https://github.com/CellProfiling/cam_acq'
 
@@ -67,7 +67,7 @@ CONFIG = {
     'download_url': DOWNLOAD_URL,
     'license': 'GPLv3',
     'author_email': 'marhje52@kth.se',
-    'version': camacq.__version__,
+    'version': __version__,
     'install_requires': [
         'colorlog',
         'jinja2',
