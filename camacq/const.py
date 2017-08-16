@@ -1,5 +1,5 @@
 """Store common constants."""
-__version__ = '0.3.0.dev0'
+__version__ = '0.3.0'
 
 CONFIG_DIR = 'config_dir'
 COORD_FILE = 'coord_file'
