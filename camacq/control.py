@@ -193,11 +193,13 @@ class Control(object):
     def __init__(self, config):
         """Set up instance."""
         self.config = config
+        host = self.config.get(HOST, 'localhost')
         try:
-            self.cam = CAM(self.config[HOST], self.config[PORT])
+            self.cam = CAM(
+                host, self.config.get(PORT, 8895))
         except socket.error as exc:
             _LOGGER.error(
-                'Connecting to server %s failed: %s', self.config[HOST], exc)
+                'Connecting to server %s failed: %s', host, exc)
             sys.exit(1)
         self.cam.delay = 0.2
         # dicts of lists to store wells with gain values for
@@ -332,19 +334,19 @@ class Control(object):
             if self.config.get(attr):
                 stage1 = settings.get(STAGE1, stage1)
                 stage2 = settings.get(STAGE2, stage2) if not \
-                    self.config[GAIN_ONLY] else flow_map[GAIN_ONLY][STAGE2]
+                    self.config.get(GAIN_ONLY) else flow_map[GAIN_ONLY][STAGE2]
                 if self.config[attr] in settings:
                     job_info = settings[self.config[attr]][JOB_INFO]
-                if INPUT_GAIN in attr:
+                if INPUT_GAIN == attr:
                     gain_dict = read_csv(self.config[INPUT_GAIN], WELL)
 
         self.config[LAST_FIELD] = FIELD_NAME.format(
-            self.config[FIELDS_X] - 1, self.config[FIELDS_Y] - 1)
+            self.config.get(FIELDS_X, 2) - 1, self.config.get(FIELDS_Y, 2) - 1)
 
         # make GainMap object, fix lazy init later
         self.gains = GainMap(self.config, job_info)
 
-        if self.config[INPUT_GAIN]:
+        if self.config.get(INPUT_GAIN):
             self.gains.distribute_gain(gain_dict)
             com_data = self.gains.get_com()
         else:

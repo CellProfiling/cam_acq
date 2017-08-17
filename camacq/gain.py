@@ -9,11 +9,12 @@ from matrixscreener.experiment import attribute
 from pkg_resources import resource_filename
 
 from camacq.command import cam_com, gain_com
-from camacq.const import (BLUE, COORD_FILE, END_10X, END_40X, END_63X,
-                          FIELD_NAME, FIELDS_X, FIELDS_Y, FIRST_JOB, FOV_NAME,
-                          GREEN, IMAGING_DIR, INIT_GAIN, JOB_ID, LAST_WELL,
-                          OBJECTIVE, RED, TEMPLATE_FILE, WELL, WELL_NAME,
-                          YELLOW)
+from camacq.const import (BLUE, COORD_FILE, DEFAULT_FIELDS_X, DEFAULT_FIELDS_Y,
+                          DEFAULT_FIRST_JOB, DEFAULT_LAST_WELL, END_10X,
+                          END_40X, END_63X, FIELD_NAME, FIELDS_X, FIELDS_Y,
+                          FIRST_JOB, FOV_NAME, GREEN, IMAGING_DIR, INIT_GAIN,
+                          JOB_ID, LAST_WELL, OBJECTIVE, RED, TEMPLATE_FILE,
+                          WELL, WELL_NAME, YELLOW)
 from camacq.helper import read_csv
 
 _LOGGER = logging.getLogger(__name__)
@@ -238,11 +239,11 @@ class GainMap(object):
         """Set up instance."""
         self.config = config
         self.job_list, self.pattern_g, self.pattern = job_info
-        if config[TEMPLATE_FILE] is None:
+        if config.get(TEMPLATE_FILE) is None:
             self.template = None
         else:
             self.template = read_csv(config[TEMPLATE_FILE], WELL)
-        if config[COORD_FILE] is None:
+        if config.get(COORD_FILE) is None:
             self.coords = defaultdict(dict)
         else:
             self.coords = read_csv(config[COORD_FILE], FOV)
@@ -260,11 +261,11 @@ class GainMap(object):
         # Get a unique set of names of the experiment wells.
         fin_wells = sorted(set(wells))
         r_script = resource_filename(__name__, 'data/gain.r')
-        if self.config[OBJECTIVE] == END_10X:
+        if self.config.get(OBJECTIVE) == END_10X:
             init_gain = resource_filename(__name__, 'data/10x_gain.csv')
-        elif self.config[OBJECTIVE] == END_40X:
+        elif self.config.get(OBJECTIVE) == END_40X:
             init_gain = resource_filename(__name__, 'data/40x_gain.csv')
-        elif self.config[OBJECTIVE] == END_63X:
+        elif self.config.get(OBJECTIVE) == END_63X:
             init_gain = resource_filename(__name__, 'data/63x_gain.csv')
         if self.config.get(INIT_GAIN):
             init_gain = self.config[INIT_GAIN]
@@ -272,11 +273,9 @@ class GainMap(object):
             _LOGGER.info('WELL: %s', well)
             try:
                 _LOGGER.info('Starting R...')
-                r_output = subprocess.check_output(['Rscript',
-                                                    r_script,
-                                                    self.config[IMAGING_DIR],
-                                                    fbase,
-                                                    init_gain])
+                r_output = subprocess.check_output([
+                    'Rscript', r_script, self.config.get(IMAGING_DIR, '.'),
+                    fbase, init_gain])
                 gain_dict = process_output(well, r_output, gain_dict)
             except OSError as exc:
                 _LOGGER.error('Execution failed: %s', exc)
@@ -290,18 +289,18 @@ class GainMap(object):
 
     def sanitize_gain(self, channel, gain):
         """Make sure all channels have a reasonable gain value."""
-        if self.config[OBJECTIVE] == END_10X:
+        if self.config.get(OBJECTIVE) == END_10X:
             obj = TEN_X
-        elif self.config[OBJECTIVE] == END_40X:
+        elif self.config.get(OBJECTIVE) == END_40X:
             obj = FORTY_X
-        elif self.config[OBJECTIVE] == END_63X:
+        elif self.config.get(OBJECTIVE) == END_63X:
             obj = SIXTYTHREE_X
         if gain == NA:
             gain = GAIN_DEFAULT[obj][channel]
         gain = int(gain)
         if channel == GREEN:
             # Round gain values to multiples of 10 in green channel
-            if self.config[OBJECTIVE] == END_63X:
+            if self.config.get(OBJECTIVE) == END_63X:
                 gain = int(min(
                     round(gain, -1), GAIN_DEFAULT[SIXTYTHREE_X][GREEN]))
             else:
@@ -315,8 +314,8 @@ class GainMap(object):
 
     def set_fields(self, well):
         """Set fields."""
-        for i in range(self.config[FIELDS_Y]):
-            for j in range(self.config[FIELDS_X]):
+        for i in range(self.config.get(FIELDS_Y, DEFAULT_FIELDS_Y)):
+            for j in range(self.config.get(FIELDS_X, DEFAULT_FIELDS_X)):
                 # Only add selected fovs from file (arg) to cam list
                 fov = FOV_NAME.format(well.U, well.V, j, i)
                 if fov in self.coords.keys():
@@ -381,7 +380,8 @@ class GainMap(object):
                     field.dY))
                 end_com = [
                     CAM, WELL_NAME.format(well.U, well.V),
-                    JOB_ID.format(self.config[FIRST_JOB] + 2),
+                    JOB_ID.format(self.config.get(
+                        FIRST_JOB, DEFAULT_FIRST_JOB) + 2),
                     FIELD_NAME.format(field.X, field.Y)]
             # Store the commands in lists.
             com_list.append(com)
@@ -399,10 +399,12 @@ class GainMap(object):
         else:
             # All wells.
             for ucoord in range(
-                    attribute('--{}'.format(
-                        self.config[LAST_WELL]), 'U') + 1):
+                    attribute(
+                        '--{}'.format(self.config.get(
+                            LAST_WELL, DEFAULT_LAST_WELL)), 'U') + 1):
                 for vcoord in range(attribute(
-                        '--{}'.format(self.config[LAST_WELL]), 'V') + 1):
+                        '--{}'.format(self.config.get(
+                            LAST_WELL, DEFAULT_LAST_WELL)), 'V') + 1):
                     wells.append(WELL_NAME.format(ucoord, vcoord))
         # Lists and strings for storing command strings.
         com_list = []
@@ -427,8 +429,8 @@ class GainMap(object):
 
         # Join the list of lists of command lists into a list of a command
         # list if dry a objective is used.
-        if (self.config[OBJECTIVE] == END_10X or
-                self.config[OBJECTIVE] == END_40X):
+        if (self.config.get(OBJECTIVE) == END_10X or
+                self.config.get(OBJECTIVE) == END_40X):
             com_list_bak = list(com_list)
             com_list = []
             for com in com_list_bak:
