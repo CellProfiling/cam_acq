@@ -14,7 +14,6 @@ from camacq.image import make_proj
 
 _LOGGER = logging.getLogger(__name__)
 DEFAULT_JOB_ID_GAIN = 2
-DEFAULT_LAST_FIELD_GAIN = 'X01--Y01'
 DEFAULT_LAST_SEQ_GAIN = 31
 MAX_PROJS = 'maxprojs'
 
@@ -257,8 +256,13 @@ def get_csvs(event):
     _LOGGER.debug('IMAGE PATH: %s', imgp)
     img_attr = experiment.attributes(imgp)
     # This means only ever one well at a time.
+    well_name = WELL_NAME.format(img_attr.u, img_attr.v)
+    well = event.center.gains.wells.get(well_name)
+    last_gain_field = next(
+        (field_name for field_name in reversed(sorted(well.fields.iterkeys()))
+         if well.fields[field_name].gain_field), None)
     if (FIELD_NAME.format(img_attr.x, img_attr.y) ==
-            DEFAULT_LAST_FIELD_GAIN and
+            last_gain_field and
             img_attr.c == DEFAULT_LAST_SEQ_GAIN):
         wellp = get_well(imgp)
         handle_imgs(wellp, wellp, DEFAULT_JOB_ID_GAIN, img_save=False)
