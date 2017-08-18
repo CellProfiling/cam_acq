@@ -1,11 +1,11 @@
 # Change Log
 
 ## [0.3](https://github.com/CellProfiling/cam_acq/tree/0.3) (2017-08-18)
-
 [Full Changelog](https://github.com/CellProfiling/cam_acq/compare/0.2...0.3)
 
 **Merged pull requests:**
 
+- 0.3 [\#34](https://github.com/CellProfiling/cam_acq/pull/34) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Update readme with latest option changes [\#33](https://github.com/CellProfiling/cam_acq/pull/33) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Move version to const.py [\#32](https://github.com/CellProfiling/cam_acq/pull/32) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Make settings configurable from config [\#31](https://github.com/CellProfiling/cam_acq/pull/31) [[breaking change](https://github.com/CellProfiling/cam_acq/labels/breaking%20change)] ([MartinHjelmare](https://github.com/MartinHjelmare))
