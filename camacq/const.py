@@ -1,5 +1,8 @@
 """Store common constants."""
-__version__ = '0.4.0.dev0'
+MAJOR_VERSION = 0
+MINOR_VERSION = 4
+PATCH_VERSION = '0.dev0'
+__version__ = '{}.{}.{}'.format(MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION)
 
 CONFIG_DIR = 'config_dir'
 COORD_FILE = 'coord_file'
