@@ -55,11 +55,10 @@ Run
 
 Configure
 ---------
-All options are configurable from the config file and overridable from the command line. To set the imaging directory from the config file, use the imaging_dir yaml key. See below for example options to set in the configuration file config.yml.
+All options are configurable from the config file and overridable from the command line. See below for example options to set in the configuration file config.yml.
 
 ::
 
-  imaging_dir: '/image_export'
   host: localhost
   port: 8895
   last_well: 'U11--V07'
