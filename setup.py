@@ -3,7 +3,9 @@ import io
 
 from setuptools import find_packages, setup
 
-import camacq
+from camacq.const import __version__
+
+GITHUB_URL = 'https://github.com/CellProfiling/cam_acq'
 
 
 def read(*filenames, **kwargs):
@@ -19,7 +21,7 @@ def read(*filenames, **kwargs):
         Encoding to use to open filename. See
         https://docs.python.org/2/library/codecs.html#standard-encodings
         for supported encodings.
-    sep : string, optional
+    sep : str, optional
         Separator to use between joined content of filenames.
 
     Returns
@@ -35,8 +37,9 @@ def read(*filenames, **kwargs):
             buf.append(file_open.read())
     return sep.join(buf)
 
-LONG_DESCR = read('README.md')
-DOWNLOAD_URL = 'https://github.com/CellProfiling/cam_acq/archive/master.zip'
+
+LONG_DESCR = read('README.rst')
+DOWNLOAD_URL = '{}/archive/master.zip'.format(GITHUB_URL)
 CLASSIFIERS = [
     # How mature is this project? Common values are
     #   3 - Alpha
@@ -60,22 +63,26 @@ CONFIG = {
     'description': 'Control microscope through client server program.',
     'long_description': LONG_DESCR,
     'author': 'Martin Hjelmare',
-    'url': 'https://github.com/CellProfiling/cam_acq',
+    'url': GITHUB_URL,
     'download_url': DOWNLOAD_URL,
     'license': 'GPLv3',
     'author_email': 'marhje52@kth.se',
-    'version': camacq.__version__,
+    'version': __version__,
     'install_requires': [
-        'nose',
+        'colorlog',
+        'jinja2',
+        'matrixscreener',
         'numpy',
-        'tifffile',
         'Pillow',
         'PyYAML',
-        'matrixscreener',
+        'ruamel.yaml',
+        'tifffile',
+        'zope.event',
     ],
     'packages': find_packages(exclude=['contrib', 'docs', 'tests*']),
     'include_package_data': True,
-    'scripts': ['scripts/camacq'],
+    'entry_points': {
+        'console_scripts': ['camacq = camacq.__main__:main']},
     'name': 'camacq',
     'zip_safe': False,
     'classifiers': CLASSIFIERS,

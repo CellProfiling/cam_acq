@@ -1,5 +1,5 @@
 well,gain_from_well,gain_scan,template
-U00--V00,U00--V00,true,
+U00--V00,U00--V00,true,{{gain * 2}}
 U01--V00,U01--V00,true,
 U02--V00,U02--V00,true,
 U03--V00,U03--V00,true,

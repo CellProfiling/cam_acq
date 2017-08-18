@@ -1,7 +1,10 @@
 --index-url https://pypi.python.org/simple/
--e .
+colorlog >= 2.10.0
+jinja2 >= 2.8
+matrixscreener >= 0.6.1
 numpy >= 1.6
-tifffile >= 0.7.0
 Pillow >= 2.9.0
 PyYAML >= 3.11
-matrixscreener >= 0.6.1
+ruamel.yaml == 0.13.14
+tifffile >= 0.7.0
+zope.event >= 4.2.0

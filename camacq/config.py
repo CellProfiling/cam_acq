@@ -1,14 +1,18 @@
 """Handle the config file."""
+from __future__ import print_function
+
 import logging
 import os
 
 import yaml
+import ruamel.yaml as ruyml
 from pkg_resources import resource_filename
 
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_DIR_NAME = '.camacq'
 YAML_CONFIG_FILE = 'config.yml'
+DEFAULT_CONFIG_TEMPLATE = 'data/config.yml'
 
 
 def get_default_config_dir():
@@ -29,7 +33,7 @@ def load_config_file(path):
     """Parse a YAML configuration file."""
     try:
         with open(path, 'r') as yml_file:
-            cfg = yaml.safe_load(yml_file)
+            cfg = ruyml.safe_load(yml_file, ruyml.RoundTripLoader)
         if not isinstance(cfg, dict):
             _LOGGER.error(
                 'The configuration file %s does not contain a dictionary',
@@ -48,17 +52,20 @@ def create_default_config(config_dir):
     Return path to new config file if success, None if failed.
     """
     config_path = os.path.join(config_dir, YAML_CONFIG_FILE)
-    default_config_template = resource_filename(__name__, 'data/config.yml')
+    default_config_template = resource_filename(
+        __name__, DEFAULT_CONFIG_TEMPLATE)
     data = load_config_file(default_config_template)
 
     try:
         with open(config_path, 'w') as config_file:
-            config_file.write(yaml.dump(data, default_flow_style=True))
+            config_file.write(ruyml.dump(
+                data, Dumper=ruyml.RoundTripDumper))
 
         return config_path
 
     except IOError:
-        print('Unable to create default configuration file', config_path)
+        _LOGGER.error(
+            'Unable to create default configuration file %s', config_path)
         return None
 
 
