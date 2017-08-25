@@ -10,10 +10,8 @@ import sys
 
 import camacq.bootstrap as bootstrap
 import camacq.config as config_util
-from camacq.const import (CONFIG_DIR, COORD_FILE, END_10X, END_40X, END_63X,
-                          FIELDS_X, FIELDS_Y, FIRST_JOB, GAIN_ONLY, HOST,
-                          IMAGING_DIR, INIT_GAIN, INPUT_GAIN, LOG_LEVEL,
-                          OBJECTIVE, PORT, TEMPLATE_FILE)
+from camacq.const import (CONFIG_DIR, FIELDS_X, FIELDS_Y, HOST,
+                          IMAGING_DIR, LOG_LEVEL, PORT)
 
 
 def check_dir_arg(path):
@@ -26,29 +24,10 @@ def check_dir_arg(path):
             'String {} is not a path to a directory'.format(path))
 
 
-def check_file_arg(path):
-    """Check that argument is a file."""
-    # remove if not needed
-    if os.path.isfile(path):
-        return path
-    else:
-        raise argparse.ArgumentTypeError(
-            'String {} is not a path to a file'.format(path))
-
-
 def check_well_arg(arg):
     """Check that argument is valid well."""
     try:
         return re.match(r'^U\d\d--V\d\d$', arg).group(0)
-    except AttributeError:
-        raise argparse.ArgumentTypeError(
-            'String {} does not match required format'.format(arg))
-
-
-def check_field_arg(arg):
-    """Check that argument is valid field."""
-    try:
-        return re.match(r'^X\d\d--Y\d\d$', arg).group(0)
     except AttributeError:
         raise argparse.ArgumentTypeError(
             'String {} does not match required format'.format(arg))
@@ -77,16 +56,6 @@ def check_log_level(loglevel):
         return numeric_level
 
 
-def check_obj(value):
-    """Check that value is a objective lens."""
-    if value in [END_10X, END_40X, END_63X]:
-        return value
-    else:
-        raise argparse.ArgumentTypeError(
-            'String {} is not one of: {}, {}, {}'.format(
-                value, *[END_10X, END_40X, END_63X]))
-
-
 def parse_command_line():
     """Parse the provided command line."""
     parser = argparse.ArgumentParser(
@@ -95,12 +64,6 @@ def parse_command_line():
         IMAGING_DIR,
         type=check_dir_arg,
         help='the path to the directory where images are exported')
-    parser.add_argument(
-        '-g',
-        '--init-gain',
-        dest=INIT_GAIN,
-        type=check_file_arg,
-        help='the path to the csv file with start gain values')
     parser.add_argument(
         '-W',
         '--last-well',
@@ -117,31 +80,6 @@ def parse_command_line():
         type=int,
         help='the number (int) of fields on y axis in each well, e.g. 2')
     parser.add_argument(
-        '-j',
-        '--first-job',
-        dest=FIRST_JOB,
-        type=int,
-        help=('the integer marking the order of the first experiment job in\
-              the patterns'))
-    parser.add_argument(
-        '-c',
-        '--coord-file',
-        dest=COORD_FILE,
-        type=check_file_arg,
-        help='the path to the csv file with selected coordinates')
-    parser.add_argument(
-        '-t',
-        '--template-file',
-        dest=TEMPLATE_FILE,
-        type=check_file_arg,
-        help='the path to the csv file with template layout')
-    parser.add_argument(
-        '-G',
-        '--input-gain',
-        dest=INPUT_GAIN,
-        type=check_file_arg,
-        help='the path to the csv file with calculated gain values')
-    parser.add_argument(
         '-H',
         '--host',
         dest=HOST,
@@ -153,17 +91,6 @@ def parse_command_line():
         dest=PORT,
         type=int,
         help='the tcp port of the host server, i.e. the microscope')
-    parser.add_argument(
-        '-O',
-        '--objective',
-        dest=OBJECTIVE,
-        type=check_obj,
-        help='select what objective to use as last objective in experiment')
-    parser.add_argument(
-        '--gain-only',
-        dest=GAIN_ONLY,
-        action='store_true',
-        help='an option to activate only running the gain job')
     parser.add_argument(
         '--log-level',
         dest=LOG_LEVEL,
@@ -178,14 +105,6 @@ def parse_command_line():
     args = parser.parse_args()
     if args.imaging_dir:
         args.imaging_dir = os.path.normpath(args.imaging_dir)
-    if args.init_gain:
-        args.init_gain = os.path.normpath(args.init_gain)
-    if args.coord_file:
-        args.coord_file = os.path.normpath(args.coord_file)
-    if args.template_file:
-        args.template_file = os.path.normpath(args.template_file)
-    if args.input_gain:
-        args.input_gain = os.path.normpath(args.input_gain)
     if args.config_dir:
         args.config_dir = os.path.normpath(args.config_dir)
     cmd_args_dict = vars(args)

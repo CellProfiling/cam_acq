@@ -4,18 +4,15 @@ import logging
 import ntpath
 import os
 import re
+import time
 from collections import defaultdict
 
 from matrixscreener import experiment
 
-from camacq.const import (BLUE, FIELD_NAME, GREEN, IMAGING_DIR, JOB_ID, RED,
-                          WELL, WELL_NAME, WELL_NAME_CHANNEL, YELLOW)
-from camacq.image import make_proj
+from camacq.command import camstart_com, del_com
+from camacq.control import ImageEvent
 
 _LOGGER = logging.getLogger(__name__)
-DEFAULT_JOB_ID_GAIN = 2
-DEFAULT_LAST_SEQ_GAIN = 31
-MAX_PROJS = 'maxprojs'
 
 
 def send(cam, commands):
@@ -69,6 +66,7 @@ def read_csv(path, index):
         dict will represent a row, with index as key, of the csv file.
     """
     csv_map = defaultdict(dict)
+    path = os.path.normpath(path)
     with open(path) as file_handle:
         reader = csv.DictReader(file_handle)
         for row in reader:
@@ -146,24 +144,6 @@ def format_new_name(imgp, root=None, new_attr=None):
     return os.path.normpath(os.path.join(root, path))
 
 
-def rename_imgs(imgp, f_job):
-    """Rename image and return new name."""
-    if experiment.attribute(imgp, 'E') == f_job:
-        new_name = format_new_name(imgp)
-    elif (experiment.attribute(imgp, 'E') == f_job + 1 and
-          experiment.attribute(imgp, 'C') == 0):
-        new_name = format_new_name(imgp, new_attr={'C': '01'})
-    elif (experiment.attribute(imgp, 'E') == f_job + 1 and
-          experiment.attribute(imgp, 'C') == 1):
-        new_name = format_new_name(imgp, new_attr={'C': '02'})
-    elif experiment.attribute(imgp, 'E') == f_job + 2:
-        new_name = format_new_name(imgp, new_attr={'C': '03'})
-    else:
-        return None
-    os.rename(imgp, new_name)
-    return new_name
-
-
 def get_field(path):
     """Get path to well from image path."""
     return experiment.Experiment(path).dirname  # pylint: disable=no-member
@@ -191,14 +171,6 @@ def get_imgs(path, img_type='tif', search=''):
     return experiment.glob('{}{}.{}'.format(path, search, img_type))
 
 
-def save_gain(save_dir, saved_gains):
-    """Save a csv file with gain values per image channel."""
-    header = [WELL, GREEN, BLUE, YELLOW, RED]
-    path = os.path.normpath(
-        os.path.join(save_dir, 'output_gains.csv'))
-    write_csv(path, saved_gains, header)
-
-
 def save_histogram(path, image):
     """Save the histogram of an image to path."""
     rows = {box: {'count': count}
@@ -206,74 +178,36 @@ def save_histogram(path, image):
     write_csv(path, rows, ['bin', 'count'])
 
 
-def handle_imgs(path, imdir, job_id, f_job=2, img_save=True, histo_save=True):
-    """Handle acquired images, do renaming, make max projections."""
-    # pylint: disable=too-many-arguments
-    # Get all image paths in well or field, depending on path and
-    # job_id variable.
-    imgs = get_imgs(path, search=JOB_ID.format(job_id))
-    new_paths = []
-    _LOGGER.info('Handling images...')
-    for imgp in imgs:
-        _LOGGER.debug('IMAGE PATH: %s', imgp)
-        new_name = rename_imgs(imgp, f_job)
-        _LOGGER.debug('NEW NAME: %s', new_name)
-        if new_name:
-            new_paths.append(new_name)
-    if not new_paths or not img_save and not histo_save:
-        return
-    new_dir = os.path.normpath(os.path.join(imdir, MAX_PROJS))
-    if img_save and not os.path.exists(new_dir):
-        os.makedirs(new_dir)
-    if img_save:
-        _LOGGER.info('Saving images...')
-    if histo_save:
-        _LOGGER.info('Calculating histograms...')
-    # Make a max proj per channel.
-    for c_id, proj in make_proj(new_paths).iteritems():
-        if img_save:
-            save_path = format_new_name(proj.path, root=new_dir,
-                                        new_attr={'C': c_id})
-            # Save meta data and image max proj.
-            proj.save(save_path)
-        if histo_save:
-            img_attr = experiment.attributes(proj.path)
-            save_path = os.path.normpath(os.path.join(
-                imdir, (WELL_NAME_CHANNEL + '.ome.csv').format(
-                    img_attr.u, img_attr.v, int(c_id))))
-            save_histogram(save_path, proj)
+def handler_factory(handler, test):
+    """Create new handler that should call another handler if test is True."""
+    def handle_test(event):
+        """Forward event to handler if test is True."""
+        if test(event):
+            handler(event)
+    return handle_test
 
 
-def get_csvs(event):
-    """Find correct csv files and get their base names."""
-    # empty lists for keeping csv file base path names
-    # and corresponding well names
-    fbs = []
-    wells = []
-    imgp = find_image_path(event.rel_path, event.center.config[IMAGING_DIR])
-    if not imgp:
-        return fbs, wells
-    _LOGGER.debug('IMAGE PATH: %s', imgp)
-    img_attr = experiment.attributes(imgp)
-    # This means only ever one well at a time.
-    well_name = WELL_NAME.format(img_attr.u, img_attr.v)
-    well = event.center.gains.wells.get(well_name)
-    last_gain_field = next(
-        (field_name for field_name in reversed(sorted(well.fields.iterkeys()))
-         if well.fields[field_name].gain_field), None)
-    if (FIELD_NAME.format(img_attr.x, img_attr.y) ==
-            last_gain_field and
-            img_attr.c == DEFAULT_LAST_SEQ_GAIN):
-        wellp = get_well(imgp)
-        handle_imgs(wellp, wellp, DEFAULT_JOB_ID_GAIN, img_save=False)
-        # get all CSVs in well at wellp
-        csvs = experiment.glob(
-            os.path.join(os.path.normpath(wellp), '*.ome.csv'))
-        for csvp in csvs:
-            csv_attr = experiment.attributes(csvp)
-            # Get the filebase from the csv path.
-            fbs.append(re.sub(r'C\d\d.+$', '', csvp))
-            #  Get the well from the csv path.
-            well_name = WELL_NAME.format(csv_attr.u, csv_attr.v)
-            wells.append(well_name)
-    return fbs, wells
+def send_com_and_start(center, commands, stop_data, handler):
+    """Add commands to outgoing queue for the CAM server."""
+    def stop_test(event):
+        """Test if stop should be done."""
+        if all(test in event.rel_path for test in stop_data):
+            return True
+
+    remove_listener = center.bus.register(
+        ImageEvent, handler_factory(handler, stop_test))
+
+    def send_commands(coms):
+        """Send all commands needed to start microscope and run com."""
+        center.do_now.append((center.cam.send, del_com()))
+        center.do_now.append((time.sleep, 2))
+        center.do_now.append((send, center.cam, coms))
+        center.do_now.append((time.sleep, 2))
+        center.do_now.append((center.cam.start_scan, ))
+        # Wait for it to change objective and start.
+        center.do_now.append((time.sleep, 7))
+        center.do_now.append((center.cam.send, camstart_com()))
+
+    # Append a tuple with function, args (tuple) and kwargs (dict).
+    center.do_now.append((send_commands, commands))
+    return remove_listener
