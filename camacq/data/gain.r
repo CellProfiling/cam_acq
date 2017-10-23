@@ -62,7 +62,11 @@ for (i in 1:32) {
     plot(count1, bin1, log="xy")
   }
   # Fit curve
-  sink("/dev/null")	# Suppress output
+  if(.Platform$OS.type == "unix") {
+    sink("/dev/null")	# Suppress output
+  } else {
+    sink("NUL")	# Suppress output
+  }
   curv <- tryCatch(nls(bin2 ~ A*count2^B, start=list(A = 1000, B=-1), trace=T),
                    warning=function(e) NULL,
                    error=function(e) NULL)
@@ -120,7 +124,11 @@ for (i in 1:(length(channels))) {
   gain[[i]] <- round(initialgains[channels[i]])
   if (length(bins_c) >= 3) {
     # Fit curve
-    sink("/dev/null")	# Suppress output
+    if(.Platform$OS.type == "unix") {
+      sink("/dev/null")	# Suppress output
+    } else {
+      sink("NUL")	# Suppress output
+    }
     curv2 <- tryCatch(nls(gains_c ~ C*bins_c^D,
                           start=list(C = 1, D=1),
                           trace=T),
