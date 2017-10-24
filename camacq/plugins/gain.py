@@ -349,6 +349,8 @@ def rename_imgs(imgp, f_job):
         new_name = format_new_name(imgp, new_attr={'C': '03'})
     else:
         return None
+    if os.path.exists(new_name):
+        os.remove(new_name)
     os.rename(imgp, new_name)
     return new_name
 
