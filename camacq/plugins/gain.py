@@ -270,7 +270,7 @@ def _calc_gain(imgp, init_gain, projs):
 
     gains = {}
     for channel, points in box_vs_gain.iteritems():
-        # Sort points with ascendning gain, to allow grouping.
+        # Sort points with ascending gain, to allow grouping.
         points = sorted(points, key=lambda item: item.gain)
         long_group = []
         for key, group in groupby(enumerate(points), _check_upward(points)):
@@ -521,7 +521,7 @@ def handle_stage2(center, event):
     handle_imgs(fieldp, attribute(imgp, 'E'), f_job=center.config[FIRST_JOB])
 
 
-def stop(center, event):  # pylint: disable=unused-argument
+def stop(center):
     """Handle event that should stop the microscope."""
     for remove_listener in center.data[GAIN][LISTENERS]:
         remove_listener()
@@ -540,7 +540,7 @@ def stop_end_stage1(center, event):
     """Handle event that should end stage1 after stop."""
     # pylint:disable=unused-argument
     _LOGGER.info('Handling stop event at end stage 1...')
-    stop(center, event)
+    stop(center)
     center.data[GAIN][LISTENERS].append(center.bus.register(
         ImageEvent, handle_stage2))
     job_list, _, pattern = center.data[GAIN][JOB_INFO]
@@ -561,7 +561,7 @@ def stop_mid_stage2(center, event):
     """Handle event that should continue with stage2 after stop."""
     # pylint:disable=unused-argument
     _LOGGER.info('Handling stop event during stage 2...')
-    stop(center, event)
+    stop(center)
     center.data[GAIN][LISTENERS].append(center.bus.register(
         ImageEvent, handle_stage2))
     if center.data[GAIN][COMMANDS]:
@@ -573,7 +573,7 @@ def stop_end_stage2(center, event):
     """Handle event that should end stage2 after stop."""
     # pylint:disable=unused-argument
     _LOGGER.info('Handling stop event at end stage 2...')
-    stop(center, event)
+    stop(center)
     center.data[GAIN][LISTENERS].append(center.bus.register(
         ImageEvent, handle_stage1))
     if center.data[GAIN][COMMANDS]:
