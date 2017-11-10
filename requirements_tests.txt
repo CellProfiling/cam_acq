@@ -1,3 +1,4 @@
+click>=6.7
 flake8==3.2.1
 mock>=2.0.0
 pydocstyle==1.1.1
