@@ -42,7 +42,6 @@ fields_x: 2
 fields_y: 2
 
 gain:
-  init_gain: 'path/to/init_gain_file.csv'
   first_job: 2
   template_file: 'path/to/template_file.csv'
   input_gain: 'path/to/input_gain.csv'

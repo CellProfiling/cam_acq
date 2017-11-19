@@ -140,7 +140,7 @@ for (i in 1:(length(channels))) {
       func2 <- function(val, A=coef(curv2)[1], B=coef(curv2)[2]) {A*val^B}
       lines(bins_c, fitted.values(curv2), lwd=2, col="green")
       abline(v=binmax)
-      gain[[i]] <- round(min(func2(binmax), gain[[i]]))
+      gain[[i]] <- round(func2(binmax))
     }
   } else {
     gain[[i]] <- NA

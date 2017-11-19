@@ -11,6 +11,7 @@ from jinja2 import Template
 from matrixscreener.experiment import attribute, attributes, glob
 from pkg_resources import resource_filename
 
+from camacq.bootstrap import PACKAGE
 from camacq.command import cam_com, gain_com
 from camacq.const import (BLUE, DEFAULT_FIELDS_X, DEFAULT_FIELDS_Y, END_10X,
                           END_40X, END_63X, FIELD_NAME, FIELDS_X, FIELDS_Y,
@@ -34,16 +35,18 @@ SAVED_GAINS = 'saved_gains'
 SCAN_FINISHED = 'scanfinished'
 
 NA = 'NA'
-TEN_X = '10x'
-FORTY_X = '40x'
-SIXTYTHREE_X = '63x'
 CAM = 'CAM'
 CHANNELS = [GREEN, BLUE, YELLOW, RED, ]
 DETECTOR_MAP = {GREEN: '1', BLUE: '1', YELLOW: '2', RED: '2', }
 GAIN_DEFAULT = {
-    TEN_X: {GREEN: 1000, BLUE: 985, YELLOW: 805, RED: 705},
-    FORTY_X: {GREEN: 800, BLUE: 585, YELLOW: 655, RED: 630},
-    SIXTYTHREE_X: {GREEN: 800, BLUE: 505, YELLOW: 655, RED: 630},
+    END_10X: {GREEN: 1000, BLUE: 985, YELLOW: 805, RED: 705},
+    END_40X: {GREEN: 800, BLUE: 585, YELLOW: 655, RED: 630},
+    END_63X: {GREEN: 800, BLUE: 505, YELLOW: 655, RED: 630},
+}
+GAIN_MAX = {
+    END_10X: {GREEN: 1000, BLUE: 1120, YELLOW: 910, RED: 810},
+    END_40X: {GREEN: 900, BLUE: 720, YELLOW: 760, RED: 735},
+    END_63X: {GREEN: 800, BLUE: 610, YELLOW: 760, RED: 735},
 }
 GAIN_OFFSET_BLUE = 0
 GAIN_OFFSET_RED = 25
@@ -154,22 +157,21 @@ def get_gain_com(commands, channels, job_list):
     return commands
 
 
-def calc_gain(center, bases, wells):
+def calc_gain(config, bases, wells):
     """Run R scripts and calculate gain values for the wells."""
     # Get a unique set of filebases from the csv paths.
-    config = center.config
     objective = config[GAIN].get(OBJECTIVE)
     gain_dict = defaultdict(dict)
     filebases = sorted(set(bases))
     # Get a unique set of names of the experiment wells.
     fin_wells = sorted(set(wells))
-    r_script = resource_filename(__name__, 'data/gain.r')
+    r_script = resource_filename(PACKAGE, 'data/gain.r')
     if objective == END_10X:
-        init_gain = resource_filename(__name__, 'data/10x_gain.csv')
+        init_gain = resource_filename(PACKAGE, 'data/10x_gain.csv')
     elif objective == END_40X:
-        init_gain = resource_filename(__name__, 'data/40x_gain.csv')
+        init_gain = resource_filename(PACKAGE, 'data/40x_gain.csv')
     elif objective == END_63X:
-        init_gain = resource_filename(__name__, 'data/63x_gain.csv')
+        init_gain = resource_filename(PACKAGE, 'data/63x_gain.csv')
     if config[GAIN].get(INIT_GAIN):
         init_gain = config[GAIN][INIT_GAIN]
     for fbase, well in zip(filebases, fin_wells):
@@ -194,22 +196,11 @@ def calc_gain(center, bases, wells):
 def sanitize_gain(config, channel, gain):
     """Make sure all channels have a reasonable gain value."""
     objective = config[GAIN].get(OBJECTIVE)
-    if objective == END_10X:
-        obj = TEN_X
-    elif objective == END_40X:
-        obj = FORTY_X
-    elif objective == END_63X:
-        obj = SIXTYTHREE_X
     if gain == NA:
-        gain = GAIN_DEFAULT[obj][channel]
+        gain = GAIN_DEFAULT[objective][channel]
     gain = int(gain)
-    if channel == GREEN:
-        # Round gain values to multiples of 10 in green channel
-        if objective == END_63X:
-            gain = int(min(
-                round(int(gain), -1), GAIN_DEFAULT[SIXTYTHREE_X][GREEN]))
-        else:
-            gain = int(round(gain, -1))
+    # Round gain values to multiples of 10 and maxout at limits.
+    gain = int(min(round(gain, -1), GAIN_MAX[objective][channel]))
     # Add gain offset to blue and red channel.
     if channel == BLUE:
         gain += GAIN_OFFSET_BLUE
@@ -429,7 +420,7 @@ def handle_stage1(center, event):
     bases, wells = get_csvs(event)
     if not bases:
         return
-    gain_dict = calc_gain(center, bases, wells)
+    gain_dict = calc_gain(center.config, bases, wells)
     if not gain_dict:
         return
     _LOGGER.debug('Gain dict: %s', gain_dict)
