@@ -384,40 +384,48 @@ def handle_imgs(path, imdir, job_id, f_job=2, img_save=True, histo_save=True):
             save_histogram(save_path, proj)
 
 
-def get_csvs(event):
+def get_csvs(well_path):
     """Find correct csv files and get their base names."""
     # empty lists for keeping csv file base path names
     # and corresponding well names
     fbs = []
     wells = []
-    imgp = find_image_path(event.rel_path, event.center.config[IMAGING_DIR])
-    if not imgp:
-        return fbs, wells
-    _LOGGER.debug('IMAGE PATH: %s', imgp)
-    img_attr = attributes(imgp)
+    # get all CSVs in well at wellp
+    csvs = glob(
+        os.path.join(os.path.normpath(well_path), '*.ome.csv'))
+    for csvp in csvs:
+        csv_attr = attributes(csvp)
+        # Get the filebase from the csv path.
+        fbs.append(re.sub(r'C\d\d.+$', '', csvp))
+        #  Get the well from the csv path.
+        well_name = WELL_NAME.format(csv_attr.u, csv_attr.v)
+        wells.append(well_name)
+    return fbs, wells
+
+
+def stage1_ready(image_path):
+    """Check if stage 1 is finished."""
+    if not image_path:
+        return False
+    img_attr = attributes(image_path)
     # This means only ever one well at a time.
     if (FIELD_NAME.format(img_attr.x, img_attr.y) ==
             DEFAULT_LAST_FIELD_GAIN and
             img_attr.c == DEFAULT_LAST_SEQ_GAIN):
-        wellp = get_well(imgp)
-        handle_imgs(wellp, wellp, DEFAULT_JOB_ID_GAIN, img_save=False)
-        # get all CSVs in well at wellp
-        csvs = glob(
-            os.path.join(os.path.normpath(wellp), '*.ome.csv'))
-        for csvp in csvs:
-            csv_attr = attributes(csvp)
-            # Get the filebase from the csv path.
-            fbs.append(re.sub(r'C\d\d.+$', '', csvp))
-            #  Get the well from the csv path.
-            well_name = WELL_NAME.format(csv_attr.u, csv_attr.v)
-            wells.append(well_name)
-    return fbs, wells
+        return True
+    return False
 
 
 def handle_stage1(center, event):
     """Handle saved image during stage 1."""
     _LOGGER.info('Handling image during stage 1...')
-    bases, wells = get_csvs(event)
+    imgp = find_image_path(event.rel_path, event.center.config[IMAGING_DIR])
+    _LOGGER.debug('IMAGE PATH: %s', imgp)
+    if not stage1_ready(imgp):
+        return
+    wellp = get_well(imgp)
+    handle_imgs(wellp, wellp, DEFAULT_JOB_ID_GAIN, img_save=False)
+    bases, wells = get_csvs(wellp)
     if not bases:
         return
     gain_dict = calc_gain(center.config, bases, wells)

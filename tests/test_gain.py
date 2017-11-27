@@ -1,17 +1,16 @@
 """Test gain calculation."""
 import os
 import pprint
-import re
 
-from matrixscreener.experiment import attributes, glob
+from matrixscreener.experiment import attributes
 from pkg_resources import resource_filename
 from pytest import approx
 
 from camacq.config import DEFAULT_CONFIG_TEMPLATE, load_config_file
-from camacq.const import IMAGING_DIR, JOB_ID, WELL_NAME, WELL_NAME_CHANNEL
+from camacq.const import IMAGING_DIR, JOB_ID, WELL_NAME_CHANNEL
 from camacq.helper import get_imgs, save_histogram
 from camacq.image import make_proj
-from camacq.plugins.gain import calc_gain
+from camacq.plugins.gain import calc_gain, get_csvs
 
 GAIN_DATA_DIR = os.path.join(
     os.path.dirname(__file__), '../tests/fixtures/gain_data')
@@ -36,16 +35,7 @@ def test_gain():
                 img_attr.u, img_attr.v, int(c_id))))
         save_histogram(save_path, proj)
     # get all CSVs in well at wellp
-    csvs = glob(os.path.join(os.path.normpath(WELL_PATH), '*.ome.csv'))
-    fbs = []
-    wells = []
-    for csvp in csvs:
-        csv_attr = attributes(csvp)
-        # Get the filebase from the csv path.
-        fbs.append(re.sub(r'C\d\d.+$', '', csvp))
-        #  Get the well from the csv path.
-        well_name = WELL_NAME.format(csv_attr.u, csv_attr.v)
-        wells.append(well_name)
+    fbs, wells = get_csvs(WELL_PATH)
     gain_dict = calc_gain(config, fbs, wells)
     pprint.pprint(gain_dict)
     gain_dict['U01--V00'] = {
