@@ -13,7 +13,8 @@ from camacq.helper import get_imgs, save_histogram
 from camacq.image import make_proj
 from camacq.plugins.gain import calc_gain
 
-GAIN_DATA_DIR = '/home/martin/Skrivbord/camacq_testing/test_gain_data'
+GAIN_DATA_DIR = os.path.join(
+    os.path.dirname(__file__), '../tests/fixtures/gain_data')
 WELL_PATH = os.path.join(GAIN_DATA_DIR, 'slide/chamber--U01--V00')
 IMAGE_PATH = os.path.join(
     WELL_PATH,
@@ -51,5 +52,5 @@ def test_gain():
         k:int(v) for k, v in gain_dict['U01--V00'].iteritems()}
     solution = {
         'U01--V00': {
-            'blue': 507, 'green': 786, 'red': 746, 'yellow': 877}}
+            'blue': 480, 'green': 740, 'red': 819, 'yellow': 805}}
     assert gain_dict['U01--V00'] == approx(solution['U01--V00'], abs=10)
