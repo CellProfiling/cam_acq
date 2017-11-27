@@ -2,10 +2,10 @@
 import os
 import pprint
 import re
-from pytest import approx
 
 from matrixscreener.experiment import attributes, glob
 from pkg_resources import resource_filename
+from pytest import approx
 
 from camacq.config import DEFAULT_CONFIG_TEMPLATE, load_config_file
 from camacq.const import IMAGING_DIR, JOB_ID, WELL_NAME, WELL_NAME_CHANNEL
@@ -49,7 +49,7 @@ def test_gain():
     gain_dict = calc_gain(config, fbs, wells)
     pprint.pprint(gain_dict)
     gain_dict['U01--V00'] = {
-        k:int(v) for k, v in gain_dict['U01--V00'].iteritems()}
+        k: int(v) for k, v in gain_dict['U01--V00'].iteritems()}
     solution = {
         'U01--V00': {
             'blue': 480, 'green': 740, 'red': 819, 'yellow': 805}}
