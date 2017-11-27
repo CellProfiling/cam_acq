@@ -10,5 +10,6 @@ addons:
     - python-numpy
 # command to install dependencies
 install: pip install tox-travis
+before_script: ./scripts/setup_tests.py
 # command to run tests
 script: tox
