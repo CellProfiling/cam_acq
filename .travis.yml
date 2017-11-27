@@ -8,7 +8,11 @@ addons:
   apt:
     packages:
     - python-numpy
+    - r-base
 # command to install dependencies
-install: pip install tox-travis
+install:
+  - pip install tox-travis
+  - pip install -r requirements_tests.txt
+before_script: ./scripts/setup_tests.py
 # command to run tests
 script: tox
