@@ -34,4 +34,4 @@ def test_gain():
     solution = {
         'U01--V00': {
             'blue': 480, 'green': 740, 'red': 819, 'yellow': 805}}
-    assert gain_dict['U01--V00'] == approx(solution['U01--V00'], abs=10)
+    assert gain_dict['U01--V00'] == approx(solution['U01--V00'], abs=20)
