@@ -35,15 +35,23 @@ logging:
       handlers:
         - console
         - filelog
-port: 8895
-host: localhost
-last_well: 'U11--V07'
-fields_x: 2
-fields_y: 2
-
 gain:
+  channels:
+    - channel: green
+      init_gain: [450, 495, 540, 585, 630, 675, 720, 765, 810, 855, 900]
+    - channel: blue
+      init_gain: [400, 435, 470, 505, 540, 575, 610]
+    - channel: yellow
+      init_gain: [550, 585, 620, 655, 690, 725, 760]
+    - channel: red
+      init_gain: [525, 560, 595, 630, 665, 700, 735]
   first_job: 2
   template_file: 'path/to/template_file.csv'
   input_gain: 'path/to/input_gain.csv'
   gain_only: false
   objective: end_63x  # objective to use for the experiment
+port: 8895
+host: localhost
+last_well: 'U11--V07'
+fields_x: 2
+fields_y: 2

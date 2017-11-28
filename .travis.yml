@@ -7,7 +7,7 @@ sudo: false
 addons:
   apt:
     packages:
-    - python-numpy
+    - python-tk
     - r-base
 # command to install dependencies
 install:

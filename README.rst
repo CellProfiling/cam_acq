@@ -3,16 +3,6 @@ cam-acq |Build Status| |license-badge|
 
 Python project to control microscope through client-server program.
 
-Install prerequisites
----------------------
-- Make sure R is available on system and specifically `Rscript` command.
-- On a debian system you can run:
-
-::
-
-  apt-get install r-base
-  Rscript --version
-
 Install
 -------
 - Install the camacq package. It requires python2.7.
@@ -68,8 +58,6 @@ All options are configurable from the config file and overridable from the comma
   objective: end_63x
   gain_only: false
   config_dir: '/path/to/config/directory/'
-  coord_file: '/path/to/coordinate/file.csv'
-  init_gain: '/path/to/inital/gain/file.csv'
   input_gain: '/path/to/input/gain/file.csv'
   template_file: '/path/to/template/file.csv'
 

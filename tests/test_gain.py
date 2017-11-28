@@ -2,15 +2,14 @@
 import os
 import pprint
 
-from matrixscreener.experiment import attributes
 from pkg_resources import resource_filename
 from pytest import approx
 
 from camacq.config import DEFAULT_CONFIG_TEMPLATE, load_config_file
-from camacq.const import IMAGING_DIR, JOB_ID, WELL_NAME_CHANNEL
-from camacq.helper import get_imgs, save_histogram
+from camacq.const import JOB_ID
+from camacq.helper import get_imgs
 from camacq.image import make_proj
-from camacq.plugins.gain import calc_gain, get_csvs
+from camacq.plugins.gain import calc_gain
 
 GAIN_DATA_DIR = os.path.join(
     os.path.dirname(__file__), '../tests/fixtures/gain_data')
@@ -22,25 +21,17 @@ IMAGE_PATH = os.path.join(
 
 def test_gain():
     """Run gain calculation test."""
+    images = get_imgs(WELL_PATH, search=JOB_ID.format(2))
+    projs = make_proj(images)
     default_config_template = resource_filename(
         'camacq', DEFAULT_CONFIG_TEMPLATE)
     config = load_config_file(default_config_template)
-    config[IMAGING_DIR] = GAIN_DATA_DIR
     pprint.pprint(config)
-    images = get_imgs(WELL_PATH, search=JOB_ID.format(2))
-    for c_id, proj in make_proj(images).iteritems():
-        img_attr = attributes(proj.path)
-        save_path = os.path.normpath(os.path.join(
-            WELL_PATH, (WELL_NAME_CHANNEL + '.ome.csv').format(
-                img_attr.u, img_attr.v, int(c_id))))
-        save_histogram(save_path, proj)
-    # get all CSVs in well at wellp
-    fbs, wells = get_csvs(WELL_PATH)
-    gain_dict = calc_gain(config, fbs, wells)
+    gain_dict = calc_gain(config, IMAGE_PATH, projs, plot=False)
     pprint.pprint(gain_dict)
     gain_dict['U01--V00'] = {
         k: int(v) for k, v in gain_dict['U01--V00'].iteritems()}
     solution = {
         'U01--V00': {
             'blue': 480, 'green': 740, 'red': 819, 'yellow': 805}}
-    assert gain_dict['U01--V00'] == approx(solution['U01--V00'], abs=10)
+    assert gain_dict['U01--V00'] == approx(solution['U01--V00'], abs=20)
