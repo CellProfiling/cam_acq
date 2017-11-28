@@ -27,7 +27,7 @@ def test_gain():
         'camacq', DEFAULT_CONFIG_TEMPLATE)
     config = load_config_file(default_config_template)
     pprint.pprint(config)
-    gain_dict = calc_gain(config, IMAGE_PATH, projs)
+    gain_dict = calc_gain(config, IMAGE_PATH, projs, plot=False)
     pprint.pprint(gain_dict)
     gain_dict['U01--V00'] = {
         k: int(v) for k, v in gain_dict['U01--V00'].iteritems()}

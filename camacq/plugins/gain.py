@@ -171,7 +171,7 @@ def get_gain_com(commands, channels, job_list):
     return commands
 
 
-def calc_gain(config, imgp, projs):
+def calc_gain(config, imgp, projs, plot=True):
     """Calculate gain values for the well."""
     objective = config[GAIN].get(OBJECTIVE)
     if objective == END_10X:
@@ -189,7 +189,7 @@ def calc_gain(config, imgp, projs):
         for channel in config[GAIN][CONF_CHANNELS]
         for gain in channel[CONF_INIT_GAIN]]
 
-    return _calc_gain(imgp, init_gain, projs)
+    return _calc_gain(imgp, init_gain, projs, plot=plot)
 
 
 def _power_func(inp, alpha, beta):
@@ -212,7 +212,7 @@ def _check_upward(points):
     return wrapped
 
 
-def _plot(path, x_data, y_data, coeffs, label):
+def _create_plot(path, x_data, y_data, coeffs, label):
     """Plot and save plot to path."""
     plt.ioff()
     plt.clf()
@@ -224,7 +224,7 @@ def _plot(path, x_data, y_data, coeffs, label):
     plt.savefig(path)
 
 
-def _calc_gain(imgp, init_gain, projs):
+def _calc_gain(imgp, init_gain, projs, plot=True):
     """Calculate gain values for the well.
 
     Do the actual math.
@@ -260,7 +260,10 @@ def _calc_gain(imgp, init_gain, projs):
         save_path = os.path.normpath(os.path.join(
             wellp, (WELL_NAME_CHANNEL + '.ome.png').format(
                 img_attr.u, img_attr.v, int(c_id))))
-        _plot(save_path, hist_data[COUNT], hist_data[BOX], coeffs, 'count-box')
+        if plot:
+            _create_plot(
+                save_path, hist_data[COUNT], hist_data[BOX], coeffs,
+                'count-box')
         # Find box value where count is close to zero.
         # Store that box value and it's corresponding gain value.
         # Store boolean saying if second slope coefficient is negative.
@@ -290,9 +293,10 @@ def _calc_gain(imgp, init_gain, projs):
             [p[1].gain for p in long_group], p0=(1, 1))
         save_path = os.path.normpath(os.path.join(
             wellp, ('{}.png').format(channel)))
-        _plot(
-            save_path, [p.box for p in points],
-            [p.gain for p in points], coeffs, 'box-gain')
+        if plot:
+            _create_plot(
+                save_path, [p.box for p in points],
+                [p.gain for p in points], coeffs, 'box-gain')
         gains[channel] = _power_func(255, *coeffs)
 
     return {WELL_NAME.format(img_attr.u, img_attr.v): gains}
