@@ -120,7 +120,7 @@ class ActionsRegistry(object):
 class Center(object):
     """Represent a control center for the microscope."""
 
-    # pylint: disable=too-many-instance-attributes, too-few-public-methods
+    # pylint: disable=too-many-instance-attributes
 
     def __init__(self, config):
         """Set up instance."""

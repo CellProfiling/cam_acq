@@ -171,13 +171,6 @@ def get_imgs(path, img_type='tif', search=''):
     return experiment.glob('{}{}.{}'.format(path, search, img_type))
 
 
-def save_histogram(path, image):
-    """Save the histogram of an image to path."""
-    rows = {box: {'count': count}
-            for box, count in enumerate(image.histogram[0])}
-    write_csv(path, rows, ['bin', 'count'])
-
-
 def handler_factory(handler, test):
     """Create new handler that should call another handler if test is True."""
     def handle_test(event):
