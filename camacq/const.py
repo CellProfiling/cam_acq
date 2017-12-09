@@ -28,3 +28,5 @@ FIELDS_X = 'fields_x'
 FIELDS_Y = 'fields_y'
 DEFAULT_FIELDS_X = 2
 DEFAULT_FIELDS_Y = 2
+CONF_PLUGINS = 'plugins'
+PACKAGE = 'camacq'

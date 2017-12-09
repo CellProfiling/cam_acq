@@ -12,18 +12,17 @@ from matrixscreener.experiment import attribute, attributes
 from pkg_resources import resource_filename
 from scipy.optimize import curve_fit
 
-from camacq.bootstrap import PACKAGE
-from camacq.command import cam_com, gain_com
+from camacq.api import ACTION_API_SEND, send
+from camacq.api.leica import command
+from camacq.api.leica.helper import (format_new_name, get_field, get_imgs,
+                                     get_well)
 from camacq.config import load_config_file
-from camacq.const import (DEFAULT_FIELDS_X, DEFAULT_FIELDS_Y,
-                          FIELD_NAME, FIELDS_X, FIELDS_Y,
-                          FIRST_JOB, IMAGING_DIR,
-                          JOB_ID, LAST_WELL, WELL,
+from camacq.const import (CONF_PLUGINS, DEFAULT_FIELDS_X, DEFAULT_FIELDS_Y,
+                          FIELD_NAME, FIELDS_X, FIELDS_Y, FIRST_JOB,
+                          IMAGING_DIR, JOB_ID, LAST_WELL, PACKAGE, WELL,
                           WELL_NAME, WELL_NAME_CHANNEL)
-from camacq.control import ImageEvent
-from camacq.helper import (find_image_path, format_new_name, get_field,
-                           get_imgs, get_well, read_csv, send_com_and_start,
-                           write_csv)
+from camacq.control import ImageEvent, StopCommandEvent
+from camacq.helper import call_saved, handler_factory, read_csv, write_csv
 from camacq.image import make_proj
 from camacq.plate import Channel
 
@@ -45,7 +44,6 @@ END_10X = 'end_10x'
 END_40X = 'end_40x'
 END_63X = 'end_63x'
 SAVED_GAINS = 'saved_gains'
-SCAN_FINISHED = 'scanfinished'
 
 GREEN = 'green'
 BLUE = 'blue'
@@ -97,11 +95,11 @@ Data = namedtuple('Data', [BOX, GAIN, VALID])  # pylint: disable=invalid-name
 
 
 def setup_module(center, config):
-    """Setup default actions module."""
-    # pylint: disable=too-many-locals
+    """Set up gain calculation plugin."""
+    gain_conf = config[CONF_PLUGINS][CONF_GAIN]
     stage1 = STAGE1_DEFAULT
     stage2 = STAGE2_DEFAULT
-    flow_map = {
+    settings = {
         END_10X: {
             JOB_INFO: (JOB_10X, PATTERN_G_10X, PATTERN_10X),
         },
@@ -118,34 +116,33 @@ def setup_module(center, config):
             STAGE1: False,
         },
     }
-    for attr, settings in flow_map.iteritems():
-        if config.get(attr):
-            stage1 = settings.get(STAGE1, stage1)
-            stage2 = settings.get(STAGE2, stage2) if not \
-                config[GAIN].get(GAIN_ONLY) else flow_map[GAIN_ONLY][STAGE2]
-            if JOB_INFO in settings:
-                job_info = settings[JOB_INFO]
-            if INPUT_GAIN == attr:
-                gain_dict = read_csv(config[GAIN][INPUT_GAIN], WELL)
-
-    job_list, pattern_g, pattern = job_info
+    objective = gain_conf.get(OBJECTIVE)
+    if not objective:
+        _LOGGER.error('No objective selected')
+        return
+    job_list, pattern_g, pattern = settings[objective][JOB_INFO]
     center.data[GAIN] = {}
-    center.data[GAIN][JOB_INFO] = job_info
-    if config[GAIN].get(TEMPLATE_FILE) is None:
+    center.data[GAIN][JOB_INFO] = settings[objective][JOB_INFO]
+
+    if gain_conf.get(GAIN_ONLY):
+        stage2 = settings[GAIN_ONLY][STAGE2]
+
+    if gain_conf.get(TEMPLATE_FILE) is None:
         template = None
     else:
-        template = read_csv(config[GAIN][TEMPLATE_FILE], WELL)
+        template = read_csv(gain_conf[TEMPLATE_FILE], WELL)
         config[LAST_WELL] = sorted(template.keys())[-1]
     center.data[GAIN][TEMPLATE] = template
 
-    if config[GAIN].get(INPUT_GAIN):
+    if gain_conf.get(INPUT_GAIN):
+        stage1 = settings[INPUT_GAIN][STAGE1]
+        gain_dict = read_csv(gain_conf[INPUT_GAIN], WELL)
         distribute_gain(center, gain_dict, template=template)
         com_data = get_com(center, pattern, job_list)
     else:
         com_data = get_init_com(center, pattern_g, template=template)
 
     center.data[GAIN][LISTENERS] = []
-
     if stage1:
         center.data[GAIN][LISTENERS].append(center.bus.register(
             ImageEvent, handle_stage1))
@@ -157,8 +154,8 @@ def setup_module(center, config):
         for commands, end_com in zip(com_data[0], com_data[1]):
             center.data[GAIN][COMMANDS].append((
                 send_com_and_start, commands, end_com, stop_end_stage1))
-        call = center.data[GAIN][COMMANDS].popleft()
-        center.data[GAIN][LISTENERS].append(center.call_saved(call))
+        center.data[GAIN][LISTENERS].append(call_saved(
+            center.data[GAIN][COMMANDS].popleft()))
 
 
 def get_gain_com(commands, channels, job_list):
@@ -167,26 +164,27 @@ def get_gain_com(commands, channels, job_list):
         job = job_list[JOB_MAP[channel]]
         detector = DETECTOR_MAP[channel]
         gain = str(gain.gain)
-        commands.append(gain_com(exp=job, num=detector, value=gain))
+        commands.append(command.gain_com(job, detector, gain))
     return commands
 
 
 def calc_gain(config, imgp, projs, plot=True):
     """Calculate gain values for the well."""
-    objective = config[GAIN].get(OBJECTIVE)
+    gain_conf = config[CONF_PLUGINS][CONF_GAIN]
+    objective = gain_conf.get(OBJECTIVE)
     if objective == END_10X:
         init_gain = resource_filename(PACKAGE, 'data/10x_gain.yml')
     elif objective == END_40X:
         init_gain = resource_filename(PACKAGE, 'data/40x_gain.yml')
     elif objective == END_63X:
         init_gain = resource_filename(PACKAGE, 'data/63x_gain.yml')
-    if not config[GAIN].get(CONF_CHANNELS):
+    if not gain_conf.get(CONF_CHANNELS):
         init_gain = load_config_file(init_gain)
-        config[GAIN][CONF_CHANNELS] = init_gain[CONF_CHANNELS]
+        gain_conf[CONF_CHANNELS] = init_gain[CONF_CHANNELS]
     _LOGGER.info('Calculating gain...')
     init_gain = [
         Channel(channel[CONF_CHANNEL], gain)
-        for channel in config[GAIN][CONF_CHANNELS]
+        for channel in gain_conf[CONF_CHANNELS]
         for gain in channel[CONF_INIT_GAIN]]
 
     return _calc_gain(imgp, init_gain, projs, plot=plot)
@@ -304,7 +302,8 @@ def _calc_gain(imgp, init_gain, projs, plot=True):
 
 def sanitize_gain(config, channel, gain):
     """Make sure all channels have a reasonable gain value."""
-    objective = config[GAIN].get(OBJECTIVE)
+    gain_conf = config[CONF_PLUGINS][CONF_GAIN]
+    objective = gain_conf.get(OBJECTIVE)
     if gain == NA:
         gain = GAIN_DEFAULT[objective][channel]
     gain = int(gain)
@@ -356,6 +355,7 @@ def save_gain(save_dir, saved_gains):
 def get_com(center, job, job_list):
     """Get command."""
     config = center.config
+    gain_conf = config[CONF_PLUGINS][CONF_GAIN]
     # Lists for storing command strings.
     com_list = []
     end_com_list = []
@@ -370,13 +370,12 @@ def get_com(center, job, job_list):
         end_com = []
         com = get_gain_com([], well.channels, job_list)
         for field in well.fields.values():
-            com.append(cam_com(
-                job, well.U, well.V, field.X, field.Y, field.dX,
-                field.dY))
+            com.append(command.cam_com(
+                job, well.x, well.y, field.x, field.y, field.dx, field.dy))
             end_com = [
-                CAM, WELL_NAME.format(well.U, well.V),
-                JOB_ID.format(config[GAIN].get(FIRST_JOB, 2) + 2),
-                FIELD_NAME.format(field.X, field.Y)]
+                CAM, WELL_NAME.format(well.x, well.y),
+                JOB_ID.format(gain_conf.get(FIRST_JOB, 2) + 2),
+                FIELD_NAME.format(field.x, field.y)]
         # Store the commands in lists.
         com_list.append(com)
         end_com_list.append(end_com)
@@ -386,7 +385,7 @@ def get_com(center, job, job_list):
 def get_init_com(center, job, template=None):
     """Get command for gain analysis."""
     # pylint: disable=too-many-locals
-    objective = center.config[GAIN].get(OBJECTIVE)
+    objective = center.config[CONF_PLUGINS][CONF_GAIN].get(OBJECTIVE)
     fields_x = center.config.get(FIELDS_X, DEFAULT_FIELDS_X)
     fields_y = center.config.get(FIELDS_Y, DEFAULT_FIELDS_Y)
     wells = []
@@ -417,12 +416,12 @@ def get_init_com(center, job, template=None):
         for field in center.plate.wells[well].fields.values():
             if not field.gain_field:
                 continue
-            com.append(cam_com(
-                job, center.plate.wells[well].U, center.plate.wells[well].V,
-                field.X, field.Y, field.dX, field.dY))
+            com.append(command.cam_com(
+                job, center.plate.wells[well].x, center.plate.wells[well].y,
+                field.x, field.y, field.dx, field.dy))
             end_com = [
                 CAM, well, JOB_ID.format(2),
-                FIELD_NAME.format(field.X, field.Y)]
+                FIELD_NAME.format(field.x, field.y)]
         com_list.append(com)
         end_com_list.append(end_com)
 
@@ -478,7 +477,7 @@ def handle_imgs(path, job_id, f_job=2):
 def handle_stage1(center, event):
     """Handle saved image during stage 1."""
     _LOGGER.info('Handling image during stage 1...')
-    imgp = find_image_path(event.rel_path, center.config[IMAGING_DIR])
+    imgp = event.path
     if not imgp:
         return
     _LOGGER.debug('IMAGE PATH: %s', imgp)
@@ -508,7 +507,8 @@ def handle_stage1(center, event):
 def handle_stage2(center, event):
     """Handle saved image during stage 2."""
     _LOGGER.info('Handling image during stage 2...')
-    imgp = find_image_path(event.rel_path, center.config[IMAGING_DIR])
+    gain_conf = center.config[CONF_PLUGINS][CONF_GAIN]
+    imgp = event.path
     if not imgp:
         return
     img_attr = attributes(imgp)
@@ -522,21 +522,30 @@ def handle_stage2(center, event):
         img_attr.x, img_attr.y)] = field._replace(
             img_ok=True)
     fieldp = get_field(imgp)
-    handle_imgs(fieldp, attribute(imgp, 'E'), f_job=center.config[FIRST_JOB])
+    handle_imgs(fieldp, attribute(imgp, 'E'), f_job=gain_conf[FIRST_JOB])
 
 
 def stop(center):
     """Handle event that should stop the microscope."""
     for remove_listener in center.data[GAIN][LISTENERS]:
         remove_listener()
-    reply = center.cam.stop_scan()
-    _LOGGER.debug('STOP SCAN: %s', reply)
+    center.data[GAIN][LISTENERS].clear()
+    store = {'scan_finished': False}  # python 2 doesn't support nonlocal
+
+    def check_scan_finished(event):  # pylint: disable=unused-argument
+        """Check that scan is finished."""
+        store['scan_finished'] = True
+
+    center.data[GAIN][LISTENERS].append(center.bus.register(
+        StopCommandEvent, check_scan_finished))
+    center.actions.call(
+        'camacq.api', ACTION_API_SEND, command=command.stop())
     begin = time.time()
-    while not reply or SCAN_FINISHED not in reply[-1].values():
-        reply = center.cam.receive()
-        _LOGGER.debug('SCAN FINISHED reply: %s', reply)
+    while not store['scan_finished']:
+        # Wait for scanfinished reply with timeout.
         if time.time() - begin > 20.0:
             break
+        time.sleep(0.5)
     time.sleep(1)  # Wait for it to come to complete stop.
 
 
@@ -558,7 +567,7 @@ def stop_end_stage1(center, event):
         com_data[1][-1], stop_end_stage2)])
     center.data[GAIN][COMMANDS].extendleft(reversed(todo))
     call = center.data[GAIN][COMMANDS].popleft()
-    center.data[GAIN][LISTENERS].append(center.call_saved(call))
+    center.data[GAIN][LISTENERS].append(call_saved(call))
 
 
 def stop_mid_stage2(center, event):
@@ -570,7 +579,7 @@ def stop_mid_stage2(center, event):
         ImageEvent, handle_stage2))
     if center.data[GAIN][COMMANDS]:
         call = center.data[GAIN][COMMANDS].popleft()
-        center.data[GAIN][LISTENERS].append(center.call_saved(call))
+        center.data[GAIN][LISTENERS].append(call_saved(call))
 
 
 def stop_end_stage2(center, event):
@@ -582,4 +591,29 @@ def stop_end_stage2(center, event):
         ImageEvent, handle_stage1))
     if center.data[GAIN][COMMANDS]:
         call = center.data[GAIN][COMMANDS].popleft()
-        center.data[GAIN][LISTENERS].append(center.call_saved(call))
+        center.data[GAIN][LISTENERS].append(call_saved(call))
+
+
+def send_com_and_start(center, commands, stop_data, handler):
+    """Add commands to outgoing queue for the CAM server."""
+    def stop_test(event):
+        """Test if stop should be done."""
+        if all(test in event.rel_path for test in stop_data):
+            return True
+
+    remove_listener = center.bus.register(
+        ImageEvent, handler_factory(handler, stop_test))
+
+    center.actions.call(
+        'camacq.api', ACTION_API_SEND, command=command.del_com())
+    time.sleep(2)
+    send(center, commands)
+    time.sleep(2)
+    center.actions.call(
+        'camacq.api', ACTION_API_SEND, command=command.start())
+    # Wait for it to change objective and start.
+    time.sleep(7)
+    center.actions.call(
+        'camacq.api', ACTION_API_SEND, command=command.camstart_com())
+
+    return remove_listener

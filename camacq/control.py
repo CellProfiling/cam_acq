@@ -1,31 +1,24 @@
 """Control the microscope."""
 import logging
-import socket
-import sys
 import time
-from collections import deque
 from functools import partial
 from importlib import import_module
 
-from matrixscreener.cam import CAM
-
-from camacq.const import HOST, PORT
 from camacq.plate import Plate
 
 _LOGGER = logging.getLogger(__name__)
-REL_IMAGE_PATH = 'relpath'
 
 
 class Event(object):
-    """Event class."""
+    """A base event class."""
 
     # pylint: disable=too-few-public-methods
 
-    def __init__(self, center, data, event_type):
+    def __init__(self, center, data):
         """Set up the event."""
         self.center = center
         self.data = data
-        self.event_type = event_type
+        self.event_type = 'base_event'
 
     def __repr__(self):
         """Return the representation."""
@@ -33,24 +26,69 @@ class Event(object):
 
 
 class CommandEvent(Event):
-    """CommandEvent class."""
+    """An event received from the API.
+
+    Notify with this event when a command is received via API.
+    """
 
     # pylint: disable=too-few-public-methods
 
     def __init__(self, center, data):
         """Set up command event."""
-        super(CommandEvent, self).__init__(center, data, 'command_event')
+        super(CommandEvent, self).__init__(center, data)
+        self.event_type = 'command_event'
+
+    @property
+    def command(self):
+        """Return the JSON command string."""
+        return None
+
+
+class StartCommandEvent(CommandEvent):
+    """An event received from the API.
+
+    Notify with this event when imaging starts via API.
+    """
+
+    # pylint: disable=too-few-public-methods
+
+    def __init__(self, center, data):
+        """Set up start command event."""
+        super(StartCommandEvent, self).__init__(center, data)
+        self.event_type = 'start_command_event'
+
+
+class StopCommandEvent(CommandEvent):
+    """An event received from the API.
+
+    Notify with this event when imaging stops via API.
+    """
+
+    # pylint: disable=too-few-public-methods
+
+    def __init__(self, center, data):
+        """Set up stop command event."""
+        super(StopCommandEvent, self).__init__(center, data)
+        self.event_type = 'stop_command_event'
 
 
 class ImageEvent(Event):
-    """ImageEvent class."""
+    """An event received from the API.
+
+    Notify with this event when an image is saved via API.
+    """
 
     # pylint: disable=too-few-public-methods
 
     def __init__(self, center, data):
         """Set up the image event."""
-        super(ImageEvent, self).__init__(center, data, 'image_event')
-        self.rel_path = data.get(REL_IMAGE_PATH, '')
+        super(ImageEvent, self).__init__(center, data)
+        self.event_type = 'image_event'
+
+    @property
+    def path(self):
+        """Return the absolute path to the image."""
+        return None
 
 
 class DummyEvent(object):  # pylint: disable=too-few-public-methods
@@ -75,7 +113,10 @@ class EventBus(object):
         self.handler.handler(DummyEvent, dummy_handler)
 
     def register(self, event_type, handler):
-        """Register an event listener and return a function to remove it."""
+        """Register an event listener and return a function to remove it.
+
+        An event is a message from the microscope API.
+        """
         handler = partial(handler, self.center)
         self.handler.handler(event_type, handler)
 
@@ -93,7 +134,7 @@ class EventBus(object):
             self.handler.registry.pop(listener, None)
 
     def notify(self, event):
-        """Notify listenerns of event."""
+        """Notify listeners of event."""
         _LOGGER.debug(event)
         self._event.notify(event)
 
@@ -110,67 +151,58 @@ class ActionsRegistry(object):
         """Return a dict of dicts with all registered actions."""
         return self._actions
 
-    def register(self, action_id, action_type, action_func):
-        """Register an action."""
-        if action_type not in self._actions:
-            self._actions[action_type] = {}
-        self._actions[action_type][action_id] = action_func
+    def register(self, package, action_id, action_func):
+        """Register an action.
+
+        Register actions per package, ie api, plugins etc.
+        """
+        if package not in self._actions:
+            self._actions[package] = {}
+        self._actions[package][action_id] = action_func
+
+    def call(self, package, action_id, **kwargs):
+        """Call an action with optional kwargs."""
+        if (package not in self._actions or
+                action_id not in self._actions[package]):
+            _LOGGER.error(
+                'No action registered for package %s or action id %s',
+                package, action_id)
+            return
+        action_func = self._actions[package][action_id]
+        action_func(action_id=action_id, **kwargs)
 
 
 class Center(object):
     """Represent a control center for the microscope."""
 
-    # pylint: disable=too-many-instance-attributes
-
     def __init__(self, config):
         """Set up instance."""
         self.config = config
-        host = self.config.get(HOST, 'localhost')
-        try:
-            self.cam = CAM(
-                host, self.config.get(PORT, 8895))
-        except socket.error as exc:
-            _LOGGER.error(
-                'Connecting to server %s failed: %s', host, exc)
-            sys.exit(1)
-        self.cam.delay = 0.2
         self.data = {}  # dict to store data from modules outside control
-        self.do_now = deque()  # Functions to call asap.
         self.bus = EventBus(self)
         self.actions = ActionsRegistry()
         self.exit_code = None
         self.plate = Plate()
+        self.threads = []
 
     def end(self, code):
         """Prepare app for exit."""
         _LOGGER.info('Stopping camacq')
         self.exit_code = code
+        for thread in self.threads:
+            thread.stop_thread.set()
+            thread.join(30)
 
     def start(self):
-        """Run, send commands and receive replies.
-
-        Register functions event bus style that are called on event.
-        An event is a reply from the server.
-        """
+        """Start the app."""
         try:
             _LOGGER.info('Starting camacq')
-            if not self.do_now:
-                _LOGGER.info('Nothing to do')
-                self.end(0)
-                return
             while True:
                 if self.finished:
                     _LOGGER.info('Experiment finished!')
                     self.end(0)
                     break
-                if not self.do_now:
-                    self._receive()
-                    time.sleep(0.02)  # Short sleep to not burn 100% CPU.
-                    continue
-                call = self.do_now.popleft()
-                replies = self.call_saved(call)
-                if replies:
-                    self._receive(replies)
+                time.sleep(1)  # Short sleep to not burn 100% CPU.
         except KeyboardInterrupt:
             self.end(0)
 
@@ -180,29 +212,3 @@ class Center(object):
         return not any(
             listener for listener in self.bus.handler.registry
             if not isinstance(listener, DummyEvent))
-
-    @staticmethod
-    def call_saved(call):
-        """Call a saved call of a tuple with func and args."""
-        func = call[0]
-        if len(call) > 1:
-            args = call[1:]
-        else:
-            args = ()
-        _LOGGER.debug('Calling: %s(%s)', func, args)
-        return func(*args)
-
-    def _receive(self, replies=None):
-        """Receive replies from CAM server and notify an event."""
-        if replies is None:
-            replies = self.cam.receive()
-        if replies is None:
-            return
-        # if reply check reply and call or register correct listener
-        # parse reply and create Event
-        # reply must be an iterable
-        for reply in replies:
-            if REL_IMAGE_PATH in reply:
-                self.bus.notify(ImageEvent(self, reply))
-            else:
-                self.bus.notify(CommandEvent(self, reply))

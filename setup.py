@@ -1,4 +1,4 @@
-"""Setup file for camacq package."""
+"""Set up file for camacq package."""
 import io
 
 from setuptools import find_packages, setup

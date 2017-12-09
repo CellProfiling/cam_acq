@@ -7,7 +7,7 @@ from pytest import approx
 
 from camacq.config import DEFAULT_CONFIG_TEMPLATE, load_config_file
 from camacq.const import JOB_ID
-from camacq.helper import get_imgs
+from camacq.api.leica.helper import get_imgs
 from camacq.image import make_proj
 from camacq.plugins.gain import calc_gain
 

@@ -1,49 +1,21 @@
 """Helper functions for camacq."""
 import csv
 import logging
-import ntpath
 import os
-import re
-import time
 from collections import defaultdict
-
-from matrixscreener import experiment
-
-from camacq.command import camstart_com, del_com
-from camacq.control import ImageEvent
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def send(cam, commands):
-    """Send each command in commands.
-
-    Parameters
-    ----------
-    cam : instance
-        CAM instance.
-    commands : list
-        List of list of commands as tuples.
-
-    Returns
-    -------
-    list
-        Return a list of OrderedDict with all received replies.
-
-    Example
-    -------
-    ::
-
-        send(cam, [[('cmd', 'deletelist')], [('cmd', 'startscan')]])
-    """
-    replies = []
-    for cmd in commands:
-        _LOGGER.debug('sending: %s', cmd)
-        reply = cam.send(cmd)
-        _LOGGER.debug('receiving: %s', reply)
-        if reply:
-            replies.extend(reply)
-    return replies
+def call_saved(job):
+    """Call a saved job of a tuple with func and args."""
+    func = job[0]
+    if len(job) > 1:
+        args = job[1:]
+    else:
+        args = ()
+    _LOGGER.debug('Calling: %s(%s)', func, args)
+    return func(*args)
 
 
 def read_csv(path, index):
@@ -98,79 +70,6 @@ def write_csv(path, csv_map, header):
             writer.writerow(index_dict)
 
 
-def find_image_path(relpath, root):
-    """Parse the relpath from the server to find the file path from root.
-
-    Convert from windows path to os path.
-    """
-    if not relpath:
-        return
-    paths = []
-    while relpath:
-        relpath, tail = ntpath.split(relpath)
-        paths.append(tail)
-    return str(os.path.join(root, *list(reversed(paths))))
-
-
-def format_new_name(imgp, root=None, new_attr=None):
-    """Create filename from image path and replace specific attribute id(s).
-
-    Parameters
-    ----------
-    imgp : string
-        Path to image.
-    root : str
-        Path to directory where path should start.
-    new_attr : dict
-        Dictionary which maps experiment attributes to new attribute ids.
-        The new attribute ids will replace the old ids for the corresponding
-        attributes.
-
-    Returns
-    -------
-    str
-        Return new path to image.
-    """
-    if root is None:
-        root = get_field(imgp)
-
-    path = 'U{}--V{}--E{}--X{}--Y{}--Z{}--C{}.ome.tif'.format(
-        *(experiment.attribute_as_str(imgp, attr)
-          for attr in ('U', 'V', 'E', 'X', 'Y', 'Z', 'C')))
-    if new_attr:
-        for attr, attr_id in new_attr.iteritems():
-            path = re.sub(attr + r'\d\d', attr + attr_id, path)
-
-    return os.path.normpath(os.path.join(root, path))
-
-
-def get_field(path):
-    """Get path to well from image path."""
-    return experiment.Experiment(path).dirname  # pylint: disable=no-member
-
-
-def get_well(path):
-    """Get path to well from image path."""
-    # pylint: disable=no-member
-    return experiment.Experiment(get_field(path)).dirname
-
-
-def get_imgs(path, img_type='tif', search=''):
-    """Get all images below path."""
-    if search:
-        search = '{}*'.format(search)
-    patterns = [
-        'slide',
-        'chamber',
-        'field',
-        'image',
-    ]
-    for pattern in patterns:
-        if pattern not in path:
-            path = os.path.join(path, '{}--*'.format(pattern))
-    return experiment.glob('{}{}.{}'.format(path, search, img_type))
-
-
 def handler_factory(handler, test):
     """Create new handler that should call another handler if test is True."""
     def handle_test(event):
@@ -180,27 +79,18 @@ def handler_factory(handler, test):
     return handle_test
 
 
-def send_com_and_start(center, commands, stop_data, handler):
-    """Add commands to outgoing queue for the CAM server."""
-    def stop_test(event):
-        """Test if stop should be done."""
-        if all(test in event.rel_path for test in stop_data):
-            return True
+class FeatureParent(object):
+    """Represent a parent of features of a package."""
 
-    remove_listener = center.bus.register(
-        ImageEvent, handler_factory(handler, stop_test))
+    # pylint: disable=too-few-public-methods
 
-    def send_commands(coms):
-        """Send all commands needed to start microscope and run com."""
-        center.do_now.append((center.cam.send, del_com()))
-        center.do_now.append((time.sleep, 2))
-        center.do_now.append((send, center.cam, coms))
-        center.do_now.append((time.sleep, 2))
-        center.do_now.append((center.cam.start_scan, ))
-        # Wait for it to change objective and start.
-        center.do_now.append((time.sleep, 7))
-        center.do_now.append((center.cam.send, camstart_com()))
+    def __init__(self):
+        """Set up the feature parent."""
+        self.children = {}
 
-    # Append a tuple with function, args (tuple) and kwargs (dict).
-    center.do_now.append((send_commands, commands))
-    return remove_listener
+    def add_child(self, child_name, child):
+        """Add a child to the parent feature registry.
+
+        A child is the instance that provides a feature, eg a microscope API.
+        """
+        self.children[child_name] = child
