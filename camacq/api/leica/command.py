@@ -1,15 +1,7 @@
 """Handle commands."""
 
 
-def del_com():
-    """Delete the cam list.
-
-    Return a list with parts for the cam command.
-    """
-    return [('cmd', 'deletelist')]
-
-
-def start_com():
+def start():
     """Start the scan.
 
     Return a list with parts for the cam command.
@@ -17,12 +9,20 @@ def start_com():
     return [('cmd', 'startscan')]
 
 
-def stop_com():
+def stop():
     """Stop the scan.
 
     Return a list with parts for the cam command.
     """
     return [('cmd', 'stopscan')]
+
+
+def del_com():
+    """Delete the cam list.
+
+    Return a list with parts for the cam command.
+    """
+    return [('cmd', 'deletelist')]
 
 
 def camstart_com(afjob=None, afrange=None, afsteps=None):
@@ -90,7 +90,8 @@ def cam_com(exp, wellu, wellv, fieldx, fieldy, dxcoord, dycoord):
     fieldx = str(fieldx + 1)
     fieldy = str(fieldy + 1)
 
-    return [('cmd', 'add'), ('tar', 'camlist'), ('exp', exp), ('ext', 'af'),
-            ('slide', '0'), ('wellx', wellx), ('welly', welly),
-            ('fieldx', fieldx), ('fieldy', fieldy), ('dxpos', str(dxcoord)),
-            ('dypos', str(dycoord))]
+    return [
+        ('cmd', 'add'), ('tar', 'camlist'), ('exp', exp), ('ext', 'af'),
+        ('slide', '0'), ('wellx', wellx), ('welly', welly),
+        ('fieldx', fieldx), ('fieldy', fieldy), ('dxpos', str(dxcoord)),
+        ('dypos', str(dycoord))]

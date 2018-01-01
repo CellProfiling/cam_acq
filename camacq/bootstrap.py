@@ -8,12 +8,12 @@ from pkg_resources import resource_filename
 import camacq
 import camacq.config as config_util
 from camacq.config import DEFAULT_CONFIG_TEMPLATE
+from camacq.const import PACKAGE
 import camacq.log as log_util
 from camacq.control import Center
 
 _LOGGER = logging.getLogger(__name__)
 _MODULE_CACHE = {}
-PACKAGE = 'camacq'
 PACKAGE_MODULE = '{}.{}'
 
 
@@ -43,9 +43,18 @@ def get_module(package, module_name):
         _LOGGER.exception(('Loading %s failed'), module_path)
 
 
-def setup_all_modules(center, config, package_path):
+def _deep_conf_access(config, key_list):
+    """Return value in nested dict using keys in key_list."""
+    val = config
+    for key in key_list:
+        val = val[key]
+    return val
+
+
+def setup_all_modules(center, config, package_path, **kwargs):
     """Helper to set up all modules of a package."""
     imported_pkg = import_module(package_path)
+    # yields, non recursively, modules under package_path
     for loader, name, is_pkg in pkgutil.iter_modules(
             imported_pkg.__path__, prefix='{}.'.format(imported_pkg.__name__)):
         if 'main' in name:
@@ -56,11 +65,15 @@ def setup_all_modules(center, config, package_path):
             module = loader.find_module(name).load_module(name)
             _MODULE_CACHE[name] = module
         _LOGGER.info('Loaded %s', name)
-        if is_pkg:
-            if hasattr(module, 'setup_package'):
-                module.setup_package(center, config)
-        elif module.__name__ in config and hasattr(module, 'setup_module'):
-            module.setup_module(center, config)
+        keys = [
+            name for name in imported_pkg.__name__.split('.')
+            if name != PACKAGE]
+        pkg_config = _deep_conf_access(config, keys)
+        if module.__name__ in pkg_config:
+            if is_pkg and hasattr(module, 'setup_package'):
+                module.setup_package(center, config, **kwargs)
+            elif hasattr(module, 'setup_module'):
+                module.setup_module(center, config, **kwargs)
 
 
 def setup_dict(config):

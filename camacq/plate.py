@@ -49,24 +49,29 @@ class Channel(object):
         self._gain = int(value)
 
 
-class Field(namedtuple('Field', 'X Y dX dY gain_field img_ok')):
+class Field(namedtuple('Field', 'x y dx dy gain_field img_ok')):
     """Represent a field.
 
     Parameters
     ----------
-    X : int
-        Coordinate of field in X.
-    Y : int
-        Coordinate of field in Y.
-    dX : int
+    x : int
+        Coordinate of field in x.
+    y : int
+        Coordinate of field in y.
+    dx : int
         Pixel coordinate of region of interest within image field in X.
-    dY : int
+    dy : int
         Pixel coordinate of region of interest within image field in Y.
     gain_field : bool
         True if field should run gain selection analysis.
     img_ok : bool
         True if field has acquired an ok image.
     """
+
+    @property
+    def name(self):
+        """:str: Return a string representing the name of the field."""
+        return FIELD_NAME.format(int(self.x), int(self.y))
 
 
 class Well(object):
@@ -79,29 +84,26 @@ class Well(object):
 
     Attributes
     ----------
-    U : int
-        Number showing the U coordinate of the well, from 0.
-    V : int
-        Number showing the V coordinate of the well, from 0.
+    x : int
+        Number showing the x coordinate of the well, from 0.
+    y : int
+        Number showing the y coordinate of the well, from 0.
     channels : dict
         Dict where keys are color channels and values are Gain instances.
     """
 
-    # pylint: disable=too-few-public-methods
-
-    def __init__(self, name):
+    def __init__(self, x, y):
         """Set up instance."""
         # pylint: disable=invalid-name
-        self.U = attribute('--{}'.format(name), 'U')
-        self.V = attribute('--{}'.format(name), 'V')
+        self.x = x
+        self.y = y
         self._field = Field(0, 0, 0, 0, False, False)
         self._fields = OrderedDict()
         self.channels = {}
 
     def __repr__(self):
         """Return the representation."""
-        return "<Well {}: channels {}>".format(
-            WELL_NAME.format(int(self.U), int(self.V)), self.channels)
+        return "<Well {}: channels {}>".format(self.name, self.channels)
 
     @property
     def fields(self):  # noqa D301, D207
@@ -114,10 +116,10 @@ class Well(object):
         -------
         ::
 
-            >>> well = Well('U00--V00')
+            >>> well = Well(0, 0)
             >>> well.fields = [[1, 3, 0, 1, True, False], ]
             >>> well.fields
-            {'X01--Y03': Field(X=1, Y=3, dX=0, dY=1, \
+            {'X01--Y03': Field(x=1, y=3, dx=0, dy=1, \
 gain_field=True, img_ok=False)}
         """
         return self._fields
@@ -136,15 +138,19 @@ gain_field=True, img_ok=False)}
             return True
         return False
 
+    @property
+    def name(self):
+        """:str: Return a string representing the name of the well."""
+        return WELL_NAME.format(int(self.x), int(self.y))
+
     def add_field(
             self, xcoord, ycoord, dxpx=0, dypx=0, gain_field=False,
             img_ok=False):
         """Add a field to the well."""
         # pylint: disable=too-many-arguments
-        self._fields.update({
-            FIELD_NAME.format(xcoord, ycoord):
-            self._field._make(
-                (xcoord, ycoord, dxpx, dypx, gain_field, img_ok))})
+        field = self._field._make(
+            (xcoord, ycoord, dxpx, dypx, gain_field, img_ok))
+        self._fields.update({field.name: field})  # pylint: disable=no-member
 
     def set_fields(self, fields_x, fields_y):
         """Set fields."""
@@ -178,10 +184,13 @@ class Plate(object):
         Create a Well instance if well not already exists.
         """
         if well_name not in self.wells:
-            self.set_well(well_name)
+            well_x = attribute('--{}'.format(well_name), 'U')
+            well_y = attribute('--{}'.format(well_name), 'V')
+            self.add_well(well_x, well_y)
         self.wells[well_name].channels.update(
             {channel: Channel(channel, gain)})
 
-    def set_well(self, well_name):
+    def add_well(self, well_x, well_y):
         """Add a Well instance to wells with well_name."""
-        self.wells[well_name] = Well(well_name)
+        well = Well(well_x, well_y)
+        self.wells[well.name] = well
