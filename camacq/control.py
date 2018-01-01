@@ -1,146 +1,15 @@
 """Control the microscope."""
 import logging
 import time
-from functools import partial
-from importlib import import_module
 
-from camacq.plate import Plate
+from camacq.event import EventBus
+from camacq.sample import Sample
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class Event(object):
-    """A base event class."""
-
-    # pylint: disable=too-few-public-methods
-
-    def __init__(self, center, data):
-        """Set up the event."""
-        self.center = center
-        self.data = data
-        self.event_type = 'base_event'
-
-    def __repr__(self):
-        """Return the representation."""
-        return "<{}: {}>".format(type(self).__name__, self.data)
-
-
-class CommandEvent(Event):
-    """An event received from the API.
-
-    Notify with this event when a command is received via API.
-    """
-
-    # pylint: disable=too-few-public-methods
-
-    def __init__(self, center, data):
-        """Set up command event."""
-        super(CommandEvent, self).__init__(center, data)
-        self.event_type = 'command_event'
-
-    @property
-    def command(self):
-        """Return the JSON command string."""
-        return None
-
-
-class StartCommandEvent(CommandEvent):
-    """An event received from the API.
-
-    Notify with this event when imaging starts via API.
-    """
-
-    # pylint: disable=too-few-public-methods
-
-    def __init__(self, center, data):
-        """Set up start command event."""
-        super(StartCommandEvent, self).__init__(center, data)
-        self.event_type = 'start_command_event'
-
-
-class StopCommandEvent(CommandEvent):
-    """An event received from the API.
-
-    Notify with this event when imaging stops via API.
-    """
-
-    # pylint: disable=too-few-public-methods
-
-    def __init__(self, center, data):
-        """Set up stop command event."""
-        super(StopCommandEvent, self).__init__(center, data)
-        self.event_type = 'stop_command_event'
-
-
-class ImageEvent(Event):
-    """An event received from the API.
-
-    Notify with this event when an image is saved via API.
-    """
-
-    # pylint: disable=too-few-public-methods
-
-    def __init__(self, center, data):
-        """Set up the image event."""
-        super(ImageEvent, self).__init__(center, data)
-        self.event_type = 'image_event'
-
-    @property
-    def path(self):
-        """Return the absolute path to the image."""
-        return None
-
-
-class DummyEvent(object):  # pylint: disable=too-few-public-methods
-    """DummyEvent class."""
-
-
-def dummy_handler(event):  # pylint: disable=unused-argument
-    """Handle dummy event."""
-    pass
-
-
-class EventBus(object):
-    """EventBus class."""
-
-    def __init__(self, center):
-        """Set up instance."""
-        self.center = center
-        self._event = import_module('zope.event')
-        self.handler = import_module('zope.event.classhandler')
-        # Limitation in zope requires at least one item in registry to avoid
-        # adding another dispatch function to the list of subscribers.
-        self.handler.handler(DummyEvent, dummy_handler)
-
-    def register(self, event_type, handler):
-        """Register an event listener and return a function to remove it.
-
-        An event is a message from the microscope API.
-        """
-        handler = partial(handler, self.center)
-        self.handler.handler(event_type, handler)
-
-        def remove():
-            """Remove registered event handler."""
-            self.handler.registry.pop(event_type, None)
-
-        return remove
-
-    def _clear(self):
-        """Remove all registered listeners except dummy."""
-        for listener in self.handler.registry:
-            if isinstance(listener, DummyEvent):
-                continue
-            self.handler.registry.pop(listener, None)
-
-    def notify(self, event):
-        """Notify listeners of event."""
-        _LOGGER.debug(event)
-        self._event.notify(event)
-
-
 class ActionsRegistry(object):
-    """ActionsRegistry class."""
+    """Manage all registered actions."""
 
     def __init__(self):
         """Set up instance."""
@@ -148,45 +17,99 @@ class ActionsRegistry(object):
 
     @property
     def actions(self):
-        """Return a dict of dicts with all registered actions."""
+        """:dict: Return dict of dicts with all registered actions."""
         return self._actions
 
-    def register(self, package, action_id, action_func):
+    def register(self, module, action_id, action_func):
         """Register an action.
 
-        Register actions per package, ie api, plugins etc.
-        """
-        if package not in self._actions:
-            self._actions[package] = {}
-        self._actions[package][action_id] = action_func
+        Register actions per module.
 
-    def call(self, package, action_id, **kwargs):
-        """Call an action with optional kwargs."""
-        if (package not in self._actions or
-                action_id not in self._actions[package]):
+        Parameters
+        ----------
+        module : str
+            The name of the module to register the action under.
+        action_id : str
+            The id of the action to register.
+        action_func : callable
+            The function that should be called for the action.
+        """
+        if module not in self._actions:
+            self._actions[module] = {}
+        self._actions[module][action_id] = action_func
+
+    def call(self, module, action_id, **kwargs):
+        """Call an action with optional kwargs.
+
+        Parameters
+        ----------
+        module : str
+            The name of the module where the action is registered.
+        action_id : str
+            The id of the action to call.
+        **kwargs
+            Arbitrary keyword arguments. These will be passed to the action
+            function when an action is called.
+        """
+        if (module not in self._actions or
+                action_id not in self._actions[module]):
             _LOGGER.error(
-                'No action registered for package %s or action id %s',
-                package, action_id)
+                'No action registered for module %s or action id %s',
+                module, action_id)
             return
-        action_func = self._actions[package][action_id]
+        action_func = self._actions[module][action_id]
         action_func(action_id=action_id, **kwargs)
 
 
 class Center(object):
-    """Represent a control center for the microscope."""
+    """Represent a control center for the microscope.
+
+    Parameters
+    ----------
+    config : dict
+        The config dict.
+
+    Attributes
+    ----------
+    config : dict
+        Return the config dict.
+    bus : EventBus instance
+        Return the EventBus instance.
+    sample : Sample instance
+        Return the Sample instance.
+    actions : ActionsRegistry instance
+        Return the ActionsRegistry instance.
+    data : dict
+        Return dict that stores data from other modules than control.
+    exit_code : int
+        Return the exit code for the app.
+    threads : list
+        Return a list of child threads for the app.
+    """
 
     def __init__(self, config):
         """Set up instance."""
         self.config = config
-        self.data = {}  # dict to store data from modules outside control
         self.bus = EventBus(self)
+        self.sample = Sample(self.bus)
         self.actions = ActionsRegistry()
+        self.data = {}
         self.exit_code = None
-        self.plate = Plate()
         self.threads = []
 
+    @property
+    def finished(self):
+        """:bool: Return True if handlers are registered on the bus."""
+        return not self.bus.handlers
+
     def end(self, code):
-        """Prepare app for exit."""
+        """Prepare app for exit.
+
+        Parameters
+        ----------
+        code : int
+            Exit code to return when the app exits.
+        """
         _LOGGER.info('Stopping camacq')
         self.exit_code = code
         for thread in self.threads:
@@ -205,10 +128,3 @@ class Center(object):
                 time.sleep(1)  # Short sleep to not burn 100% CPU.
         except KeyboardInterrupt:
             self.end(0)
-
-    @property
-    def finished(self):
-        """Return True if no real listeners are registered on the event bus."""
-        return not any(
-            listener for listener in self.bus.handler.registry
-            if not isinstance(listener, DummyEvent))

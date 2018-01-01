@@ -1,6 +1,6 @@
 """Microscope API specific modules."""
-from camacq.bootstrap import setup_all_modules
-from camacq.helper import FeatureParent
+from camacq.event import Event
+from camacq.helper import FeatureParent, setup_all_modules
 
 ACTION_API_SEND = 'api_send'
 
@@ -23,7 +23,7 @@ def send(center, commands, api_name=None):
     -------
     ::
 
-        send(api, [[('cmd', 'deletelist')], [('cmd', 'startscan')]])
+        send(center, [[('cmd', 'deletelist')], [('cmd', 'startscan')]])
     """
     for cmd in commands:
         center.actions.call(
@@ -31,12 +31,27 @@ def send(center, commands, api_name=None):
 
 
 def setup_package(center, config):
-    """Set up the microscope API package."""
+    """Set up the microscope API package.
+
+    Parameters
+    ----------
+    center : Center instance
+        The Center instance.
+    config : dict
+        The config dict.
+    """
     parent = FeatureParent()
     setup_all_modules(center, config, __name__, add_child=parent.add_child)
 
     def handle_action(**kwargs):
-        """Handle the action call to send a command to an api of a child."""
+        """Handle action call to send a command to an api of a child.
+
+        Parameters
+        ----------
+        **kwargs
+            Arbitrary keyword arguments. These will be passed to the
+            child method when an action is called.
+        """
         action_id = kwargs.pop('action_id')
         method = ACTION_TO_METHOD[action_id]
         child_name = kwargs.pop('child_name', None)
@@ -69,3 +84,75 @@ class Api(object):
             Return a JSON string with a list of replies from the API.
         """
         raise NotImplementedError()
+
+
+# pylint: disable=too-few-public-methods
+class CommandEvent(Event):
+    """An event received from the API.
+
+    Notify with this event when a command is received via API.
+    """
+
+    __slots__ = ()
+
+    @property
+    def command(self):
+        """:str: Return the JSON command string."""
+        return None
+
+
+class StartCommandEvent(CommandEvent):
+    """An event received from the API.
+
+    Notify with this event when imaging starts via API.
+    """
+
+    __slots__ = ()
+
+
+class StopCommandEvent(CommandEvent):
+    """An event received from the API.
+
+    Notify with this event when imaging stops via API.
+    """
+
+    __slots__ = ()
+
+
+class ImageEvent(Event):
+    """An event received from the API.
+
+    Notify with this event when an image is saved via API.
+    """
+
+    __slots__ = ()
+
+    @property
+    def path(self):
+        """:str: Return the absolute path to the image."""
+        return None
+
+    @property
+    def well_x(self):
+        """:int: Return x coordinate of the well of the image."""
+        return None
+
+    @property
+    def well_y(self):
+        """:int: Return y coordinate of the well of the image."""
+        return None
+
+    @property
+    def field_x(self):
+        """:int: Return x coordinate of the well of the image."""
+        return None
+
+    @property
+    def field_y(self):
+        """:int: Return y coordinate of the well of the image."""
+        return None
+
+    @property
+    def channel_id(self):
+        """:int: Return channel id of the image."""
+        return None

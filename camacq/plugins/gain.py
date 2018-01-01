@@ -8,23 +8,22 @@ from itertools import groupby
 import matplotlib.pyplot as plt
 import pandas as pd
 from jinja2 import Template
-from matrixscreener.experiment import attribute, attributes
+from matrixscreener.experiment import attribute
 from pkg_resources import resource_filename
 from scipy.optimize import curve_fit
 
-from camacq.api import ACTION_API_SEND, send
+from camacq.api import ACTION_API_SEND, ImageEvent, StopCommandEvent, send
 from camacq.api.leica import command
-from camacq.api.leica.helper import (format_new_name, get_field, get_imgs,
-                                     get_well)
 from camacq.config import load_config_file
-from camacq.const import (CONF_PLUGINS, DEFAULT_FIELDS_X, DEFAULT_FIELDS_Y,
-                          FIELD_NAME, FIELDS_X, FIELDS_Y, FIRST_JOB,
-                          IMAGING_DIR, JOB_ID, LAST_WELL, PACKAGE, WELL,
-                          WELL_NAME, WELL_NAME_CHANNEL)
-from camacq.control import ImageEvent, StopCommandEvent
+from camacq.const import (CHANNEL_ID, CONF_PLUGINS, DEFAULT_FIELDS_X,
+                          DEFAULT_FIELDS_Y, FIELD_NAME, FIELDS_X, FIELDS_Y,
+                          FIRST_JOB, IMAGING_DIR, JOB_ID, LAST_WELL, PACKAGE,
+                          WELL, WELL_NAME)
+from camacq.event import SampleImageEvent
 from camacq.helper import call_saved, handler_factory, read_csv, write_csv
 from camacq.image import make_proj
-from camacq.plate import Channel
+from camacq.plugins.rename_image import ACTION_RENAME_IMAGE
+from camacq.sample import Channel
 
 _LOGGER = logging.getLogger(__name__)
 BOX = 'box'
@@ -151,6 +150,7 @@ def setup_module(center, config):
             ImageEvent, handle_stage2))
     center.data[GAIN][COMMANDS] = deque()
     if stage1 or stage2:
+        center.sample.set_plate('0')  # Sample needs at least one plate.
         for commands, end_com in zip(com_data[0], com_data[1]):
             center.data[GAIN][COMMANDS].append((
                 send_com_and_start, commands, end_com, stop_end_stage1))
@@ -168,9 +168,10 @@ def get_gain_com(commands, channels, job_list):
     return commands
 
 
-def calc_gain(config, imgp, projs, plot=True):
+def calc_gain(center, save_path, projs, plot=True):
     """Calculate gain values for the well."""
-    gain_conf = config[CONF_PLUGINS][CONF_GAIN]
+    config = center.config
+    gain_conf = dict(config[CONF_PLUGINS][CONF_GAIN])
     objective = gain_conf.get(OBJECTIVE)
     if objective == END_10X:
         init_gain = resource_filename(PACKAGE, 'data/10x_gain.yml')
@@ -178,16 +179,17 @@ def calc_gain(config, imgp, projs, plot=True):
         init_gain = resource_filename(PACKAGE, 'data/40x_gain.yml')
     elif objective == END_63X:
         init_gain = resource_filename(PACKAGE, 'data/63x_gain.yml')
-    if not gain_conf.get(CONF_CHANNELS):
+    if CONF_CHANNELS not in gain_conf:
         init_gain = load_config_file(init_gain)
         gain_conf[CONF_CHANNELS] = init_gain[CONF_CHANNELS]
-    _LOGGER.info('Calculating gain...')
     init_gain = [
         Channel(channel[CONF_CHANNEL], gain)
         for channel in gain_conf[CONF_CHANNELS]
         for gain in channel[CONF_INIT_GAIN]]
 
-    return _calc_gain(imgp, init_gain, projs, plot=plot)
+    gains = _calc_gain(projs, init_gain, save_path, plot=plot)
+    _LOGGER.info('Calculated gains: %s', gains)
+    return gains
 
 
 def _power_func(inp, alpha, beta):
@@ -198,7 +200,10 @@ def _power_func(inp, alpha, beta):
 def _check_upward(points):
     """Return a function that checks if points move upward."""
     def wrapped(point):
-        """Return True if trend for point and neighbouring points is upward."""
+        """Return True if trend is upward.
+
+        The calculation is done for a point with neighbouring points.
+        """
         idx, item = point
         valid = item.valid and item.box <= 600
         prev = next_ = True
@@ -222,19 +227,16 @@ def _create_plot(path, x_data, y_data, coeffs, label):
     plt.savefig(path)
 
 
-def _calc_gain(imgp, init_gain, projs, plot=True):
+def _calc_gain(projs, init_gain, save_path, plot=True):
     """Calculate gain values for the well.
 
     Do the actual math.
     """
     # pylint: disable=too-many-locals
-    img_attr = attributes(imgp)
-    wellp = get_well(imgp)
     box_vs_gain = defaultdict(list)
 
-    _LOGGER.info('WELL_PATH: %s', wellp)
     for c_id, proj in projs.iteritems():
-        channel = init_gain[int(c_id)]
+        channel = init_gain[c_id]
         hist_data = pd.DataFrame({
             BOX: range(len(proj.histogram[0])),
             COUNT: proj.histogram[0]})
@@ -255,12 +257,10 @@ def _calc_gain(imgp, init_gain, projs, plot=True):
         x_data = roi[COUNT].astype(float).values
         y_data = roi[BOX].astype(float).values
         coeffs, _ = curve_fit(_power_func, x_data, y_data, p0=(1000, -1))
-        save_path = os.path.normpath(os.path.join(
-            wellp, (WELL_NAME_CHANNEL + '.ome.png').format(
-                img_attr.u, img_attr.v, int(c_id))))
+        _save_path = '{}{}.ome.png'.format(save_path, CHANNEL_ID.format(c_id))
         if plot:
             _create_plot(
-                save_path, hist_data[COUNT], hist_data[BOX], coeffs,
+                _save_path, hist_data[COUNT], hist_data[BOX], coeffs,
                 'count-box')
         # Find box value where count is close to zero.
         # Store that box value and it's corresponding gain value.
@@ -289,15 +289,14 @@ def _calc_gain(imgp, init_gain, projs, plot=True):
         coeffs, _ = curve_fit(
             _power_func, [p[1].box for p in long_group],
             [p[1].gain for p in long_group], p0=(1, 1))
-        save_path = os.path.normpath(os.path.join(
-            wellp, ('{}.png').format(channel)))
+        _save_path = '{}{}.png'.format(save_path, channel)
         if plot:
             _create_plot(
-                save_path, [p.box for p in points],
+                _save_path, [p.box for p in points],
                 [p.gain for p in points], coeffs, 'box-gain')
         gains[channel] = _power_func(255, *coeffs)
 
-    return {WELL_NAME.format(img_attr.u, img_attr.v): gains}
+    return gains
 
 
 def sanitize_gain(config, channel, gain):
@@ -334,14 +333,14 @@ def distribute_gain(center, gain_dict, template=None):
                 except ValueError:
                     _LOGGER.error('Failed to render template')
                 wells = [
-                    well for well, settings in template.iteritems()
+                    well_name for well_name, settings in template.iteritems()
                     if settings[GAIN_FROM_WELL] == gain_well]
-                for well in wells:
-                    center.plate.set_gain(well, channel, gain)
-                    center.plate.wells[well].set_fields(fields_x, fields_y)
+                for well_name in wells:
+                    center.sample.set_gain(well_name, channel, gain)
+                    center.sample.set_fields(well_name, fields_x, fields_y)
             else:
-                center.plate.set_gain(gain_well, channel, gain)
-                center.plate.wells[gain_well].set_fields(fields_x, fields_y)
+                center.sample.set_gain(gain_well, channel, gain)
+                center.sample.set_fields(gain_well, fields_x, fields_y)
 
 
 def save_gain(save_dir, saved_gains):
@@ -362,7 +361,7 @@ def get_com(center, job, job_list):
     # FIXME: CHECK GAINS AND RUN JOBS SMART  pylint: disable=fixme
     # Ie use one job for multiple wells where the gain is the same
     # or similar.
-    for well in center.plate.wells.values():
+    for well in center.sample.all_wells():
         if well.img_ok or not well.channels:
             # Only get commands for wells that are not imaged ok and
             # wells that have channels with gain set.
@@ -391,9 +390,9 @@ def get_init_com(center, job, template=None):
     wells = []
     if template:
         # Selected wells from template file.
-        for well, row in template.iteritems():
+        for well_name, row in template.iteritems():
             if 'true' in row[GAIN_SCAN]:
-                wells.append(well)
+                wells.append(well_name)
     else:
         # All wells.
         for ucoord in range(attribute(
@@ -409,16 +408,16 @@ def get_init_com(center, job, template=None):
     end_com_list = []
     end_com = []
     # Selected objective gain job cam command in wells.
-    for well in sorted(wells):
-        center.plate.set_well(well)
-        center.plate.wells[well].set_fields(fields_x, fields_y)
+    for well_name in sorted(wells):
+        center.sample.set_well(well_name)
+        center.sample.set_fields(well_name, fields_x, fields_y)
         com = []
-        for field in center.plate.wells[well].fields.values():
+        well = center.sample.get_well(well_name)
+        for field in center.sample.all_fields(well):
             if not field.gain_field:
                 continue
             com.append(command.cam_com(
-                job, center.plate.wells[well].x, center.plate.wells[well].y,
-                field.x, field.y, field.dx, field.dy))
+                job, well.x, well.y, field.x, field.y, field.dx, field.dy))
             end_com = [
                 CAM, well, JOB_ID.format(2),
                 FIELD_NAME.format(field.x, field.y)]
@@ -434,95 +433,79 @@ def get_init_com(center, job, template=None):
     return com_list, end_com_list
 
 
-def rename_imgs(imgp, f_job):
-    """Rename image and return new name."""
-    if attribute(imgp, 'E') == f_job:
-        new_name = format_new_name(imgp)
-    elif (attribute(imgp, 'E') == f_job + 1 and
-          attribute(imgp, 'C') == 0):
-        new_name = format_new_name(imgp, new_attr={'C': '01'})
-    elif (attribute(imgp, 'E') == f_job + 1 and
-          attribute(imgp, 'C') == 1):
-        new_name = format_new_name(imgp, new_attr={'C': '02'})
-    elif attribute(imgp, 'E') == f_job + 2:
-        new_name = format_new_name(imgp, new_attr={'C': '03'})
-    else:
-        return None
-    if os.path.exists(new_name):
-        os.remove(new_name)
-    os.rename(imgp, new_name)
-    return new_name
-
-
-def handle_imgs(path, job_id, f_job=2):
+def handle_imgs(center, images, first_job_id=2):
     """Handle acquired images, do renaming, make max projections."""
-    # Get all image paths in well or field, depending on path and
-    # job_id variable.
-    imgs = get_imgs(path, search=JOB_ID.format(job_id))
-    new_paths = []
     _LOGGER.info('Handling images...')
-    for imgp in imgs:
-        _LOGGER.debug('IMAGE PATH: %s', imgp)
-        new_name = rename_imgs(imgp, f_job)
-        _LOGGER.debug('NEW NAME: %s', new_name)
-        if new_name:
-            new_paths.append(new_name)
-    if not new_paths:
-        return
-    # Make a max proj per channel.
-    projs = make_proj(new_paths)
-    return projs
+    new_paths = []
+
+    def add_image_on_event(center, event):
+        """Add image to list."""
+        new_paths.append(event.image.path)
+
+    remove_handler = center.bus.register(SampleImageEvent, add_image_on_event)
+    for image_path in images:
+        center.actions.call(
+            'camacq.plugins.rename_image', ACTION_RENAME_IMAGE,
+            path=image_path, first_job_id=first_job_id)
+    remove_handler()
+    return list(set(new_paths))
 
 
 def handle_stage1(center, event):
     """Handle saved image during stage 1."""
     _LOGGER.info('Handling image during stage 1...')
-    imgp = event.path
-    if not imgp:
+    image_path = event.path
+    if not image_path:
         return
-    _LOGGER.debug('IMAGE PATH: %s', imgp)
-    img_attr = attributes(imgp)
+    field_name = FIELD_NAME.format(event.field_x, event.field_y)
     # This means only ever one well at a time.
-    if (FIELD_NAME.format(img_attr.x, img_attr.y) !=
+    if (field_name !=
             DEFAULT_LAST_FIELD_GAIN or
-            img_attr.c != DEFAULT_LAST_SEQ_GAIN):
+            event.channel_id != DEFAULT_LAST_SEQ_GAIN):
         return
-    wellp = get_well(imgp)
-    projs = handle_imgs(wellp, DEFAULT_JOB_ID_GAIN)
-    if not projs:
+    image = center.sample.get_image(image_path)
+    well_name = WELL_NAME.format(image.well_x, image.well_y)
+    well = center.sample.get_well(well_name)
+    new_paths = handle_imgs(center, well.images.keys(), DEFAULT_JOB_ID_GAIN)
+    if not new_paths:
         return
-    gain_dict = calc_gain(center.config, imgp, projs)
+    # Make a max proj per channel.
+    projs = make_proj(center.sample, new_paths)
+    imaging_dir = center.config.get(IMAGING_DIR, '')
+    plate = center.sample.get_plate()
+    save_path = os.path.normpath(os.path.join(
+        imaging_dir, 'gains', plate.name, well_name, well_name))
+    _LOGGER.info('Calculating gain settings for well: %s', well_name)
+    gains = calc_gain(center, save_path, projs)
+    gain_dict = {WELL_NAME.format(image.well_x, image.well_y): gains}
     _LOGGER.debug('Gain dict: %s', gain_dict)
     if SAVED_GAINS not in center.data:
         center.data[SAVED_GAINS] = defaultdict(dict)
     center.data[SAVED_GAINS].update(gain_dict)
     _LOGGER.debug('%s: %s', SAVED_GAINS, center.data[SAVED_GAINS])
-    save_gain(
-        center.config[IMAGING_DIR], center.data[SAVED_GAINS])
+    save_gain(imaging_dir, center.data[SAVED_GAINS])
     distribute_gain(
         center, gain_dict, template=center.data[GAIN].get(TEMPLATE))
-    _LOGGER.debug('Plate: %s', center.plate)
+    _LOGGER.debug('Sample: %s', center.sample)
 
 
 def handle_stage2(center, event):
     """Handle saved image during stage 2."""
     _LOGGER.info('Handling image during stage 2...')
     gain_conf = center.config[CONF_PLUGINS][CONF_GAIN]
-    imgp = event.path
-    if not imgp:
+    image_path = event.path
+    if not image_path:
         return
-    img_attr = attributes(imgp)
-    well = center.plate.wells.get(WELL_NAME.format(img_attr.u, img_attr.v))
+    well = center.sample.get_well(WELL_NAME.format(event.well_x, event.well_y))
     if not well:
         return
-    field = well.fields.get(FIELD_NAME.format(img_attr.x, img_attr.y))
+    field_name = FIELD_NAME.format(event.field_x, event.field_y)
+    field = well.fields.get(field_name)
     if not field:
         return
-    well.fields[FIELD_NAME.format(
-        img_attr.x, img_attr.y)] = field._replace(
-            img_ok=True)
-    fieldp = get_field(imgp)
-    handle_imgs(fieldp, attribute(imgp, 'E'), f_job=gain_conf[FIRST_JOB])
+    well.fields[field_name] = field._replace(img_ok=True)
+    handle_imgs(
+        center, field.images.keys(), gain_conf[FIRST_JOB])
 
 
 def stop(center):
@@ -532,7 +515,7 @@ def stop(center):
     center.data[GAIN][LISTENERS].clear()
     store = {'scan_finished': False}  # python 2 doesn't support nonlocal
 
-    def check_scan_finished(event):  # pylint: disable=unused-argument
+    def check_scan_finished(center, event):
         """Check that scan is finished."""
         store['scan_finished'] = True
 
@@ -551,7 +534,6 @@ def stop(center):
 
 def stop_end_stage1(center, event):
     """Handle event that should end stage1 after stop."""
-    # pylint:disable=unused-argument
     _LOGGER.info('Handling stop event at end stage 1...')
     stop(center)
     center.data[GAIN][LISTENERS].append(center.bus.register(
@@ -572,7 +554,6 @@ def stop_end_stage1(center, event):
 
 def stop_mid_stage2(center, event):
     """Handle event that should continue with stage2 after stop."""
-    # pylint:disable=unused-argument
     _LOGGER.info('Handling stop event during stage 2...')
     stop(center)
     center.data[GAIN][LISTENERS].append(center.bus.register(
@@ -584,7 +565,6 @@ def stop_mid_stage2(center, event):
 
 def stop_end_stage2(center, event):
     """Handle event that should end stage2 after stop."""
-    # pylint:disable=unused-argument
     _LOGGER.info('Handling stop event at end stage 2...')
     stop(center)
     center.data[GAIN][LISTENERS].append(center.bus.register(
@@ -602,7 +582,7 @@ def send_com_and_start(center, commands, stop_data, handler):
             return True
 
     remove_listener = center.bus.register(
-        ImageEvent, handler_factory(handler, stop_test))
+        ImageEvent, handler_factory(center, handler, stop_test))
 
     center.actions.call(
         'camacq.api', ACTION_API_SEND, command=command.del_com())
