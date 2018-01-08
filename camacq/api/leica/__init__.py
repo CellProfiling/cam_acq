@@ -7,12 +7,12 @@ import time
 from collections import OrderedDict
 
 from matrixscreener.cam import CAM
+from matrixscreener.experiment import attribute, attribute_as_str
 
-from camacq.api import Api
-from camacq.api.leica.helper import find_image_path
-from camacq.const import HOST, IMAGING_DIR, PORT
-from camacq.control import (CommandEvent, ImageEvent, StartCommandEvent,
-                            StopCommandEvent)
+from camacq.api import (Api, CommandEvent, ImageEvent, StartCommandEvent,
+                        StopCommandEvent)
+from camacq.api.leica.helper import find_image_path, get_field, get_imgs
+from camacq.const import HOST, IMAGING_DIR, JOB_ID, PORT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,7 +23,17 @@ SCAN_STARTED = 'startscan'
 
 
 def setup_package(center, config, add_child=None):
-    """Set up Leica api package."""
+    """Set up Leica api package.
+
+    Parameters
+    ----------
+    center : Center instance
+        The Center instance.
+    config : dict
+        The config dict.
+    add_child : callable
+        A function that registers the child with the parent package.
+    """
     host = config.get(HOST, 'localhost')
     try:
         cam = CAM(
@@ -50,8 +60,16 @@ class LeicaApi(Api, threading.Thread):
         self.client = client
         self.stop_thread = threading.Event()
 
+    # TODO: Check what events are reported by CAM server. pylint: disable=fixme
+    # Make sure that all images get reported eventually.
     def _receive(self, replies=None):
-        """Receive replies from CAM server and notify an event."""
+        """Receive replies from CAM server and fire an event per reply.
+
+        Parameters
+        ----------
+        replies : list
+            A list of replies from the CAM server.
+        """
         if replies is None:
             replies = self.client.receive()
         if replies is None:
@@ -61,15 +79,23 @@ class LeicaApi(Api, threading.Thread):
         # reply must be an iterable
         for reply in replies:
             if REL_IMAGE_PATH in reply:
-                self._center.bus.notify(LeicaImageEvent(self._center, reply))
+                rel_path = reply[REL_IMAGE_PATH]
+                image_path = find_image_path(
+                    rel_path, self._center.config[IMAGING_DIR])
+                field_path = get_field(image_path)
+                image_paths = get_imgs(
+                    field_path,
+                    search=JOB_ID.format(attribute(image_path, 'E')))
+                for path in image_paths:
+                    self._center.bus.notify(LeicaImageEvent(path))
             elif SCAN_STARTED in reply.items():
                 self._center.bus.notify(
-                    LeicaStartCommandEvent(self._center, reply))
+                    LeicaStartCommandEvent(reply))
             elif SCAN_FINISHED in reply.values():
                 self._center.bus.notify(
-                    LeicaStopCommandEvent(self._center, reply))
+                    LeicaStopCommandEvent(reply))
             else:
-                self._center.bus.notify(LeicaCommandEvent(self._center, reply))
+                self._center.bus.notify(LeicaCommandEvent(reply))
 
     def send(self, command=None):
         """Send a command to the Leica API.
@@ -97,6 +123,8 @@ class LeicaApi(Api, threading.Thread):
 class LeicaCommandEvent(CommandEvent):
     """Leica CommandEvent class."""
 
+    __slots__ = ()
+
     @property
     def command(self):
         """Return the JSON command string."""
@@ -106,16 +134,51 @@ class LeicaCommandEvent(CommandEvent):
 class LeicaStartCommandEvent(StartCommandEvent, LeicaCommandEvent):
     """Leica StartCommandEvent class."""
 
+    __slots__ = ()
+
 
 class LeicaStopCommandEvent(StopCommandEvent, LeicaCommandEvent):
     """Leica StopCommandEvent class."""
+
+    __slots__ = ()
 
 
 class LeicaImageEvent(ImageEvent):
     """Leica ImageEvent class."""
 
+    __slots__ = ()
+
     @property
     def path(self):
-        """Return the absolute path to the image."""
-        rel_path = self.data.get(REL_IMAGE_PATH, '')
-        return find_image_path(rel_path, self.center.config[IMAGING_DIR])
+        """:str: Return absolute path to the image."""
+        return self.data
+
+    @property
+    def well_x(self):
+        """:int: Return x coordinate of the well of the image."""
+        return attribute(self.data, 'U')
+
+    @property
+    def well_y(self):
+        """:int: Return y coordinate of the well of the image."""
+        return attribute(self.data, 'V')
+
+    @property
+    def field_x(self):
+        """:int: Return x coordinate of the well of the image."""
+        return attribute(self.data, 'X')
+
+    @property
+    def field_y(self):
+        """:int: Return y coordinate of the well of the image."""
+        return attribute(self.data, 'Y')
+
+    @property
+    def channel_id(self):
+        """:int: Return channel id of the image."""
+        return attribute(self.data, 'C')
+
+    @property
+    def plate_name(self):
+        """:str: Return plate name of the image."""
+        return attribute_as_str(self.data, 'S')

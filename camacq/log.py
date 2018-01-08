@@ -13,7 +13,18 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def check_path(path):
-    """Check that path to config exists and is writable for logging."""
+    """Check that path to config exists and is writable for logging.
+
+    Parameters
+    ----------
+    path : str
+        The path to the log file or log directory.
+
+    Returns
+    -------
+    bool
+        Return True if path exists and is writable.
+    """
     if os.path.isfile(path) and os.access(path, os.W_OK) or \
        not os.path.isfile(path) and os.access(os.path.dirname(path), os.W_OK):
         return True
@@ -24,7 +35,13 @@ def check_path(path):
 
 
 def enable_log(config):
-    """Enable logging."""
+    """Enable logging.
+
+    Parameters
+    ----------
+    config : dict
+        The dict with the configuration.
+    """
     logging.basicConfig(level=logging.INFO)
     root_logger = logging.getLogger()
     # basicConfig has added a StreamHandler

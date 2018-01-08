@@ -16,21 +16,50 @@ DEFAULT_CONFIG_TEMPLATE = 'data/config.yml'
 
 
 def get_default_config_dir():
-    """Get the default configuration directory based on OS."""
+    """Get the default configuration directory based on OS.
+
+    Returns
+    -------
+    str
+        Return the path to the configuration directory.
+    """
     data_dir = os.getenv('APPDATA') if os.name == 'nt' \
         else os.path.expanduser('~')
     return os.path.join(data_dir, CONFIG_DIR_NAME)
 
 
 def find_config_file(config_dir):
-    """Look in given directory for supported configuration files."""
+    """Find the configuration file in the configuration directory.
+
+    Parameters
+    ----------
+    config_dir : str
+        The path to the configuration directory.
+
+    Returns
+    -------
+    str
+        Return path to the configuration file if found, None if not
+        found.
+    """
     config_path = os.path.join(config_dir, YAML_CONFIG_FILE)
 
     return config_path if os.path.isfile(config_path) else None
 
 
 def load_config_file(path):
-    """Parse a YAML configuration file."""
+    """Parse a YAML configuration file.
+
+    Parameters
+    ----------
+    path : str
+        The path to the configuration YAML file.
+
+    Returns
+    -------
+    dict
+        Return a dict with the configuration contents.
+    """
     try:
         with open(path, 'r') as yml_file:
             cfg = ruyml.safe_load(yml_file, ruyml.RoundTripLoader)
@@ -47,9 +76,18 @@ def load_config_file(path):
 
 
 def create_default_config(config_dir):
-    """Create a default configuration file in given configuration directory.
+    """Create a default config file in given configuration directory.
 
-    Return path to new config file if success, None if failed.
+    Parameters
+    ----------
+    config_dir : str
+        The path to the configuration directory.
+
+    Returns
+    -------
+    str
+        Return path to new configuration file if success, None if
+        failed.
     """
     config_path = os.path.join(config_dir, YAML_CONFIG_FILE)
     default_config_template = resource_filename(
@@ -70,10 +108,19 @@ def create_default_config(config_dir):
 
 
 def ensure_config_exists(config_dir):
-    """Ensure a config file exists in given configuration directory.
+    """Ensure configuration file exists in the configuration directory.
 
-    Create a default one if needed.
-    Return path to the config file.
+    Create a default configuration file if needed.
+
+    Parameters
+    ----------
+    config_dir : str
+        The path to the configuration directory.
+
+    Returns
+    -------
+    str
+        Return path to the configuration file.
     """
     config_path = find_config_file(config_dir)
 

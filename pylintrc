@@ -3,3 +3,4 @@ reports=no
 
 disable=
   locally-disabled,
+  unused-argument,

@@ -11,7 +11,7 @@ Contents:
 .. toctree::
    :includehidden:
 
-   source/modules
+   source/camacq
 
 Indices and tables
 ==================

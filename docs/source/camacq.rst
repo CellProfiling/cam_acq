@@ -1,67 +1,57 @@
 camacq package
 ==============
 
-Subpackages
------------
-
 .. toctree::
 
-Submodules
-----------
+   api
+   plugins
 
-camacq.command module
----------------------
+camacq.bootstrap module
+-----------------------
 
-.. automodule:: camacq.command
-    :members:
-    :show-inheritance:
+.. automodule:: camacq.bootstrap
 
 camacq.config module
 --------------------
 
 .. automodule:: camacq.config
-    :members:
-    :show-inheritance:
+
+camacq.const module
+-------------------
+
+.. automodule:: camacq.const
 
 camacq.control module
 ---------------------
 
 .. automodule:: camacq.control
-    :members:
-    :show-inheritance:
 
-camacq.gain module
-------------------
+camacq.event module
+-------------------
 
-.. automodule:: camacq.gain
-    :members:
-    :show-inheritance:
+.. automodule:: camacq.event
 
 camacq.helper module
 --------------------
 
 .. automodule:: camacq.helper
-    :members:
-    :show-inheritance:
 
 camacq.image module
 -------------------
 
 .. automodule:: camacq.image
-    :members:
-    :show-inheritance:
 
 camacq.log module
 -----------------
 
 .. automodule:: camacq.log
-    :members:
-    :show-inheritance:
 
+camacq.sample module
+--------------------
+
+.. automodule:: camacq.sample
 
 Module contents
 ---------------
 
 .. automodule:: camacq
-    :members:
-    :show-inheritance:
