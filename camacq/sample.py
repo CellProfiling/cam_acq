@@ -2,8 +2,6 @@
 import logging
 from collections import OrderedDict
 
-from matrixscreener.experiment import attribute
-
 from camacq.api import ImageEvent
 from camacq.const import FIELD_NAME, WELL_NAME
 from camacq.event import (ChannelEvent, FieldEvent, ImageRemovedEvent,
@@ -61,8 +59,8 @@ class Field(object):
 
     Parameters
     ----------
-    sample : Sample instance
-        The Sample instance.
+    images : dict
+        All the images of the sample.
     x : int
         Coordinate of field in x.
     y : int
@@ -113,10 +111,8 @@ class Well(object):
 
     Parameters
     ----------
-    bus : EventBus instance
-        The EventBus instance.
-    sample : Sample instance
-        The Sample instance.
+    images : dict
+        All the images of the sample.
     x : int
         x coordinate of the well, minimum 0.
     y : int
@@ -221,8 +217,8 @@ class Plate(object):
 
     Parameters
     ----------
-    bus : EventBus instance
-        The EventBus instance.
+    images : dict
+        All the images of the sample.
     name: str
         The name of the plate.
 
@@ -252,43 +248,45 @@ class Plate(object):
             if image.plate_name == self.name
         }
 
-    def set_gain(self, well_name, channel_name, gain):
+    def set_gain(self, well_x, well_y, channel_name, gain):
         """Set gain in a channel in a well.
 
         Create a Well instance if well not already exists.
 
         Parameters
         ----------
-        well_name : str
-            The name of the well where to set gain.
+        well_x : int
+            x coordinate of the well.
+        well_y : int
+            y coordinate of the well.
         channel_name : str
             The name of the channel where to set gain.
         gain : int
             The gain value to set.
         """
+        well_name = WELL_NAME.format(well_x, well_y)
         if well_name not in self.wells:
-            self.set_well(well_name)
+            self.set_well(well_x, well_y)
         well = self.wells[well_name]
         channel = Channel(channel_name, gain)
-        well.channels.update(
-            {channel_name: channel})
+        well.channels.update({channel_name: channel})
         return channel
 
-    def set_well(self, well_name):
+    def set_well(self, well_x, well_y):
         """Create a Well instance with well_name stored in wells.
 
         Parameters
         ----------
-        well_name : str
-            The name of the well to set.
+        well_x : int
+            x coordinate of the well.
+        well_y : int
+            y coordinate of the well.
 
         Returns
         -------
         Well instance
             Return the Well instance.
         """
-        well_x = attribute('--{}'.format(well_name), 'U')
-        well_y = attribute('--{}'.format(well_name), 'V')
         well = Well(self._images, well_x, well_y)
         self.wells[well.name] = well
         return well
@@ -407,13 +405,15 @@ class Sample(object):
             return None
         return well
 
-    def set_well(self, well_name, plate_name=None):
+    def set_well(self, well_x, well_y, plate_name=None):
         """Set a well on a plate.
 
         Parameters
         ----------
-        well_name : str
-            The name of the well to create.
+        well_x : int
+            x coordinate of the well.
+        well_y : int
+            y coordinate of the well.
         plate_name : str
             The name of the plate that should hold the well.
 
@@ -426,12 +426,12 @@ class Sample(object):
         plate = self.get_plate(plate_name)
         if not plate:
             return
-        well = plate.set_well(well_name)
+        well = plate.set_well(well_x, well_y)
         event = WellEvent({'sample': self, 'plate': plate, 'well': well})
         self._bus.notify(event)
         return well
 
-    def set_gain(self, well_name, channel, gain, plate_name=None):
+    def set_gain(self, well_x, well_y, channel_name, gain, plate_name=None):
         """Set gain in a channel in a well of a plate.
 
         Create a Well instance if well not already exists. Pick the
@@ -439,9 +439,11 @@ class Sample(object):
 
         Parameters
         ----------
-        well_name : str
-            The name of the well where to set gain.
-        channel : str
+        well_x : int
+            x coordinate of the well.
+        well_y : int
+            y coordinate of the well.
+        channel_name : str
             The name of the channel where to set gain.
         gain : int
             The gain value to set.
@@ -449,14 +451,15 @@ class Sample(object):
             The name of the plate that should hold the well with the
             channel.
         """
+        # pylint: disable=too-many-arguments
         plate = self.get_plate(plate_name)
         if not plate:
             return
-        channel = plate.set_gain(well_name, channel, gain)
+        channel = plate.set_gain(well_x, well_y, channel_name, gain)
+        well_name = WELL_NAME.format(well_x, well_y)
         well = plate.wells[well_name]
         event = ChannelEvent({
-            'sample': self, 'plate': plate, 'well': well,
-            'channel': well.channels[channel]})
+            'sample': self, 'plate': plate, 'well': well, 'channel': channel})
         self._bus.notify(event)
 
     def all_fields(self, well_name, plate_name=None):
@@ -606,7 +609,7 @@ class Sample(object):
             well_name = WELL_NAME.format(well_x, well_y)
             well = self.get_well(well_name)
             if not well:
-                well = self.set_well(well_name)
+                well = self.set_well(well_x, well_y, plate_name=plate_name)
 
         if all(
                 name is not None

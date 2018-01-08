@@ -319,6 +319,7 @@ def sanitize_gain(config, channel, gain):
 
 def distribute_gain(center, gain_dict, template=None):
     """Collate gain values and distribute them to the wells."""
+    # pylint: disable=too-many-locals
     config = center.config
     fields_x = config.get(FIELDS_X, DEFAULT_FIELDS_X)
     fields_y = config.get(FIELDS_Y, DEFAULT_FIELDS_Y)
@@ -337,11 +338,15 @@ def distribute_gain(center, gain_dict, template=None):
                     well_name for well_name, settings in template.iteritems()
                     if settings[GAIN_FROM_WELL] == gain_well]
                 for well_name in wells:
-                    center.sample.set_gain(well_name, channel, gain)
+                    well_x = attribute('--{}'.format(well_name), 'U')
+                    well_y = attribute('--{}'.format(well_name), 'V')
+                    center.sample.set_gain(well_x, well_y, channel, gain)
                     well = center.sample.get_well(well_name)
                     add_fields(well, fields_x, fields_y)
             else:
-                center.sample.set_gain(gain_well, channel, gain)
+                well_x = attribute('--{}'.format(gain_well), 'U')
+                well_y = attribute('--{}'.format(gain_well), 'V')
+                center.sample.set_gain(well_x, well_y, channel, gain)
                 well = center.sample.get_well(gain_well)
                 add_fields(well, fields_x, fields_y)
 
@@ -412,7 +417,9 @@ def get_init_com(center, job, template=None):
     end_com = []
     # Selected objective gain job cam command in wells.
     for well_name in sorted(wells):
-        well = center.sample.set_well(well_name)
+        well_x = attribute('--{}'.format(well_name), 'U')
+        well_y = attribute('--{}'.format(well_name), 'V')
+        well = center.sample.set_well(well_x, well_y)
         add_fields(well, fields_x, fields_y)
         com = []
         for field in center.sample.all_fields(well):
