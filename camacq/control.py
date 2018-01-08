@@ -2,7 +2,7 @@
 import logging
 import time
 
-from camacq.event import EventBus
+from camacq.event import CamAcqStartEvent, CamAcqStopEvent, EventBus
 from camacq.sample import Sample
 
 _LOGGER = logging.getLogger(__name__)
@@ -94,7 +94,7 @@ class Center(object):
         self.sample = Sample(self.bus)
         self.actions = ActionsRegistry()
         self.data = {}
-        self.exit_code = None
+        self.exit_code = 0
         self.threads = []
 
     @property
@@ -111,6 +111,7 @@ class Center(object):
             Exit code to return when the app exits.
         """
         _LOGGER.info('Stopping camacq')
+        self.bus.notify(CamAcqStopEvent({'exit_code': code}))
         self.exit_code = code
         for thread in self.threads:
             thread.stop_thread.set()
@@ -120,6 +121,7 @@ class Center(object):
         """Start the app."""
         try:
             _LOGGER.info('Starting camacq')
+            self.bus.notify(CamAcqStartEvent())
             while True:
                 if self.finished:
                     _LOGGER.info('Experiment finished!')

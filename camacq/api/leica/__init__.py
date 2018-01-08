@@ -87,8 +87,8 @@ class LeicaApi(Api, threading.Thread):
                     field_path,
                     search=JOB_ID.format(attribute(image_path, 'E')))
                 for path in image_paths:
-                    self._center.bus.notify(LeicaImageEvent(path))
-            elif SCAN_STARTED in reply.items():
+                    self._center.bus.notify(LeicaImageEvent({'path': path}))
+            elif SCAN_STARTED in reply.values():
                 self._center.bus.notify(
                     LeicaStartCommandEvent(reply))
             elif SCAN_FINISHED in reply.values():
@@ -151,34 +151,39 @@ class LeicaImageEvent(ImageEvent):
     @property
     def path(self):
         """:str: Return absolute path to the image."""
-        return self.data
+        return self.data.get('path', '')
 
     @property
     def well_x(self):
         """:int: Return x coordinate of the well of the image."""
-        return attribute(self.data, 'U')
+        return attribute(self.path, 'U')
 
     @property
     def well_y(self):
         """:int: Return y coordinate of the well of the image."""
-        return attribute(self.data, 'V')
+        return attribute(self.path, 'V')
 
     @property
     def field_x(self):
         """:int: Return x coordinate of the well of the image."""
-        return attribute(self.data, 'X')
+        return attribute(self.path, 'X')
 
     @property
     def field_y(self):
         """:int: Return y coordinate of the well of the image."""
-        return attribute(self.data, 'Y')
+        return attribute(self.path, 'Y')
 
     @property
     def channel_id(self):
         """:int: Return channel id of the image."""
-        return attribute(self.data, 'C')
+        return attribute(self.path, 'C')
+
+    @property
+    def job_id(self):
+        """:int: Return job id of the image."""
+        return attribute(self.path, 'E')
 
     @property
     def plate_name(self):
         """:str: Return plate name of the image."""
-        return attribute_as_str(self.data, 'S')
+        return attribute_as_str(self.path, 'S')

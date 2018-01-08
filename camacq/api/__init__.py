@@ -156,3 +156,8 @@ class ImageEvent(Event):
     def channel_id(self):
         """:int: Return channel id of the image."""
         return None
+
+    @property
+    def plate_name(self):
+        """:str: Return plate name of the image."""
+        return None

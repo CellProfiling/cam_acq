@@ -49,7 +49,7 @@ def test_gain(mock_os_path):
     pprint.pprint(config)
     center = Center(config)
     for path in images:
-        center.bus.notify(MockImageEvent(path))
+        center.bus.notify(MockImageEvent({'path': path}))
     projs = make_proj(center.sample, images)
     save_path = os.path.join(WELL_PATH, WELL_NAME)
     gain_dict = calc_gain(center, save_path, projs, plot=False)

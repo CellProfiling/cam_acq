@@ -192,6 +192,26 @@ def handler_factory(center, handler, test):
     return handle_test
 
 
+def add_fields(well, fields_x, fields_y):
+    """Add a number of fields in a well with some default values.
+
+    Field 0, 0 and field 1, 1 will be set as gain_field.
+
+    Parameters
+    ----------
+    well : Well instance
+        Well instance where to add the fields.
+    fields_x : int
+        Number of fields in x to add.
+    fields_y : int
+        Number of fields in y to add.
+    """
+    for i in range(fields_y):
+        for j in range(fields_x):
+            well.set_field(
+                j, i, 0, 0, j == 0 and i == 0 or j == 1 and i == 1)
+
+
 class FeatureParent(object):
     """Represent a parent of features of a package.
 
