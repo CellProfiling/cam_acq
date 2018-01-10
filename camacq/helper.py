@@ -104,7 +104,7 @@ def setup_all_modules(center, config, package_path, **kwargs):
         else:
             module = loader.find_module(name).load_module(name)
             _MODULE_CACHE[name] = module
-        _LOGGER.info('Loaded %s', name)
+        _LOGGER.debug('Loaded %s', name)
         keys = [
             name for name in imported_pkg.__name__.split('.')
             if name != PACKAGE]
