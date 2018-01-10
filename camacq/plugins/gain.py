@@ -19,8 +19,9 @@ from camacq.const import (CHANNEL_ID, CONF_PLUGINS, DEFAULT_FIELDS_X,
                           DEFAULT_FIELDS_Y, FIELD_NAME, FIELDS_X, FIELDS_Y,
                           FIRST_JOB, IMAGING_DIR, JOB_ID, LAST_WELL, PACKAGE,
                           WELL, WELL_NAME)
-from camacq.event import SampleImageEvent
-from camacq.helper import call_saved, handler_factory, read_csv, write_csv
+from camacq.event import SampleEvent
+from camacq.helper import (add_fields, call_saved, handler_factory, read_csv,
+                           write_csv)
 from camacq.image import make_proj
 from camacq.plugins.rename_image import ACTION_RENAME_IMAGE
 from camacq.sample import Channel
@@ -265,7 +266,7 @@ def _calc_gain(projs, init_gain, save_path, plot=True):
         # Find box value where count is close to zero.
         # Store that box value and it's corresponding gain value.
         # Store boolean saying if second slope coefficient is negative.
-        box_vs_gain[channel.channel].append(Data._make((
+        box_vs_gain[channel.name].append(Data._make((
             _power_func(COUNT_CLOSE_TO_ZERO, *coeffs),
             channel.gain, coeffs[1] < 0)))
 
@@ -318,6 +319,7 @@ def sanitize_gain(config, channel, gain):
 
 def distribute_gain(center, gain_dict, template=None):
     """Collate gain values and distribute them to the wells."""
+    # pylint: disable=too-many-locals
     config = center.config
     fields_x = config.get(FIELDS_X, DEFAULT_FIELDS_X)
     fields_y = config.get(FIELDS_Y, DEFAULT_FIELDS_Y)
@@ -336,11 +338,17 @@ def distribute_gain(center, gain_dict, template=None):
                     well_name for well_name, settings in template.iteritems()
                     if settings[GAIN_FROM_WELL] == gain_well]
                 for well_name in wells:
-                    center.sample.set_gain(well_name, channel, gain)
-                    center.sample.set_fields(well_name, fields_x, fields_y)
+                    well_x = attribute('--{}'.format(well_name), 'U')
+                    well_y = attribute('--{}'.format(well_name), 'V')
+                    center.sample.set_gain(well_x, well_y, channel, gain)
+                    well = center.sample.get_well(well_name)
+                    add_fields(well, fields_x, fields_y)
             else:
-                center.sample.set_gain(gain_well, channel, gain)
-                center.sample.set_fields(gain_well, fields_x, fields_y)
+                well_x = attribute('--{}'.format(gain_well), 'U')
+                well_y = attribute('--{}'.format(gain_well), 'V')
+                center.sample.set_gain(well_x, well_y, channel, gain)
+                well = center.sample.get_well(gain_well)
+                add_fields(well, fields_x, fields_y)
 
 
 def save_gain(save_dir, saved_gains):
@@ -409,10 +417,11 @@ def get_init_com(center, job, template=None):
     end_com = []
     # Selected objective gain job cam command in wells.
     for well_name in sorted(wells):
-        center.sample.set_well(well_name)
-        center.sample.set_fields(well_name, fields_x, fields_y)
+        well_x = attribute('--{}'.format(well_name), 'U')
+        well_y = attribute('--{}'.format(well_name), 'V')
+        well = center.sample.set_well(well_x, well_y)
+        add_fields(well, fields_x, fields_y)
         com = []
-        well = center.sample.get_well(well_name)
         for field in center.sample.all_fields(well):
             if not field.gain_field:
                 continue
@@ -442,7 +451,7 @@ def handle_imgs(center, images, first_job_id=2):
         """Add image to list."""
         new_paths.append(event.image.path)
 
-    remove_handler = center.bus.register(SampleImageEvent, add_image_on_event)
+    remove_handler = center.bus.register(SampleEvent, add_image_on_event)
     for image_path in images:
         center.actions.call(
             'camacq.plugins.rename_image', ACTION_RENAME_IMAGE,

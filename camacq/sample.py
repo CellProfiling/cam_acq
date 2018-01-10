@@ -2,11 +2,10 @@
 import logging
 from collections import OrderedDict
 
-from matrixscreener.experiment import attribute
-
 from camacq.api import ImageEvent
 from camacq.const import FIELD_NAME, WELL_NAME
-from camacq.event import FieldEvent, PlateEvent, SampleImageEvent, WellEvent
+from camacq.event import (ChannelEvent, FieldEvent, ImageRemovedEvent,
+                          PlateEvent, WellEvent)
 from camacq.image import Image
 
 _LOGGER = logging.getLogger(__name__)
@@ -17,29 +16,29 @@ class Channel(object):
 
     Parameters
     ----------
-    channel : str
+    channel_name : str
         Name of the channel.
     gain : int
         Gain value.
 
     Attributes
     ----------
-    channel : str
+    name : str
         Return name of the channel.
     """
 
     # pylint: disable=too-few-public-methods
 
-    __slots__ = ('channel', '_gain', )
+    __slots__ = ('name', '_gain', )
 
-    def __init__(self, channel, gain):
+    def __init__(self, channel_name, gain):
         """Set up instance."""
-        self.channel = channel
+        self.name = channel_name
         self._gain = gain
 
     def __repr__(self):
         """Return the representation."""
-        return "<Channel {}: gain: {}>".format(self.channel, self._gain)
+        return "<Channel {}: gain: {}>".format(self.name, self._gain)
 
     @property
     def gain(self):
@@ -60,8 +59,8 @@ class Field(object):
 
     Parameters
     ----------
-    sample : Sample instance
-        The Sample instance.
+    images : dict
+        All the images of the sample.
     x : int
         Coordinate of field in x.
     y : int
@@ -112,10 +111,8 @@ class Well(object):
 
     Parameters
     ----------
-    bus : EventBus instance
-        The EventBus instance.
-    sample : Sample instance
-        The Sample instance.
+    images : dict
+        All the images of the sample.
     x : int
         x coordinate of the well, minimum 0.
     y : int
@@ -132,12 +129,11 @@ class Well(object):
         instances.
     """
 
-    __slots__ = ('_bus', '_images', 'x', 'y', '_fields', 'channels')
+    __slots__ = ('_images', 'x', 'y', '_fields', 'channels')
 
-    def __init__(self, bus, images, x, y):
+    def __init__(self, images, x, y):
         """Set up instance."""
         # pylint: disable=invalid-name
-        self._bus = bus
         self._images = images
         self.x = x
         self.y = y
@@ -157,7 +153,7 @@ class Well(object):
         ::
 
             >>> well = Well(bus, sample, 0, 0)
-            >>> well.add_field(1, 3, 0, 1, True, False)
+            >>> well.set_field(1, 3, 0, 1, True, False)
             >>> well.fields
             {'X01--Y03': Field(x=1, y=3, dx=0, dy=1, \
 gain_field=True, img_ok=False)}
@@ -184,10 +180,10 @@ gain_field=True, img_ok=False)}
         """:str: Return a string representing the name of the well."""
         return WELL_NAME.format(int(self.x), int(self.y))
 
-    def add_field(
+    def set_field(
             self, xcoord, ycoord, dxpx=0, dypx=0, gain_field=False,
             img_ok=False):
-        """Add a field to the well.
+        """Set a field in the well.
 
         Parameters
         ----------
@@ -212,24 +208,8 @@ gain_field=True, img_ok=False)}
         # pylint: disable=too-many-arguments
         field = Field(
             self._images, xcoord, ycoord, dxpx, dypx, gain_field, img_ok)
-        self._fields.update({field.name: field})  # pylint: disable=no-member
-        self._bus.notify(FieldEvent(field))
+        self._fields.update({field.name: field})
         return field
-
-    def set_fields(self, fields_x, fields_y):
-        """Set fields.
-
-        Parameters
-        ----------
-        fields_x : int
-            Number of fields in x to add.
-        fields_y : int
-            Number of fields in y to add.
-        """
-        for i in range(fields_y):
-            for j in range(fields_x):
-                self.add_field(
-                    j, i, 0, 0, j == 0 and i == 0 or j == 1 and i == 1)
 
 
 class Plate(object):
@@ -237,8 +217,8 @@ class Plate(object):
 
     Parameters
     ----------
-    bus : EventBus instance
-        The EventBus instance.
+    images : dict
+        All the images of the sample.
     name: str
         The name of the plate.
 
@@ -250,9 +230,8 @@ class Plate(object):
         A dict where keys are well names and values are Well instances.
     """
 
-    def __init__(self, bus, images, name):
+    def __init__(self, images, name):
         """Set up instance."""
-        self._bus = bus
         self._images = images
         self.name = name
         self.wells = {}
@@ -269,45 +248,47 @@ class Plate(object):
             if image.plate_name == self.name
         }
 
-    def set_gain(self, well_name, channel, gain):
+    def set_gain(self, well_x, well_y, channel_name, gain):
         """Set gain in a channel in a well.
 
         Create a Well instance if well not already exists.
 
         Parameters
         ----------
-        well_name : str
-            The name of the well where to set gain.
-        channel : str
+        well_x : int
+            x coordinate of the well.
+        well_y : int
+            y coordinate of the well.
+        channel_name : str
             The name of the channel where to set gain.
         gain : int
             The gain value to set.
         """
+        well_name = WELL_NAME.format(well_x, well_y)
         if well_name not in self.wells:
-            self.set_well(well_name)
+            self.set_well(well_x, well_y)
         well = self.wells[well_name]
-        well.channels.update(
-            {channel: Channel(channel, gain)})
-        self._bus.notify(WellEvent(well))
+        channel = Channel(channel_name, gain)
+        well.channels.update({channel_name: channel})
+        return channel
 
-    def set_well(self, well_name):
+    def set_well(self, well_x, well_y):
         """Create a Well instance with well_name stored in wells.
 
         Parameters
         ----------
-        well_name : str
-            The name of the well to set.
+        well_x : int
+            x coordinate of the well.
+        well_y : int
+            y coordinate of the well.
 
         Returns
         -------
         Well instance
             Return the Well instance.
         """
-        well_x = attribute('--{}'.format(well_name), 'U')
-        well_y = attribute('--{}'.format(well_name), 'V')
-        well = Well(self._bus, self._images, well_x, well_y)
+        well = Well(self._images, well_x, well_y)
         self.wells[well.name] = well
-        self._bus.notify(WellEvent(well))
         return well
 
 
@@ -375,9 +356,9 @@ class Sample(object):
         plate_name : str
             The name of the plate to set.
         """
-        plate = Plate(self._bus, self._images, plate_name)
+        plate = Plate(self._images, plate_name)
         self._plates[plate.name] = plate
-        self._bus.notify(PlateEvent(plate))
+        self._bus.notify(PlateEvent({'sample': self, 'plate': plate}))
         return plate
 
     def all_wells(self, plate_name=None):
@@ -424,13 +405,15 @@ class Sample(object):
             return None
         return well
 
-    def set_well(self, well_name, plate_name=None):
+    def set_well(self, well_x, well_y, plate_name=None):
         """Set a well on a plate.
 
         Parameters
         ----------
-        well_name : str
-            The name of the well to create.
+        well_x : int
+            x coordinate of the well.
+        well_y : int
+            y coordinate of the well.
         plate_name : str
             The name of the plate that should hold the well.
 
@@ -443,9 +426,12 @@ class Sample(object):
         plate = self.get_plate(plate_name)
         if not plate:
             return
-        return plate.set_well(well_name)
+        well = plate.set_well(well_x, well_y)
+        event = WellEvent({'sample': self, 'plate': plate, 'well': well})
+        self._bus.notify(event)
+        return well
 
-    def set_gain(self, well_name, channel, gain, plate_name=None):
+    def set_gain(self, well_x, well_y, channel_name, gain, plate_name=None):
         """Set gain in a channel in a well of a plate.
 
         Create a Well instance if well not already exists. Pick the
@@ -453,9 +439,11 @@ class Sample(object):
 
         Parameters
         ----------
-        well_name : str
-            The name of the well where to set gain.
-        channel : str
+        well_x : int
+            x coordinate of the well.
+        well_y : int
+            y coordinate of the well.
+        channel_name : str
             The name of the channel where to set gain.
         gain : int
             The gain value to set.
@@ -463,10 +451,16 @@ class Sample(object):
             The name of the plate that should hold the well with the
             channel.
         """
+        # pylint: disable=too-many-arguments
         plate = self.get_plate(plate_name)
         if not plate:
             return
-        plate.set_gain(well_name, channel, gain)
+        channel = plate.set_gain(well_x, well_y, channel_name, gain)
+        well_name = WELL_NAME.format(well_x, well_y)
+        well = plate.wells[well_name]
+        event = ChannelEvent({
+            'sample': self, 'plate': plate, 'well': well, 'channel': channel})
+        self._bus.notify(event)
 
     def all_fields(self, well_name, plate_name=None):
         """Get all fields of a well of a plate.
@@ -518,29 +512,44 @@ class Sample(object):
             return None
         return field
 
-    def set_fields(self, well_name, fields_x, fields_y, plate_name=None):
-        """Set fields in a well of a plate.
+    def set_field(
+            self, well_name, field_x, field_y, dxpx=0, dypx=0,
+            gain_field=False, img_ok=False, plate_name=None):
+        """Set a field in a well of a plate.
 
         Pick the first plate if no plate is specified.
 
         Parameters
         ----------
         well_name : str
-            The name of the well that should hold the fields.
-        fields_x : int
-            Number of fields in x to add.
-        fields_y : int
-            Number of fields in y to add.
+            The name of the well that should hold the field.
+        field_x : int
+            Coordinate of field in x.
+        field_y : int
+            Coordinate of field in y.
+        dxpx : int
+            Pixel x coordinate of region of interest within image.
+        dypx : int
+            Pixel y coordinate of region of interest within image.
+        gain_field : bool
+            True if field should run gain selection analysis.
+        img_ok : bool
+            True if field has acquired an ok image.
         plate_name : str
-            The name of the plate that should hold the fields.
+            The name of the plate that should hold the field.
         """
+        # pylint: disable=too-many-arguments
         plate = self.get_plate(plate_name)
         if not plate:
             return
         well = self.get_well(well_name, plate_name)
         if not well:
             return
-        well.set_fields(fields_x, fields_y)
+        field = well.set_field(
+            field_x, field_y, dxpx, dypx, gain_field, img_ok)
+        event = FieldEvent({
+            'sample': self, 'plate': plate, 'well': well, 'field': field})
+        self._bus.notify(event)
 
     def get_image(self, path):
         """Get image instance via path to image.
@@ -600,7 +609,7 @@ class Sample(object):
             well_name = WELL_NAME.format(well_x, well_y)
             well = self.get_well(well_name)
             if not well:
-                well = self.set_well(well_name)
+                well = self.set_well(well_x, well_y, plate_name=plate_name)
 
         if all(
                 name is not None
@@ -608,11 +617,9 @@ class Sample(object):
             field_name = FIELD_NAME.format(field_x, field_y)
             field = self.get_field(field_name, well_name)
             if not field:
-                well.add_field(
-                    field_x, field_y, dxpx=0, dypx=0, gain_field=False,
-                    img_ok=False)
-
-        self._bus.notify(SampleImageEvent(image))
+                self.set_field(
+                    well_name, field_x, field_y, dxpx=0, dypx=0,
+                    gain_field=False, img_ok=False, plate_name=plate_name)
 
     def remove_image(self, path):
         """Remove an image from the sample.
@@ -624,4 +631,4 @@ class Sample(object):
         """
         image = self._images.pop(path, None)
         if image is not None:
-            self._bus.notify(SampleImageEvent(image))
+            self._bus.notify(ImageRemovedEvent({'image': image}))
