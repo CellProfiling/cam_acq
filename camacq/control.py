@@ -97,6 +97,10 @@ class Center(object):
         self.exit_code = 0
         self.threads = []
 
+    def __repr__(self):
+        """Return the representation."""
+        return "<Center: config: {}>".format(self.config)
+
     @property
     def finished(self):
         """:bool: Return True if handlers are registered on the bus."""

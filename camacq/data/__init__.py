@@ -1,1 +1,1 @@
-"""Store not python files."""
+"""Store non python files."""
