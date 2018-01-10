@@ -14,8 +14,8 @@ from camacq.control import Center
 from camacq.image import make_proj
 from camacq.plugins.gain import calc_gain
 
-GAIN_DATA_DIR = os.path.join(
-    os.path.dirname(__file__), '../tests/fixtures/gain_data')
+GAIN_DATA_DIR = os.path.normpath(os.path.join(
+    os.path.dirname(__file__), '../fixtures/gain_data'))
 WELL_NAME = 'U01--V00'
 FULL_WELL_NAME = 'chamber--{}'.format(WELL_NAME)
 WELL_PATH = os.path.join(GAIN_DATA_DIR, 'slide', FULL_WELL_NAME)
