@@ -326,6 +326,7 @@ class Sample(object):
 
     def _set_image_on_event(self, center, event):
         """Set sample image on an image event from a microscope API."""
+        print('Inside handler: ', event)
         self.set_image(
             event.path, channel_id=event.channel_id, field_x=event.field_x,
             field_y=event.field_y, well_x=event.well_x, well_y=event.well_y)

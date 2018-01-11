@@ -20,3 +20,14 @@ def center():
     _center = Center({})
     yield _center
     _center.end(0)
+    clear_event_registry(_center)
+
+
+def clear_event_registry(center_obj):
+    """Clear event registry.
+
+    Run this between tests.
+    """
+    # pylint: disable=protected-access
+    del center_obj.bus._event.subscribers[:]
+    center_obj.bus._handler.registry.clear()
