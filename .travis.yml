@@ -12,7 +12,6 @@ addons:
     packages:
       - python-tk
       - python3-tk
-      - python3.6-tk
 # command to install dependencies
 install:
   - pip install -U tox-travis
