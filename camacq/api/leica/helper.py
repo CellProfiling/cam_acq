@@ -2,6 +2,7 @@
 import ntpath
 import os
 import re
+from builtins import str  # pylint: disable=redefined-builtin
 
 from matrixscreener import experiment
 
@@ -58,7 +59,7 @@ def format_new_name(image_path, root=None, new_attr=None):
         *(experiment.attribute_as_str(image_path, attr)
           for attr in ('U', 'V', 'E', 'X', 'Y', 'Z', 'C')))
     if new_attr:
-        for attr, attr_id in new_attr.iteritems():
+        for attr, attr_id in new_attr.items():
             path = re.sub(attr + r'\d\d', attr + attr_id, path)
 
     return os.path.normpath(os.path.join(root, path))

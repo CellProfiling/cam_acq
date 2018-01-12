@@ -1,5 +1,6 @@
 """Test socket client."""
 import logging
+from builtins import object  # pylint: disable=redefined-builtin
 
 from matrixscreener.cam import CAM, tuples_as_dict
 

@@ -1,5 +1,6 @@
 """Handle gain."""
 import logging
+from builtins import next, object  # pylint: disable=redefined-builtin
 from collections import OrderedDict
 
 from camacq.api import ImageEvent
@@ -101,7 +102,7 @@ class Field(object):
     def images(self):
         """:dict: Return a dict with all images for the field."""
         return {
-            image.path: image for image in self._images.values()
+            image.path: image for image in list(self._images.values())
             if image.field_x == self.x and image.field_y == self.y
         }
 
@@ -169,14 +170,15 @@ gain_field=True, img_ok=False)}
     def images(self):
         """:dict: Return a dict with all images for the well."""
         return {
-            image.path: image for image in self._images.values()
+            image.path: image for image in list(self._images.values())
             if image.well_x == self.x and image.well_y == self.y
         }
 
     @property
     def img_ok(self):
         """:bool: Return True if all fields are imaged ok."""
-        if self.fields and all(field.img_ok for field in self.fields.values()):
+        if self.fields and all(
+                field.img_ok for field in list(self.fields.values())):
             return True
         return False
 
@@ -249,7 +251,7 @@ class Plate(object):
     def images(self):
         """:dict: Return a dict with all images for the plate."""
         return {
-            image.path: image for image in self._images.values()
+            image.path: image for image in list(self._images.values())
             if image.plate_name == self.name
         }
 
@@ -346,7 +348,8 @@ class Sample(object):
         if plate_name:
             plate = self._plates.get(plate_name)
         else:
-            plate = next((plate for plate in self._plates.values()), None)
+            plate = next((plate for plate in list(
+                self._plates.values())), None)
         if not plate:
             _LOGGER.warning(
                 'Plate name %s missing from sample %s', plate_name, self)
@@ -383,7 +386,7 @@ class Sample(object):
         plate = self.get_plate(plate_name)
         if not plate:
             return None
-        return plate.wells.values()
+        return list(plate.wells.values())
 
     def get_well(self, well_name, plate_name=None):
         """Get well from plate.
@@ -489,7 +492,7 @@ class Sample(object):
         well = self.get_well(well_name, plate_name)
         if not well:
             return None
-        return well.fields.values()
+        return list(well.fields.values())
 
     def get_field(self, field_name, well_name, plate_name=None):
         """Get field from a well on a plate.

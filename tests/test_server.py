@@ -1,6 +1,7 @@
 """Implement test server."""
 import logging
 import socket
+from builtins import object  # pylint: disable=redefined-builtin
 
 from matrixscreener.cam import tuples_as_bytes
 

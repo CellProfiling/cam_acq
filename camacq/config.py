@@ -4,8 +4,8 @@ from __future__ import print_function
 import logging
 import os
 
+import ruamel.yaml as ruyml  # pylint: disable=import-error
 import yaml
-import ruamel.yaml as ruyml
 from pkg_resources import resource_filename
 
 _LOGGER = logging.getLogger(__name__)

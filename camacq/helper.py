@@ -3,6 +3,7 @@ import csv
 import logging
 import os
 import pkgutil
+from builtins import object, range  # pylint: disable=redefined-builtin
 from collections import defaultdict
 from importlib import import_module
 
@@ -164,7 +165,7 @@ def write_csv(path, csv_map, header):
     with open(path, 'wb') as file_handle:
         writer = csv.DictWriter(file_handle, fieldnames=header)
         writer.writeheader()
-        for index, cells in csv_map.iteritems():
+        for index, cells in csv_map.items():
             index_dict = {header[0]: index}
             index_dict.update(cells)
             writer.writerow(index_dict)

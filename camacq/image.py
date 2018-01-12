@@ -1,5 +1,6 @@
 """Handle images."""
 import logging
+from builtins import object  # pylint: disable=redefined-builtin
 from collections import defaultdict
 
 import numpy as np
