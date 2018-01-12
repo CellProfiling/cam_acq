@@ -1,13 +1,28 @@
 """Test helper module."""
-import pytest
-
 from camacq import helper
 
 
-@pytest.mark.skip(reason="disable test while debugging issue with center")
-def test_setup_modules(center, caplog):
+def test_setup_modules_api(center, caplog):
     """Test setup_all_modules."""
-    config = {'sample': None}
+    config = {'api': {'leica': None}}
+    parent = helper.FeatureParent()
+    helper.setup_all_modules(
+        center, config, 'camacq.api', add_child=parent.add_child)
+    assert 'Setting up camacq.api.leica package' in caplog.text
+    assert 'Connecting to server localhost failed' in caplog.text
+
+
+def test_setup_modules_plugins(center, caplog):
+    """Test setup_all_modules plugins package."""
+    config = {'plugins': {'gain': {}}}
+    helper.setup_all_modules(center, config, 'camacq.plugins')
+    assert 'Setting up camacq.plugins.gain module' in caplog.text
+    assert 'No objective selected' in caplog.text
+
+
+def test_setup_modules_camacq(center, caplog):
+    """Test setup_all_modules camacq package."""
+    config = {'sample': {}}
     helper.setup_all_modules(center, config, 'camacq')
+    assert 'Setting up camacq.sample module' in caplog.text
     assert 'Setting up sample' in caplog.text
-    assert 'Setting up camacq.sample' in caplog.text
