@@ -4,14 +4,7 @@ python:
   - "2.7"
   - "3.5"
   - "3.6"
-virtualenv:
-  system_site_packages: true
 sudo: false
-addons:
-  apt:
-    packages:
-      - python-tk
-      - python3-tk
 # command to install dependencies
 install:
   - pip install -U tox-travis
