@@ -277,6 +277,7 @@ class EventBus(object):
             An instance of Event or an instance of subclass of Event.
         """
         _LOGGER.debug(event)
+        # Inspired by https://goo.gl/VEPG3n
         for event_class in event.__class__.__mro__:
             for handler in self._registry.get(event_class, []):
                 handler(event)
