@@ -1,4 +1,6 @@
 """Test helper module."""
+from mock import patch
+
 from camacq import helper
 
 
@@ -6,10 +8,10 @@ def test_setup_modules_api(center, caplog):
     """Test setup_all_modules."""
     config = {'api': {'leica': None}}
     parent = helper.FeatureParent()
-    helper.setup_all_modules(
-        center, config, 'camacq.api', add_child=parent.add_child)
+    with patch('camacq.api.leica.CAM'):
+        helper.setup_all_modules(
+            center, config, 'camacq.api', add_child=parent.add_child)
     assert 'Setting up camacq.api.leica package' in caplog.text
-    assert 'Connecting to server localhost failed' in caplog.text
 
 
 def test_setup_modules_plugins(center, caplog):
