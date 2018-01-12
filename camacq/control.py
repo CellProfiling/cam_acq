@@ -103,8 +103,8 @@ class Center(object):
 
     @property
     def finished(self):
-        """:bool: Return True if handlers are registered on the bus."""
-        return not self.bus.handlers
+        """:bool: Return True if nothing is registered on the bus."""
+        return not self.bus.event_types
 
     def end(self, code):
         """Prepare app for exit.

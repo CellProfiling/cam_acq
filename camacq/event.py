@@ -231,9 +231,9 @@ class EventBus(object):
         self._registry = defaultdict(list)
 
     @property
-    def handlers(self):
-        """:list: Return all registered handlers."""
-        return [handler for handler in self._registry]
+    def event_types(self):
+        """:list: Return all registered event types."""
+        return [event_type for event_type in self._registry]
 
     def _register_handler(self, event_class, handler):
         """Register handler to fire for events of type event_class."""
