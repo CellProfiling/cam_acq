@@ -1,6 +1,9 @@
 language: python
+cache: pip
 python:
   - "2.7"
+  - "3.5"
+  - "3.6"
 virtualenv:
   system_site_packages: true
 sudo: false
@@ -12,7 +15,7 @@ addons:
       - python3.6-tk
 # command to install dependencies
 install:
-  - pip install tox-travis
+  - pip install -U tox-travis
   - pip install -r requirements_tests.txt
 before_script: ./scripts/setup_tests.py
 # command to run tests
