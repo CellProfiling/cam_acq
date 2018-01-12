@@ -80,7 +80,6 @@ CONFIG = {
         'ruamel.yaml',
         'scipy',
         'tifffile',
-        'zope.event',
     ],
     'packages': find_packages(exclude=['contrib', 'docs', 'tests*']),
     'include_package_data': True,
