@@ -4,7 +4,7 @@ import pytest
 from camacq import helper
 
 
-# @pytest.mark.skip(reason="disable test while debugging issue with fixtures")
+# @pytest.mark.skip(reason="disable test while debugging issue with center")
 def test_setup_modules(center, caplog):
     """Test setup_all_modules."""
     config = {'sample': None}
