@@ -29,7 +29,6 @@ def mock_os_path():
         yield _mock
 
 
-# @pytest.mark.skip(reason="disable test while debugging issue with center")
 def test_gain(center, mock_os_path):
     """Run gain calculation test."""
     # pylint: disable=redefined-outer-name
