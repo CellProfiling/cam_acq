@@ -11,6 +11,11 @@ from camacq.image import Image
 _LOGGER = logging.getLogger(__name__)
 
 
+def setup_module(center, config):
+    """Set up sample module."""
+    _LOGGER.info('Setting up sample')
+
+
 class Channel(object):
     """A channel with gain.
 

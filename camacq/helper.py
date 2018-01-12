@@ -71,7 +71,10 @@ def _deep_conf_access(config, key_list):
     """Return value in nested dict using keys in key_list."""
     val = config
     for key in key_list:
-        val = val[key]
+        _val = val.get(key)
+        if _val is None:
+            return val
+        val = _val
     return val
 
 
@@ -92,24 +95,26 @@ def setup_all_modules(center, config, package_path, **kwargs):
     """
     imported_pkg = import_module(package_path)
     # yields, non recursively, modules under package_path
-    for loader, name, is_pkg in pkgutil.iter_modules(
+    for _, name, is_pkg in pkgutil.iter_modules(
             imported_pkg.__path__, prefix='{}.'.format(imported_pkg.__name__)):
         if 'main' in name:
             continue
         if name in _MODULE_CACHE:
             module = _MODULE_CACHE[name]
         else:
-            module = loader.find_module(name).load_module(name)
+            module = import_module(name)
             _MODULE_CACHE[name] = module
-        _LOGGER.info('Loaded %s', name)
+        _LOGGER.debug('Loaded %s', name)
         keys = [
             name for name in imported_pkg.__name__.split('.')
             if name != PACKAGE]
         pkg_config = _deep_conf_access(config, keys)
-        if module.__name__ in pkg_config:
+        if module.__name__.split('.')[-1] in pkg_config:
             if is_pkg and hasattr(module, 'setup_package'):
+                _LOGGER.info('Setting up %s package', module.__name__)
                 module.setup_package(center, config, **kwargs)
             elif hasattr(module, 'setup_module'):
+                _LOGGER.info('Setting up %s module', module.__name__)
                 module.setup_module(center, config, **kwargs)
 
 

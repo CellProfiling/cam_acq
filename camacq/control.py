@@ -97,10 +97,14 @@ class Center(object):
         self.exit_code = 0
         self.threads = []
 
+    def __repr__(self):
+        """Return the representation."""
+        return "<Center: config: {}>".format(self.config)
+
     @property
     def finished(self):
-        """:bool: Return True if handlers are registered on the bus."""
-        return not self.bus.handlers
+        """:bool: Return True if nothing is registered on the bus."""
+        return not self.bus.event_types
 
     def end(self, code):
         """Prepare app for exit.

@@ -1,7 +1,7 @@
 """Hold events."""
 import logging
+from collections import defaultdict
 from functools import partial
-from importlib import import_module
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -216,17 +216,6 @@ class CamAcqStopEvent(Event):
         return self.data.get('exit_code')
 
 
-class DummyEvent(Event):
-    """Represent a dummy event."""
-
-    __slots__ = ()
-
-
-def dummy_handler(event):
-    """Handle dummy event."""
-    pass
-
-
 class EventBus(object):
     """Representation of an eventbus.
 
@@ -239,18 +228,16 @@ class EventBus(object):
     def __init__(self, center):
         """Set up instance."""
         self._center = center
-        self._event = import_module('zope.event')
-        self._handler = import_module('zope.event.classhandler')
-        # Limitation in zope requires at least one item in registry to
-        # avoid adding another dispatch function to the list of
-        # subscribers.
-        self._handler.handler(DummyEvent, dummy_handler)
+        self._registry = defaultdict(list)
 
     @property
-    def handlers(self):
-        """:list: Return all registered handlers."""
-        return [handler for handler in self._handler.registry
-                if not isinstance(handler, DummyEvent)]
+    def event_types(self):
+        """:list: Return all registered event types."""
+        return [event_type for event_type in self._registry]
+
+    def _register_handler(self, event_class, handler):
+        """Register handler to fire for events of type event_class."""
+        self._registry[event_class].append(handler)
 
     def register(self, event_type, handler):
         """Register event handler and return a function to remove it.
@@ -273,20 +260,13 @@ class EventBus(object):
             Return a function to remove the registered handler.
         """
         handler = partial(handler, self._center)
-        self._handler.handler(event_type, handler)
+        self._register_handler(event_type, handler)
 
         def remove():
             """Remove registered event handler."""
-            self._handler.registry.pop(event_type, None)
+            self._registry.pop(event_type, None)
 
         return remove
-
-    def _clear(self):
-        """Remove all registered handlers except dummy."""
-        for handler in self._handler.registry:
-            if isinstance(handler, DummyEvent):
-                continue
-            self._handler.registry.pop(handler, None)
 
     def notify(self, event):
         """Notify handlers that an event has fired.
@@ -297,4 +277,7 @@ class EventBus(object):
             An instance of Event or an instance of subclass of Event.
         """
         _LOGGER.debug(event)
-        self._event.notify(event)
+        # Inspired by https://goo.gl/VEPG3n
+        for event_class in event.__class__.__mro__:
+            for handler in self._registry.get(event_class, []):
+                handler(event)
