@@ -72,6 +72,7 @@ CONFIG = {
     'version': __version__,
     'install_requires': [
         'colorlog',
+        'future',
         'jinja2',
         'matplotlib',
         'matrixscreener',
