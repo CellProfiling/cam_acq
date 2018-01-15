@@ -1,9 +1,15 @@
 """Control the microscope."""
 import logging
 import time
+from builtins import object  # pylint: disable=redefined-builtin
+
+from future import standard_library
 
 from camacq.event import CamAcqStartEvent, CamAcqStopEvent, EventBus
 from camacq.sample import Sample
+
+standard_library.install_aliases()
+
 
 _LOGGER = logging.getLogger(__name__)
 

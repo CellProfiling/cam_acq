@@ -43,7 +43,7 @@ def test_gain(center, mock_os_path):
     save_path = os.path.join(WELL_PATH, WELL_NAME)
     gain_dict = calc_gain(center, save_path, projs, plot=False)
     pprint.pprint(gain_dict)
-    gain_dict = {k: int(v) for k, v in gain_dict.iteritems()}
+    gain_dict = {k: int(v) for k, v in gain_dict.items()}
     solution = {
         'blue': 480, 'green': 740, 'red': 745, 'yellow': 805}
     assert gain_dict == pytest.approx(solution, abs=10)

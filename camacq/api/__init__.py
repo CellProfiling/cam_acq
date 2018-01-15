@@ -1,4 +1,6 @@
 """Microscope API specific modules."""
+from builtins import object  # pylint: disable=redefined-builtin
+
 from camacq.event import Event
 from camacq.helper import FeatureParent, setup_all_modules
 
@@ -58,7 +60,7 @@ def setup_package(center, config):
         if child_name:
             children = [parent.children.get(child_name)]
         else:
-            children = parent.children.values()
+            children = list(parent.children.values())
         for child in children:
             getattr(child, method)(**kwargs)
 

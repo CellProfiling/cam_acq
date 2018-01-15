@@ -1,5 +1,6 @@
 """Hold events."""
 import logging
+from builtins import object  # pylint: disable=redefined-builtin
 from collections import defaultdict
 from functools import partial
 

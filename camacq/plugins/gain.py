@@ -2,11 +2,13 @@
 import logging
 import os
 import time
+from builtins import range, str, zip  # pylint: disable=redefined-builtin
 from collections import defaultdict, deque, namedtuple
 from itertools import groupby
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from future import standard_library
 from jinja2 import Template
 from matrixscreener.experiment import attribute
 from pkg_resources import resource_filename
@@ -25,6 +27,8 @@ from camacq.helper import (add_fields, call_saved, handler_factory, read_csv,
 from camacq.image import make_proj
 from camacq.plugins.rename_image import ACTION_RENAME_IMAGE
 from camacq.sample import Channel
+
+standard_library.install_aliases()
 
 _LOGGER = logging.getLogger(__name__)
 BOX = 'box'
@@ -161,7 +165,7 @@ def setup_module(center, config):
 
 def get_gain_com(commands, channels, job_list):
     """Return a list of command lists to set gain for all channels."""
-    for channel, gain in channels.iteritems():
+    for channel, gain in channels.items():
         job = job_list[JOB_MAP[channel]]
         detector = DETECTOR_MAP[channel]
         gain = str(gain.gain)
@@ -236,10 +240,10 @@ def _calc_gain(projs, init_gain, save_path, plot=True):
     # pylint: disable=too-many-locals
     box_vs_gain = defaultdict(list)
 
-    for c_id, proj in projs.iteritems():
+    for c_id, proj in projs.items():
         channel = init_gain[c_id]
         hist_data = pd.DataFrame({
-            BOX: range(len(proj.histogram[0])),
+            BOX: list(range(len(proj.histogram[0]))),
             COUNT: proj.histogram[0]})
         # Find the max box holding pixels
         box_max_count = hist_data[
@@ -271,7 +275,7 @@ def _calc_gain(projs, init_gain, save_path, plot=True):
             channel.gain, coeffs[1] < 0)))
 
     gains = {}
-    for channel, points in box_vs_gain.iteritems():
+    for channel, points in box_vs_gain.items():
         # Sort points with ascending gain, to allow grouping.
         points = sorted(points, key=lambda item: item.gain)
         long_group = []
@@ -323,8 +327,8 @@ def distribute_gain(center, gain_dict, template=None):
     config = center.config
     fields_x = config.get(FIELDS_X, DEFAULT_FIELDS_X)
     fields_y = config.get(FIELDS_Y, DEFAULT_FIELDS_Y)
-    for gain_well, channels in gain_dict.iteritems():
-        for channel, gain in channels.iteritems():
+    for gain_well, channels in gain_dict.items():
+        for channel, gain in channels.items():
             gain = sanitize_gain(config, channel, gain)
             if template:
                 # Add template class with functions and options, later.
@@ -335,7 +339,7 @@ def distribute_gain(center, gain_dict, template=None):
                 except ValueError:
                     _LOGGER.error('Failed to render template')
                 wells = [
-                    well_name for well_name, settings in template.iteritems()
+                    well_name for well_name, settings in template.items()
                     if settings[GAIN_FROM_WELL] == gain_well]
                 for well_name in wells:
                     well_x = attribute('--{}'.format(well_name), 'U')
@@ -376,7 +380,7 @@ def get_com(center, job, job_list):
             continue
         end_com = []
         com = get_gain_com([], well.channels, job_list)
-        for field in well.fields.values():
+        for field in list(well.fields.values()):
             com.append(command.cam_com(
                 job, well.x, well.y, field.x, field.y, field.dx, field.dy))
             end_com = [
@@ -398,7 +402,7 @@ def get_init_com(center, job, template=None):
     wells = []
     if template:
         # Selected wells from template file.
-        for well_name, row in template.iteritems():
+        for well_name, row in template.items():
             if 'true' in row[GAIN_SCAN]:
                 wells.append(well_name)
     else:
@@ -475,7 +479,8 @@ def handle_stage1(center, event):
     image = center.sample.get_image(image_path)
     well_name = WELL_NAME.format(image.well_x, image.well_y)
     well = center.sample.get_well(well_name)
-    new_paths = handle_imgs(center, well.images.keys(), DEFAULT_JOB_ID_GAIN)
+    new_paths = handle_imgs(center, list(
+        well.images.keys()), DEFAULT_JOB_ID_GAIN)
     if not new_paths:
         return
     # Make a max proj per channel.
@@ -514,7 +519,7 @@ def handle_stage2(center, event):
         return
     well.fields[field_name] = field._replace(img_ok=True)
     handle_imgs(
-        center, field.images.keys(), gain_conf[FIRST_JOB])
+        center, list(field.images.keys()), gain_conf[FIRST_JOB])
 
 
 def stop(center):

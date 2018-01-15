@@ -88,10 +88,10 @@ class LeicaApi(Api, threading.Thread):
                     search=JOB_ID.format(attribute(image_path, 'E')))
                 for path in image_paths:
                     self._center.bus.notify(LeicaImageEvent({'path': path}))
-            elif SCAN_STARTED in reply.values():
+            elif SCAN_STARTED in list(reply.values()):
                 self._center.bus.notify(
                     LeicaStartCommandEvent(reply))
-            elif SCAN_FINISHED in reply.values():
+            elif SCAN_FINISHED in list(reply.values()):
                 self._center.bus.notify(
                     LeicaStopCommandEvent(reply))
             else:
@@ -106,7 +106,7 @@ class LeicaApi(Api, threading.Thread):
             The command to send, should be a JSON string.
         """
         command = json.loads(command, object_pairs_hook=OrderedDict)
-        replies = self.client.send(command.items())
+        replies = self.client.send(list(command.items()))
         if replies:
             self._receive(replies)
 

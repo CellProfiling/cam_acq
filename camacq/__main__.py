@@ -10,8 +10,8 @@ import sys
 
 import camacq.bootstrap as bootstrap
 import camacq.config as config_util
-from camacq.const import (CONFIG_DIR, FIELDS_X, FIELDS_Y, HOST,
-                          IMAGING_DIR, LOG_LEVEL, PORT)
+from camacq.const import (CONFIG_DIR, FIELDS_X, FIELDS_Y, HOST, IMAGING_DIR,
+                          LOG_LEVEL, PORT)
 
 
 def check_dir_arg(path):
@@ -109,7 +109,7 @@ def parse_command_line():
         args.config_dir = os.path.normpath(args.config_dir)
     cmd_args_dict = vars(args)
     cmd_args_dict = {
-        key: val for key, val in cmd_args_dict.iteritems() if val}
+        key: val for key, val in cmd_args_dict.items() if val}
 
     return cmd_args_dict
 
