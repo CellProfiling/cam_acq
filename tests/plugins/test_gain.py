@@ -41,7 +41,7 @@ def test_gain(center, mock_os_path):
         center.bus.notify(LeicaImageEvent({'path': path}))
     projs = make_proj(center.sample, images)
     save_path = os.path.join(WELL_PATH, WELL_NAME)
-    gain_dict = calc_gain(center, save_path, projs, plot=False)
+    gain_dict = calc_gain(center, projs, plot=False, save_path=save_path)
     pprint.pprint(gain_dict)
     gain_dict = {k: int(v) for k, v in gain_dict.items()}
     solution = {
