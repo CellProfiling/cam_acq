@@ -11,10 +11,44 @@ from camacq.image import Image
 
 _LOGGER = logging.getLogger(__name__)
 
+ACTION_SET_WELL = 'set_well'
+ACTION_SET_PLATE = 'set_plate'
+ACTION_SET_FIELD = 'set_field'
+ACTION_SET_GAIN = 'set_gain'
+
+ACTION_TO_METHOD = {
+    ACTION_SET_WELL: 'set_well',
+    ACTION_SET_PLATE: 'set_plate',
+    ACTION_SET_FIELD: 'set_field',
+    ACTION_SET_GAIN: 'set_gain',
+}
+
 
 def setup_module(center, config):
-    """Set up sample module."""
-    _LOGGER.info('Setting up sample')
+    """Set up sample module.
+
+    Parameters
+    ----------
+    center : Center instance
+        The Center instance.
+    config : dict
+        The config dict.
+    """
+    def handle_action(**kwargs):
+        """Handle action call to add a state to the sample.
+
+        Parameters
+        ----------
+        **kwargs
+            Arbitrary keyword arguments. These will be passed to a
+            method when an action is called.
+        """
+        action_id = kwargs.pop('action_id')
+        method = ACTION_TO_METHOD[action_id]
+        getattr(center.sample, method)(**kwargs)
+
+    for action in ACTION_TO_METHOD:
+        center.actions.register(__name__, action, handle_action)
 
 
 class Channel(object):
@@ -338,7 +372,7 @@ class Sample(object):
         Parameters
         ----------
         plate_name : str
-            The name of the plate to get.
+            The name of the plate.
 
         Returns
         -------
@@ -362,7 +396,7 @@ class Sample(object):
         Parameters
         ----------
         plate_name : str
-            The name of the plate to set.
+            The name of the plate.
         """
         plate = Plate(self._images, plate_name)
         self._plates[plate.name] = plate
@@ -388,13 +422,15 @@ class Sample(object):
             return None
         return list(plate.wells.values())
 
-    def get_well(self, well_name, plate_name=None):
+    def get_well(self, well_x, well_y, plate_name=None):
         """Get well from plate.
 
         Parameters
         ----------
-        well_name : str
-            The name of the well to get.
+        well_x : int
+            x coordinate of the well.
+        well_y : int
+            y coordinate of the well.
         plate_name : str
             The name of the plate that should return the well.
 
@@ -406,10 +442,11 @@ class Sample(object):
         plate = self.get_plate(plate_name)
         if not plate:
             return None
+        well_name = WELL_NAME.format(well_x, well_y)
         well = plate.wells.get(well_name)
         if not well:
             _LOGGER.warning(
-                'Well name %s missing from sample %s', well_name, self)
+                'Well %s %s missing from sample %s', well_x, well_y, self)
             return None
         return well
 
@@ -470,13 +507,15 @@ class Sample(object):
             'sample': self, 'plate': plate, 'well': well, 'channel': channel})
         self._bus.notify(event)
 
-    def all_fields(self, well_name, plate_name=None):
+    def all_fields(self, well_x, well_y, plate_name=None):
         """Get all fields of a well of a plate.
 
         Parameters
         ----------
-        well_name : str
-            The name of the well that should return the fields.
+        well_x : int
+            x coordinate of the well.
+        well_y : int
+            y coordinate of the well.
         plate_name : str
             The name of the plate that should return the fields.
 
@@ -489,20 +528,24 @@ class Sample(object):
         plate = self.get_plate(plate_name)
         if not plate:
             return None
-        well = self.get_well(well_name, plate_name)
+        well = self.get_well(well_x, well_y, plate_name)
         if not well:
             return None
         return list(well.fields.values())
 
-    def get_field(self, field_name, well_name, plate_name=None):
+    def get_field(self, well_x, well_y, field_x, field_y, plate_name=None):
         """Get field from a well on a plate.
 
         Parameters
         ----------
-        field_name : str
-            The name of the field to get.
-        well_name : str
-            The name of the well that should return the field.
+        well_x : int
+            x coordinate of the well.
+        well_y : int
+            y coordinate of the well.
+        field_x : int
+            Coordinate of field in x.
+        field_y : int
+            Coordinate of field in y.
         plate_name : str
             The name of the plate that should return the field.
 
@@ -512,7 +555,9 @@ class Sample(object):
             Return a Field instance. If no field, well or plate is
             found, return None.
         """
-        well = self.get_well(well_name, plate_name)
+        # pylint: disable=too-many-arguments
+        well = self.get_well(well_x, well_y, plate_name)
+        field_name = FIELD_NAME.format(field_x, field_y)
         field = well.fields.get(field_name)
         if not field:
             _LOGGER.warning(
@@ -521,7 +566,7 @@ class Sample(object):
         return field
 
     def set_field(
-            self, well_name, field_x, field_y, dxpx=0, dypx=0,
+            self, well_x, well_y, field_x, field_y, dxpx=0, dypx=0,
             gain_field=False, img_ok=False, plate_name=None):
         """Set a field in a well of a plate.
 
@@ -529,8 +574,10 @@ class Sample(object):
 
         Parameters
         ----------
-        well_name : str
-            The name of the well that should hold the field.
+        well_x : int
+            x coordinate of the well.
+        well_y : int
+            y coordinate of the well.
         field_x : int
             Coordinate of field in x.
         field_y : int
@@ -550,7 +597,7 @@ class Sample(object):
         plate = self.get_plate(plate_name)
         if not plate:
             return
-        well = self.get_well(well_name, plate_name)
+        well = self.get_well(well_x, well_y, plate_name)
         if not well:
             return
         field = well.set_field(
@@ -614,19 +661,17 @@ class Sample(object):
                 plate = self.set_plate(plate_name)
 
         if all(name is not None for name in (plate_name, well_x, well_y)):
-            well_name = WELL_NAME.format(well_x, well_y)
-            well = self.get_well(well_name)
+            well = self.get_well(well_x, well_y)
             if not well:
                 well = self.set_well(well_x, well_y, plate_name=plate_name)
 
         if all(
                 name is not None
                 for name in (plate_name, well_x, well_y, field_x, field_y)):
-            field_name = FIELD_NAME.format(field_x, field_y)
-            field = self.get_field(field_name, well_name)
+            field = self.get_field(well_x, well_y, field_x, field_y)
             if not field:
                 self.set_field(
-                    well_name, field_x, field_y, dxpx=0, dypx=0,
+                    well_x, well_y, field_x, field_y, dxpx=0, dypx=0,
                     gain_field=False, img_ok=False, plate_name=plate_name)
 
     def remove_image(self, path):

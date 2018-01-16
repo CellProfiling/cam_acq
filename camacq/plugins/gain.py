@@ -14,7 +14,8 @@ from matrixscreener.experiment import attribute
 from pkg_resources import resource_filename
 from scipy.optimize import curve_fit
 
-from camacq.api import ACTION_API_SEND, ImageEvent, StopCommandEvent, send
+from camacq.api import (ACTION_SEND, ACTION_START_IMAGING, ACTION_STOP_IMAGING,
+                        ImageEvent, StopCommandEvent, send)
 from camacq.api.leica import command
 from camacq.config import load_config_file
 from camacq.const import (CHANNEL_ID, CONF_PLUGINS, DEFAULT_FIELDS_X,
@@ -96,10 +97,12 @@ OBJECTIVE = 'objective'
 LISTENERS = 'listeners'
 COMMANDS = 'commands'
 Data = namedtuple('Data', [BOX, GAIN, VALID])  # pylint: disable=invalid-name
+ACTION_CALC_GAIN = 'calc_gain'
 
 
 def setup_module(center, config):
     """Set up gain calculation plugin."""
+    # pylint: disable=too-many-locals
     gain_conf = config[CONF_PLUGINS][CONF_GAIN]
     stage1 = STAGE1_DEFAULT
     stage2 = STAGE2_DEFAULT
@@ -162,6 +165,16 @@ def setup_module(center, config):
         center.data[GAIN][LISTENERS].append(call_saved(
             center.data[GAIN][COMMANDS].popleft()))
 
+    def handle_calc_gain(**kwargs):
+        """Handle call to calc_gain action."""
+        images = kwargs.get('images')  # list of paths to calculate gain for
+        plot = kwargs.get('make_plots', False)
+        save_path = kwargs.get('save_path')  # path to save plots
+        projs = make_proj(center.sample, images)
+        calc_gain(center, projs, plot, save_path)
+
+    center.actions.register(__name__, ACTION_CALC_GAIN, handle_calc_gain)
+
 
 def get_gain_com(commands, channels, job_list):
     """Return a list of command lists to set gain for all channels."""
@@ -173,7 +186,7 @@ def get_gain_com(commands, channels, job_list):
     return commands
 
 
-def calc_gain(center, save_path, projs, plot=True):
+def calc_gain(center, projs, plot=True, save_path=''):
     """Calculate gain values for the well."""
     config = center.config
     gain_conf = dict(config[CONF_PLUGINS][CONF_GAIN])
@@ -192,7 +205,7 @@ def calc_gain(center, save_path, projs, plot=True):
         for channel in gain_conf[CONF_CHANNELS]
         for gain in channel[CONF_INIT_GAIN]]
 
-    gains = _calc_gain(projs, init_gain, save_path, plot=plot)
+    gains = _calc_gain(projs, init_gain, plot=plot, save_path=save_path)
     _LOGGER.info('Calculated gains: %s', gains)
     return gains
 
@@ -232,7 +245,7 @@ def _create_plot(path, x_data, y_data, coeffs, label):
     plt.savefig(path)
 
 
-def _calc_gain(projs, init_gain, save_path, plot=True):
+def _calc_gain(projs, init_gain, plot=True, save_path=''):
     """Calculate gain values for the well.
 
     Do the actual math.
@@ -262,8 +275,9 @@ def _calc_gain(projs, init_gain, save_path, plot=True):
         x_data = roi[COUNT].astype(float).values
         y_data = roi[BOX].astype(float).values
         coeffs, _ = curve_fit(_power_func, x_data, y_data, p0=(1000, -1))
-        _save_path = '{}{}.ome.png'.format(save_path, CHANNEL_ID.format(c_id))
         if plot:
+            _save_path = '{}{}.ome.png'.format(
+                save_path, CHANNEL_ID.format(c_id))
             _create_plot(
                 _save_path, hist_data[COUNT], hist_data[BOX], coeffs,
                 'count-box')
@@ -294,8 +308,8 @@ def _calc_gain(projs, init_gain, save_path, plot=True):
         coeffs, _ = curve_fit(
             _power_func, [p[1].box for p in long_group],
             [p[1].gain for p in long_group], p0=(1, 1))
-        _save_path = '{}{}.png'.format(save_path, channel)
         if plot:
+            _save_path = '{}{}.png'.format(save_path, channel)
             _create_plot(
                 _save_path, [p.box for p in points],
                 [p.gain for p in points], coeffs, 'box-gain')
@@ -345,13 +359,13 @@ def distribute_gain(center, gain_dict, template=None):
                     well_x = attribute('--{}'.format(well_name), 'U')
                     well_y = attribute('--{}'.format(well_name), 'V')
                     center.sample.set_gain(well_x, well_y, channel, gain)
-                    well = center.sample.get_well(well_name)
+                    well = center.sample.get_well(well_x, well_y)
                     add_fields(well, fields_x, fields_y)
             else:
                 well_x = attribute('--{}'.format(gain_well), 'U')
                 well_y = attribute('--{}'.format(gain_well), 'V')
                 center.sample.set_gain(well_x, well_y, channel, gain)
-                well = center.sample.get_well(gain_well)
+                well = center.sample.get_well(well_x, well_y)
                 add_fields(well, fields_x, fields_y)
 
 
@@ -426,7 +440,7 @@ def get_init_com(center, job, template=None):
         well = center.sample.set_well(well_x, well_y)
         add_fields(well, fields_x, fields_y)
         com = []
-        for field in center.sample.all_fields(well):
+        for field in center.sample.all_fields(well_x, well_y):
             if not field.gain_field:
                 continue
             com.append(command.cam_com(
@@ -478,7 +492,7 @@ def handle_stage1(center, event):
         return
     image = center.sample.get_image(image_path)
     well_name = WELL_NAME.format(image.well_x, image.well_y)
-    well = center.sample.get_well(well_name)
+    well = center.sample.get_well(image.well_x, image.well_y)
     new_paths = handle_imgs(center, list(
         well.images.keys()), DEFAULT_JOB_ID_GAIN)
     if not new_paths:
@@ -510,7 +524,7 @@ def handle_stage2(center, event):
     image_path = event.path
     if not image_path:
         return
-    well = center.sample.get_well(WELL_NAME.format(event.well_x, event.well_y))
+    well = center.sample.get_well(event.well_x, event.well_y)
     if not well:
         return
     field_name = FIELD_NAME.format(event.field_x, event.field_y)
@@ -535,8 +549,7 @@ def stop(center):
 
     center.data[GAIN][LISTENERS].append(center.bus.register(
         StopCommandEvent, check_scan_finished))
-    center.actions.call(
-        'camacq.api', ACTION_API_SEND, command=command.stop())
+    center.actions.call('camacq.api', ACTION_STOP_IMAGING)
     begin = time.time()
     while not store['scan_finished']:
         # Wait for scanfinished reply with timeout.
@@ -599,15 +612,14 @@ def send_com_and_start(center, commands, stop_data, handler):
         ImageEvent, handler_factory(center, handler, stop_test))
 
     center.actions.call(
-        'camacq.api', ACTION_API_SEND, command=command.del_com())
+        'camacq.api', ACTION_SEND, command=command.del_com())
     time.sleep(2)
     send(center, commands)
     time.sleep(2)
-    center.actions.call(
-        'camacq.api', ACTION_API_SEND, command=command.start())
+    center.actions.call('camacq.api', ACTION_START_IMAGING)
     # Wait for it to change objective and start.
     time.sleep(7)
     center.actions.call(
-        'camacq.api', ACTION_API_SEND, command=command.camstart_com())
+        'camacq.api', ACTION_SEND, command=command.camstart_com())
 
     return remove_listener

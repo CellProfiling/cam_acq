@@ -27,4 +27,3 @@ def test_setup_modules_camacq(center, caplog):
     config = {'sample': {}}
     helper.setup_all_modules(center, config, 'camacq')
     assert 'Setting up camacq.sample module' in caplog.text
-    assert 'Setting up sample' in caplog.text
