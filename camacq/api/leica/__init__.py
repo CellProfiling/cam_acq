@@ -11,6 +11,7 @@ from matrixscreener.experiment import attribute, attribute_as_str
 
 from camacq.api import (Api, CommandEvent, ImageEvent, StartCommandEvent,
                         StopCommandEvent)
+from camacq.api.leica.command import start, stop
 from camacq.api.leica.helper import find_image_path, get_field, get_imgs
 from camacq.const import HOST, IMAGING_DIR, JOB_ID, PORT
 
@@ -107,6 +108,18 @@ class LeicaApi(Api, threading.Thread):
         """
         command = json.loads(command, object_pairs_hook=OrderedDict)
         replies = self.client.send(list(command.items()))
+        if replies:
+            self._receive(replies)
+
+    def start_imaging(self):
+        """Send a command to the microscope to start the imaging."""
+        replies = self.client.send(start())
+        if replies:
+            self._receive(replies)
+
+    def stop_imaging(self):
+        """Send a command to the microscope to stop the imaging."""
+        replies = self.client.send(stop())
         if replies:
             self._receive(replies)
 

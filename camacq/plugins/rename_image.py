@@ -29,8 +29,8 @@ def setup_module(center, config):
             Arbitrary keyword arguments. These will be passed to the
             action function when an action is called.
         """
-        path = kwargs.pop('path')
-        first_job_id = kwargs.pop('first_job_id')
+        path = kwargs.get('path')
+        first_job_id = kwargs.get('first_job_id')
         new_name = rename_image(path, first_job_id)
 
         if new_name:

@@ -4,10 +4,14 @@ from builtins import object  # pylint: disable=redefined-builtin
 from camacq.event import Event
 from camacq.helper import FeatureParent, setup_all_modules
 
-ACTION_API_SEND = 'api_send'
+ACTION_SEND = 'send'
+ACTION_START_IMAGING = 'start_imaging',
+ACTION_STOP_IMAGING = 'stop_imaging',
 
 ACTION_TO_METHOD = {
-    ACTION_API_SEND: 'send',
+    ACTION_SEND: 'send',
+    ACTION_START_IMAGING: 'start_imaging',
+    ACTION_STOP_IMAGING: 'stop_imaging',
 }
 
 
@@ -16,6 +20,8 @@ def send(center, commands, api_name=None):
 
     Parameters
     ----------
+    center : Center instance
+        The Center instance.
     commands : list
         List of commands to send.
     api_name : str
@@ -29,7 +35,7 @@ def send(center, commands, api_name=None):
     """
     for cmd in commands:
         center.actions.call(
-            'camacq.api', ACTION_API_SEND, child_name=api_name, command=cmd)
+            'camacq.api', ACTION_SEND, child_name=api_name, command=cmd)
 
 
 def setup_package(center, config):
@@ -64,13 +70,12 @@ def setup_package(center, config):
         for child in children:
             getattr(child, method)(**kwargs)
 
-    center.actions.register(__name__, ACTION_API_SEND, handle_action)
+    for action in ACTION_TO_METHOD:
+        center.actions.register(__name__, action, handle_action)
 
 
 class Api(object):
     """Represent the microscope API."""
-
-    # pylint: disable=too-few-public-methods
 
     def send(self, command):
         """Send a command to the microscope API.
@@ -79,12 +84,15 @@ class Api(object):
         ----------
         command : str
             The command to send, should be a JSON string.
-
-        Returns
-        -------
-        str
-            Return a JSON string with a list of replies from the API.
         """
+        raise NotImplementedError()
+
+    def start_imaging(self):
+        """Send a command to the microscope to start the imaging."""
+        raise NotImplementedError()
+
+    def stop_imaging(self):
+        """Send a command to the microscope to stop the imaging."""
         raise NotImplementedError()
 
 
