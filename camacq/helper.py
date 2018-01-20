@@ -59,7 +59,7 @@ def get_module(package, module_name):
         return _MODULE_CACHE[module_path]
     try:
         module = import_module(module_path)
-        _LOGGER.info("Loaded %s from %s", module_name, module_path)
+        _LOGGER.info('Loaded %s from %s', module_name, module_path)
         _MODULE_CACHE[module_path] = module
 
         return module

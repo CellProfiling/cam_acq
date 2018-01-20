@@ -47,8 +47,8 @@ def setup_module(center, config):
         method = ACTION_TO_METHOD[action_id]
         getattr(center.sample, method)(**kwargs)
 
-    for action in ACTION_TO_METHOD:
-        center.actions.register(__name__, action, handle_action)
+    for action_id in ACTION_TO_METHOD:
+        center.actions.register(__name__, action_id, handle_action)
 
 
 class Channel(object):
@@ -175,8 +175,8 @@ class Well(object):
         """Set up instance."""
         # pylint: disable=invalid-name
         self._images = images
-        self.x = x
-        self.y = y
+        self.x = int(x)
+        self.y = int(y)
         self._fields = OrderedDict()
         self.channels = {}
 
