@@ -78,7 +78,7 @@ automations:
     condition:
       type: AND
       conditions:
-        - "{{ not trigger.event.well.images }}"
+        - condition: "{{ not trigger.event.well.images }}"
     action:
       - type: command
         id: send
@@ -110,9 +110,11 @@ automations:
       - type: plugin
         id: calc_gain
         data:
+          # FIXME: fix the template.
           images: >
-            {{ sample.images(
-              trigger.event.image.well_x, trigger.event.image.well_y) }}
+            {% for path, image in sample.images.items() %}
+              (
+              trigger.event.well_x, trigger.event.well_y) }}
   - name: set_exp_gain
     trigger:
       - type: event
@@ -132,37 +134,26 @@ automations:
   - name: add_exp_job
     trigger:
       - type: event
-        id: command_event
-        data:
-          id: send
+        id: channel_event
     condition:
       type: AND
       conditions:
-        - "{{ '/cmd:adjust /tar:pmt' in trigger.event.command }}"
-        - >
-          {% for well in sample %}
-            {% if not well.channels %}
-              true
-            {% elif well.channels | length == 4 %}
+        - condition: >
+            {% if trigger.event.well.channels | length == 4 %}
               true
             {% else %}
               false
             {% endif %}
-          {% endfor %}
     action:
       - type: command
         id: send
         data:
-          # add exp job for sample state wells that are not done
           command: >
-            {% for well in sample.wells %}
-              {% if not well_is_done(well.name) %}
-                {% for field in well.fields %}
-                  /cmd:add /tar:camlist /exp:exp_job /ext:af /slide:0
-                  /wellx:well.x /welly:well.y /fieldx:field.x
-                  /fieldy:field.y /dxpos:0 /dypos:0
-                {% endfor %}
-              {% endif %}
+            {% for field in trigger.event.well.fields %}
+              /cmd:add /tar:camlist /exp:exp_job /ext:af /slide:0
+              /wellx:{{ trigger.event.well.x }}
+              /welly:{{ trigger.event.well.y }} /fieldx:{{ field.x }}
+              /fieldy:{{ field.y }} /dxpos:0 /dypos:0
             {% endfor %}
       - type: command
         id: start_scan

@@ -14,6 +14,8 @@ _LOGGER = logging.getLogger(__name__)
 
 CONF_AUTOMATION = __name__.split('.')[-1]
 CONF_ACTION = 'action'
+CONF_CONDITION = 'condition'
+CONF_CONDITIONS = 'conditions'
 CONF_NAME = 'name'
 CONF_TRIGGER = 'trigger'
 CONF_TYPE = 'type'
@@ -99,7 +101,9 @@ class TemplateAction(object):
 class Automation(object):
     """Automation class."""
 
-    def __init__(self, center, name, attach_triggers, actions):
+    # pylint: disable=too-many-arguments
+
+    def __init__(self, center, name, attach_triggers, cond_func, actions):
         """Set up instance."""
         self._center = center
         self.name = name
@@ -107,7 +111,12 @@ class Automation(object):
         self._actions = actions
         self._attach_triggers = attach_triggers
         self._detach_triggers = None
+        self._cond_func = cond_func
         self.enable()
+
+    def __repr__(self):
+        """Return the representation."""
+        return "<Automation: name: {}>".format(self.name)
 
     def enable(self):
         """Enable automation."""
@@ -127,8 +136,9 @@ class Automation(object):
 
     def trigger(self, variables):
         """Run actions of this automation."""
-        for action in self._actions:
-            action(variables)
+        if self._cond_func(variables):
+            for action in self._actions:
+                action(variables)
 
 
 def _get_actions(center, config_block):
@@ -139,6 +149,47 @@ def _get_actions(center, config_block):
         actions.append(TemplateAction(center, action_conf))
 
     return actions
+
+
+def template_check(value):
+    """Check if a rendered template string equals true.
+
+    If value is not a string, return value as is.
+    """
+    if isinstance(value, str):
+        return value.lower() == 'true'
+    return value
+
+
+def make_checker(condition_type, checks):
+    """Return a function to check condition."""
+    def check_condition(variables):
+        """Return True if all or any condition(s) pass."""
+        if condition_type.lower() == 'and':
+            return all(
+                template_check(check(variables)) for check in checks)
+        elif condition_type.lower() == 'or':
+            return any(
+                template_check(check(variables)) for check in checks)
+        return None
+    return check_condition
+
+
+def _process_condition(config_block):
+    """Return a function that parses the condition."""
+    if CONF_TYPE in config_block:
+        checks = []
+        condition_type = config_block[CONF_TYPE]
+        conditions = config_block[CONF_CONDITIONS]
+        for cond in conditions:
+            check = _process_condition(cond)
+            checks.append(check)
+        return make_checker(condition_type, checks)
+    elif CONF_CONDITION in config_block:
+        data = config_block[CONF_CONDITION]
+        template = make_template(data)
+        return partial(render_template, template)
+    raise ValueError('Invalid condition: {}'.format(config_block))
 
 
 def _process_trigger(center, config_block, trigger):
@@ -177,10 +228,16 @@ def _process_automations(center, config):
     for block in conf:
         name = block[CONF_NAME]
         actions = _get_actions(center, block.get(CONF_ACTION, []))
+        if CONF_CONDITION in block:
+            cond_func = _process_condition(block[CONF_CONDITION])
+        else:
+            def cond_func(variables):
+                """Return always True when condition is not used."""
+                return True
         # use partial to get a function with args to call later
         attach_triggers = partial(
             _process_trigger, center, block.get(CONF_TRIGGER, []))
         if __name__ not in center.data:
             center.data[__name__] = {}
         center.data[__name__][name] = Automation(
-            center, name, attach_triggers, actions)
+            center, name, attach_triggers, cond_func, actions)

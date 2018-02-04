@@ -470,7 +470,7 @@ class Sample(object):
         """
         plate = self.get_plate(plate_name)
         if not plate:
-            return
+            return None
         well = plate.set_well(well_x, well_y)
         event = WellEvent({'sample': self, 'plate': plate, 'well': well})
         self._bus.notify(event)

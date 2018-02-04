@@ -154,7 +154,7 @@ class ChannelEvent(WellEvent):
 
 
 class SampleImageEvent(Event):
-    """An event produced by a sample image removed event."""
+    """An event produced by a sample image event."""
 
     __slots__ = ()
 
