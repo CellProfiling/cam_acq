@@ -25,7 +25,7 @@ def find_image_path(relpath, root):
         Return path to image.
     """
     if not relpath:
-        return
+        return None
     paths = []
     while relpath:
         relpath, tail = ntpath.split(relpath)

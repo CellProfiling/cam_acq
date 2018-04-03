@@ -26,6 +26,7 @@ def image_event(data):
     """Send a reply about saved image."""
     if 'startcamscan' in data.decode():
         return tuples_as_bytes(CAM_REPLY.pop())
+    return None
 
 
 class EchoServer(object):

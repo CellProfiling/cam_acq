@@ -5,8 +5,8 @@ from camacq.event import Event
 from camacq.helper import FeatureParent, setup_all_modules
 
 ACTION_SEND = 'send'
-ACTION_START_IMAGING = 'start_imaging',
-ACTION_STOP_IMAGING = 'stop_imaging',
+ACTION_START_IMAGING = 'start_imaging'
+ACTION_STOP_IMAGING = 'stop_imaging'
 
 ACTION_TO_METHOD = {
     ACTION_SEND: 'send',

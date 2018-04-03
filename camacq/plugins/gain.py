@@ -607,6 +607,7 @@ def send_com_and_start(center, commands, stop_data, handler):
         """Test if stop should be done."""
         if all(test in event.rel_path for test in stop_data):
             return True
+        return False
 
     remove_listener = center.bus.register(
         ImageEvent, handler_factory(center, handler, stop_test))

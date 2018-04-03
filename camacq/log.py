@@ -28,10 +28,9 @@ def check_path(path):
     if os.path.isfile(path) and os.access(path, os.W_OK) or \
        not os.path.isfile(path) and os.access(os.path.dirname(path), os.W_OK):
         return True
-    else:
-        _LOGGER.error(
-            'Unable to access log file %s (access denied)', path)
-        return False
+    _LOGGER.error(
+        'Unable to access log file %s (access denied)', path)
+    return False
 
 
 def enable_log(config):

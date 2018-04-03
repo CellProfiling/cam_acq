@@ -132,3 +132,118 @@ def test_channel_event(center, caplog, mock_api):
     assert func_name == 'send'
     assert command == (
         '/cmd:adjust /tar:pmt /num:2 /exp:gain_job /prop:gain /value:333')
+
+
+def test_condition(center, caplog, mock_api):
+    """Test a condition for command event."""
+    # pylint: disable=redefined-outer-name
+
+    config = {
+        'automations': [{
+            'name': 'add_exp_job',
+            'trigger': [{
+                'type': 'event',
+                'id': 'command_event',
+            }],
+            'condition': {
+                'type': 'AND',
+                'conditions': [
+                    {'condition':
+                     "{% if 'test' in trigger.event.data %}true{% endif %}"},
+                    {'condition':
+                     "{% if trigger.event.data.test == 1 %}true{% endif %}"},
+                ],
+            },
+            'action': [{
+                'type': 'api',
+                'id': 'send',
+                'data': {
+                    'command': 'success',
+                },
+            }],
+        }],
+    }
+
+    sample_mod.setup_module(center, config)
+    automations.setup_package(center, config)
+    automation = center.data['camacq.automations']['add_exp_job']
+    assert automation.enabled
+
+    assert 'send' in center.actions.actions['camacq.api']
+    center.bus.notify(api.CommandEvent(data={'test': 1}))
+    assert len(mock_api.calls) == 1
+    func_name, command = mock_api.calls[0]
+    assert func_name == 'send'
+    assert command == 'success'
+
+
+def test_nested_condition(center, caplog, mock_api):
+    """Test a nested condition for command event."""
+    # pylint: disable=redefined-outer-name
+
+    config = {
+        'automations': [{
+            'name': 'add_exp_job',
+            'trigger': [{
+                'type': 'event',
+                'id': 'command_event',
+            }],
+            'condition': {
+                'type': 'AND',
+                'conditions': [
+                    {'condition':
+                     "{% if 'test' in trigger.event.data %}true{% endif %}"},
+                    {
+                        'type': 'OR',
+                        'conditions': [
+                            {'condition':
+                             "{% if trigger.event.data.test == 1 %}true"
+                             "{% endif %}"},
+                            {'condition':
+                             "{% if trigger.event.data.test == 2 %}true"
+                             "{% endif %}"},
+                        ],
+                    },
+                ],
+            },
+            'action': [{
+                'type': 'api',
+                'id': 'send',
+                'data': {
+                    'command': 'success',
+                },
+            }],
+        }],
+    }
+
+    sample_mod.setup_module(center, config)
+    automations.setup_package(center, config)
+    automation = center.data['camacq.automations']['add_exp_job']
+    assert automation.enabled
+    assert 'send' in center.actions.actions['camacq.api']
+
+    # This should not add a call to the api.
+    center.bus.notify(api.CommandEvent(data={'test': 0}))
+
+    assert not mock_api.calls
+
+    # This should add a call to the api.
+    center.bus.notify(api.CommandEvent(data={'test': 1}))
+
+    assert len(mock_api.calls) == 1
+    func_name, command = mock_api.calls[-1]
+    assert func_name == 'send'
+    assert command == 'success'
+
+    # This should add a call to the api.
+    center.bus.notify(api.CommandEvent(data={'test': 2}))
+
+    assert len(mock_api.calls) == 2
+    func_name, command = mock_api.calls[-1]
+    assert func_name == 'send'
+    assert command == 'success'
+
+    # This should not add a call to the api.
+    center.bus.notify(api.CommandEvent(data={'test': 3}))
+
+    assert len(mock_api.calls) == 2

@@ -91,6 +91,7 @@ def make_proj(sample, path_list):
         if not image:
             continue
         # Exclude images with 0, 16 or 256 pixel side.
+        # pylint: disable=len-as-condition
         if (len(image.data) == 0 or len(image.data) == 16 or
                 len(image.data) == 256):
             continue
