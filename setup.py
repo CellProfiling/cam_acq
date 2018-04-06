@@ -80,7 +80,7 @@ CONFIG = {
         'pandas',
         'Pillow',
         'PyYAML',
-        'ruamel.yaml',
+        'ruamel.yaml<0.15',
         'scipy',
         'tifffile',
     ],
