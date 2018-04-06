@@ -25,7 +25,7 @@ def read_image(path):
     try:
         return tifffile.imread(path, key=0)
     except IOError as exception:
-        _LOGGER.error('Bad path to image! %s', exception)
+        _LOGGER.error('Bad path to image: %s', exception)
         return np.array([])
 
 
@@ -44,10 +44,10 @@ def get_metadata(path):
     """
     try:
         with tifffile.TiffFile(path) as tif:
-            return tif[0].image_description
+            return tif.ome_metadata
     except IOError as exception:
-        _LOGGER.error('Bad path to image! %s', exception)
-        return ''
+        _LOGGER.error('Bad path to image: %s', exception)
+        return {}
 
 
 def save_image(path, data, metadata=None):
@@ -59,10 +59,10 @@ def save_image(path, data, metadata=None):
         The path to the image.
     data : numpy array
         A numpy array with the image data.
-    metadata : str
-        The meta data of the image.
+    metadata : dict
+        The meta data of the image as a JSON dict.
     """
-    tifffile.imsave(path, data, description=metadata)
+    tifffile.imsave(path, data, metadata=metadata)
 
 
 def make_proj(sample, path_list):
@@ -112,8 +112,8 @@ class Image(object):
         Path to the image.
     data : numpy array
         A numpy array with the image data.
-    metadata : str
-        The meta data of the image.
+    metadata : dict
+        The meta data of the image as a JSON dict.
     channel_id : int
         The channel id of the image.
     field_x : int
@@ -149,7 +149,7 @@ class Image(object):
         """Set up instance."""
         self.path = path
         self._data = data
-        self._metadata = metadata
+        self._metadata = metadata or {}
         self.channel_id = channel_id
         self.field_x = field_x
         self.field_y = field_y
@@ -180,7 +180,7 @@ class Image(object):
 
         :setter: Set the meta data of the image.
         """
-        if self._metadata is None:
+        if not self._metadata:
             self._load_image_data()
         return self._metadata
 
@@ -205,10 +205,10 @@ class Image(object):
         if self.path:
             try:
                 with tifffile.TiffFile(self.path) as tif:
-                    self._data = tif[0].asarray()
-                    self._metadata = tif[0].image_description
+                    self._data = tif.asarray(key=0)
+                    self._metadata = tif.ome_metadata
             except IOError as exception:
-                _LOGGER.error('Bad path to image! %s', exception)
+                _LOGGER.error('Bad path to image: %s', exception)
 
     def save(self, path=None, data=None, metadata=None):
         """Save image with image data and optional meta data.
@@ -219,8 +219,8 @@ class Image(object):
             The path to the image.
         data : numpy array
             A numpy array with the image data.
-        metadata : str
-            The meta data of the image.
+        metadata : dict
+            The meta data of the image as a JSON dict.
         """
         if path is None:
             path = self.path
