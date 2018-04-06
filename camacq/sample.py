@@ -7,7 +7,6 @@ from camacq.api import ImageEvent
 from camacq.const import FIELD_NAME, WELL_NAME
 from camacq.event import (ChannelEvent, FieldEvent, ImageRemovedEvent,
                           PlateEvent, WellEvent)
-from camacq.image import Image
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,6 +48,63 @@ def setup_module(center, config):
 
     for action_id in ACTION_TO_METHOD:
         center.actions.register(__name__, action_id, handle_action)
+
+
+class Image(object):
+    """An image with path and position info.
+
+    Parameters
+    ----------
+    path : str
+        Path to the image.
+    channel_id : int
+        The channel id of the image.
+    field_x : int
+        The field x coordinate of the image.
+    field_y : int
+        The field y coordinate of the image.
+    well_x : int
+        The well x coordinate of the image.
+    well_y : int
+        The well y coordinate of the image.
+
+    Attributes
+    ----------
+    path : str
+        The path to the image.
+    channel_id : int
+        The channel id of the image.
+    field_x : int
+        The field x coordinate of the image.
+    field_y : int
+        The field y coordinate of the image.
+    well_x : int
+        The well x coordinate of the image.
+    well_y : int
+        The well y coordinate of the image.
+    """
+
+    # pylint: disable=too-many-arguments, too-few-public-methods
+
+    __slots__ = (
+        'path', 'channel_id', 'field_x', 'field_y', 'well_x', 'well_y',
+        'plate_name')
+
+    def __init__(
+            self, path=None, channel_id=None, field_x=None, field_y=None,
+            well_x=None, well_y=None, plate=None):
+        """Set up instance."""
+        self.path = path
+        self.channel_id = channel_id
+        self.field_x = field_x
+        self.field_y = field_y
+        self.well_x = well_x
+        self.well_y = well_y
+        self.plate_name = plate
+
+    def __repr__(self):
+        """Return the representation."""
+        return '<Image(path={0!r})>'.format(self.path)
 
 
 class Channel(object):
@@ -623,19 +679,14 @@ class Sample(object):
         return self._images.get(path)
 
     def set_image(
-            self, path, data=None, metadata=None, channel_id=None,
-            field_x=None, field_y=None, well_x=None, well_y=None,
-            plate_name=None):
+            self, path, channel_id=None, field_x=None, field_y=None,
+            well_x=None, well_y=None, plate_name=None):
         """Add an image to the sample.
 
         Parameters
         ----------
         path : str
             Path to the image.
-        data : numpy array
-            A numpy array with the image data.
-        metadata : str
-            The meta data of the image.
         channel_id : int
             The channel id of the image.
         field_x : int
@@ -651,8 +702,7 @@ class Sample(object):
         """
         # pylint: disable=too-many-arguments, too-many-locals
         image = Image(
-            path, data, metadata, channel_id, field_x, field_y, well_x, well_y,
-            plate_name)
+            path, channel_id, field_x, field_y, well_x, well_y, plate_name)
         self._images[image.path] = image
 
         if plate_name is not None:

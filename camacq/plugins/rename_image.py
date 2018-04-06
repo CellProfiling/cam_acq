@@ -37,8 +37,8 @@ def setup_module(center, config):
             image = center.sample.get_image(path)
             center.sample.remove_image(path)
             center.sample.set_image(
-                new_name, image.data, image.metadata, image.channel_id,
-                image.field_x, image.field_y, image.well_x, image.well_y)
+                new_name, image.channel_id, image.field_x, image.field_y,
+                image.well_x, image.well_y)
 
     center.actions.register(__name__, ACTION_RENAME_IMAGE, handle_action)
 

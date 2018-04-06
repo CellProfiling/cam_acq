@@ -90,21 +90,22 @@ def make_proj(sample, path_list):
         image = sample.get_image(path)
         if not image:
             continue
+        channel = image.channel_id
+        image = ImageData(path=image.path)
         # Exclude images with 0, 16 or 256 pixel side.
         # pylint: disable=len-as-condition
         if (len(image.data) == 0 or len(image.data) == 16 or
                 len(image.data) == 256):
             continue
-        channel = image.channel_id
         sorted_images[channel].append(image)
         proj = np.max([img.data for img in sorted_images[channel]], axis=0)
-        max_imgs[channel] = Image(
-            path=path, data=proj, metadata=image.metadata, channel_id=channel)
+        max_imgs[channel] = ImageData(
+            path=path, data=proj, metadata=image.metadata)
     return max_imgs
 
 
-class Image(object):
-    """Represent an image with a path, data, metadata and histogram.
+class ImageData(object):
+    """Represent the data of an image with path, data, metadata and histogram.
 
     Parameters
     ----------
@@ -114,48 +115,20 @@ class Image(object):
         A numpy array with the image data.
     metadata : dict
         The meta data of the image as a JSON dict.
-    channel_id : int
-        The channel id of the image.
-    field_x : int
-        The field x coordinate of the image.
-    field_y : int
-        The field y coordinate of the image.
-    well_x : int
-        The well x coordinate of the image.
-    well_y : int
-        The well y coordinate of the image.
 
     Attributes
     ----------
     path : str
         The path to the image.
-    channel_id : int
-        The channel id of the image.
-    field_x : int
-        The field x coordinate of the image.
-    field_y : int
-        The field y coordinate of the image.
-    well_x : int
-        The well x coordinate of the image.
-    well_y : int
-        The well y coordinate of the image.
     """
 
     # pylint: disable=too-many-arguments, too-many-instance-attributes
 
-    def __init__(
-            self, path=None, data=None, metadata=None, channel_id=None,
-            field_x=None, field_y=None, well_x=None, well_y=None, plate=None):
+    def __init__(self, path=None, data=None, metadata=None):
         """Set up instance."""
         self.path = path
         self._data = data
         self._metadata = metadata or {}
-        self.channel_id = channel_id
-        self.field_x = field_x
-        self.field_y = field_y
-        self.well_x = well_x
-        self.well_y = well_y
-        self.plate_name = plate
 
     @property
     def data(self):
@@ -163,8 +136,6 @@ class Image(object):
 
         :setter: Set the data of the image.
         """
-        # pylint: disable=fixme
-        # TODO: Investigate memory consideration of storing image data.
         if self._data is None:
             self._load_image_data()
         return self._data
@@ -232,4 +203,4 @@ class Image(object):
 
     def __repr__(self):
         """Return the representation."""
-        return '<Image(path={0!r})>'.format(self.path)
+        return '<ImageData(path={0!r})>'.format(self.path)
