@@ -27,7 +27,7 @@ docs:
 	$(MAKE) -C docs html
 
 docs-api:
-	sphinx-apidoc -MfT -o docs/ camacq
+	sphinx-apidoc -MfT -o docs/source camacq
 
 docs-live:
 	$(MAKE) -C docs clean
