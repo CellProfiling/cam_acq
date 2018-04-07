@@ -54,7 +54,7 @@ class LeicaApi(Api, threading.Thread):
     def __init__(self, center, client):
         """Set up the Leica API."""
         super(LeicaApi, self).__init__()
-        self._center = center
+        self.center = center
         self.client = client
         self.stop_thread = threading.Event()
 
@@ -79,21 +79,21 @@ class LeicaApi(Api, threading.Thread):
             if REL_IMAGE_PATH in reply:
                 rel_path = reply[REL_IMAGE_PATH]
                 image_path = find_image_path(
-                    rel_path, self._center.config[IMAGING_DIR])
+                    rel_path, self.center.config[IMAGING_DIR])
                 field_path = get_field(image_path)
                 image_paths = get_imgs(
                     field_path,
                     search=JOB_ID.format(attribute(image_path, 'E')))
                 for path in image_paths:
-                    self._center.bus.notify(LeicaImageEvent({'path': path}))
+                    self.center.bus.notify(LeicaImageEvent({'path': path}))
             elif SCAN_STARTED in list(reply.values()):
-                self._center.bus.notify(
+                self.center.bus.notify(
                     LeicaStartCommandEvent(reply))
             elif SCAN_FINISHED in list(reply.values()):
-                self._center.bus.notify(
+                self.center.bus.notify(
                     LeicaStopCommandEvent(reply))
             else:
-                self._center.bus.notify(LeicaCommandEvent(reply))
+                self.center.bus.notify(LeicaCommandEvent(reply))
 
     def send(self, command):
         """Send a command to the Leica API.
