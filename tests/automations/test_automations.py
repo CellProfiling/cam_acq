@@ -6,6 +6,8 @@ from camacq import sample as sample_mod
 from camacq import api, automations
 from camacq.event import CamAcqStartEvent
 
+# pylint: disable=redefined-outer-name
+
 
 class MockApi(api.Api):
     """Represent a mock microscope API."""
@@ -20,7 +22,7 @@ class MockApi(api.Api):
         Parameters
         ----------
         command : str
-            The command to send, should be a JSON string.
+            The command to send.
         """
         self.calls.append((self.send.__name__, command))
 
@@ -90,7 +92,6 @@ def test_setup_automation(center, caplog):
 
 def test_channel_event(center, caplog, mock_api):
     """Test a trigger for channel event."""
-    # pylint: disable=redefined-outer-name
 
     config = {
         'automations': [{
@@ -136,7 +137,6 @@ def test_channel_event(center, caplog, mock_api):
 
 def test_condition(center, caplog, mock_api):
     """Test a condition for command event."""
-    # pylint: disable=redefined-outer-name
 
     config = {
         'automations': [{
@@ -179,7 +179,6 @@ def test_condition(center, caplog, mock_api):
 
 def test_nested_condition(center, caplog, mock_api):
     """Test a nested condition for command event."""
-    # pylint: disable=redefined-outer-name
 
     config = {
         'automations': [{

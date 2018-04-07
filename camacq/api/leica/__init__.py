@@ -1,17 +1,14 @@
 """Leica microscope API specific modules."""
-import json
 import logging
 import socket
 import threading
 import time
-from collections import OrderedDict
 
-from matrixscreener.cam import CAM
-from matrixscreener.experiment import attribute, attribute_as_str
+from leicacam.cam import CAM, bytes_as_dict, tuples_as_bytes
+from leicaexperiment import attribute, attribute_as_str
 
 from camacq.api import (Api, CommandEvent, ImageEvent, StartCommandEvent,
                         StopCommandEvent)
-from camacq.api.leica.command import start, stop
 from camacq.api.leica.helper import find_image_path, get_field, get_imgs
 from camacq.const import HOST, IMAGING_DIR, JOB_ID, PORT
 
@@ -57,13 +54,13 @@ class LeicaApi(Api, threading.Thread):
     def __init__(self, center, client):
         """Set up the Leica API."""
         super(LeicaApi, self).__init__()
-        self._center = center
+        self.center = center
         self.client = client
         self.stop_thread = threading.Event()
 
     # TODO: Check what events are reported by CAM server. pylint: disable=fixme
     # Make sure that all images get reported eventually.
-    def _receive(self, replies=None):
+    def receive(self, replies=None):
         """Receive replies from CAM server and fire an event per reply.
 
         Parameters
@@ -73,62 +70,63 @@ class LeicaApi(Api, threading.Thread):
         """
         if replies is None:
             replies = self.client.receive()
-        if replies is None:
-            return
         # if reply check reply and call or register correct listener
         # parse reply and create Event
         # reply must be an iterable
         for reply in replies:
+            if not reply:
+                continue
             if REL_IMAGE_PATH in reply:
                 rel_path = reply[REL_IMAGE_PATH]
                 image_path = find_image_path(
-                    rel_path, self._center.config[IMAGING_DIR])
+                    rel_path, self.center.config[IMAGING_DIR])
                 field_path = get_field(image_path)
                 image_paths = get_imgs(
                     field_path,
                     search=JOB_ID.format(attribute(image_path, 'E')))
                 for path in image_paths:
-                    self._center.bus.notify(LeicaImageEvent({'path': path}))
+                    self.center.bus.notify(LeicaImageEvent({'path': path}))
             elif SCAN_STARTED in list(reply.values()):
-                self._center.bus.notify(
+                self.center.bus.notify(
                     LeicaStartCommandEvent(reply))
             elif SCAN_FINISHED in list(reply.values()):
-                self._center.bus.notify(
+                self.center.bus.notify(
                     LeicaStopCommandEvent(reply))
             else:
-                self._center.bus.notify(LeicaCommandEvent(reply))
+                self.center.bus.notify(LeicaCommandEvent(reply))
 
-    def send(self, command=None):
+    def send(self, command):
         """Send a command to the Leica API.
 
         Parameters
         ----------
-        command : str
-            The command to send, should be a JSON string.
+        command : list of tuples or string
+            The command to send.
         """
-        command = json.loads(command, object_pairs_hook=OrderedDict)
-        replies = self.client.send(list(command.items()))
-        if replies:
-            self._receive(replies)
+        if isinstance(command, str):
+            command = bytes_as_dict(command.encode())
+            command = list(command.items())
+        cmd, value = command[0]  # use the first cmd and value to wait for
+        self.client.send(command)
+        replies = [self.client.wait_for(cmd=cmd, value=value, timeout=0.3)]
+        self.receive(replies)
 
     def start_imaging(self):
         """Send a command to the microscope to start the imaging."""
-        replies = self.client.send(start())
-        if replies:
-            self._receive(replies)
+        replies = [self.client.start_scan()]
+        self.receive(replies)
 
     def stop_imaging(self):
         """Send a command to the microscope to stop the imaging."""
-        replies = self.client.send(stop())
-        if replies:
-            self._receive(replies)
+        replies = [self.client.stop_scan()]
+        self.receive(replies)
 
     def run(self):
         """Thread loop that receive from the microscope socket."""
         while True:
             if self.stop_thread.is_set():
                 break
-            self._receive()
+            self.receive()
             time.sleep(0.020)  # Short sleep to not burn 100% CPU.
 
 
@@ -140,8 +138,8 @@ class LeicaCommandEvent(CommandEvent):
 
     @property
     def command(self):
-        """Return the JSON command string."""
-        return json.dumps(self.data)
+        """Return the command string."""
+        return tuples_as_bytes(list(self.data.items())).decode()
 
 
 class LeicaStartCommandEvent(StartCommandEvent, LeicaCommandEvent):

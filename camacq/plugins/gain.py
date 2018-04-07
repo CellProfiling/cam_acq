@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from future import standard_library
 from jinja2 import Template
-from matrixscreener.experiment import attribute
+from leicaexperiment import attribute
 from pkg_resources import resource_filename
 from scipy.optimize import curve_fit
 
