@@ -60,7 +60,7 @@ class LeicaApi(Api, threading.Thread):
 
     # TODO: Check what events are reported by CAM server. pylint: disable=fixme
     # Make sure that all images get reported eventually.
-    def _receive(self, replies=None):
+    def receive(self, replies=None):
         """Receive replies from CAM server and fire an event per reply.
 
         Parameters
@@ -109,24 +109,24 @@ class LeicaApi(Api, threading.Thread):
         cmd, value = command[0]  # use the first cmd and value to wait for
         self.client.send(command)
         replies = [self.client.wait_for(cmd=cmd, value=value, timeout=0.3)]
-        self._receive(replies)
+        self.receive(replies)
 
     def start_imaging(self):
         """Send a command to the microscope to start the imaging."""
         replies = [self.client.start_scan()]
-        self._receive(replies)
+        self.receive(replies)
 
     def stop_imaging(self):
         """Send a command to the microscope to stop the imaging."""
         replies = [self.client.stop_scan()]
-        self._receive(replies)
+        self.receive(replies)
 
     def run(self):
         """Thread loop that receive from the microscope socket."""
         while True:
             if self.stop_thread.is_set():
                 break
-            self._receive()
+            self.receive()
             time.sleep(0.020)  # Short sleep to not burn 100% CPU.
 
 
