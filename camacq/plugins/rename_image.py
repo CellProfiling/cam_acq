@@ -2,12 +2,18 @@
 import logging
 import os
 
+import voluptuous as vol
 from leicaexperiment import attribute
 
 from camacq.api.leica.helper import format_new_name
+from camacq.helper import BASE_ACTION_SCHEMA
 
 _LOGGER = logging.getLogger(__name__)
 ACTION_RENAME_IMAGE = 'rename_image'
+RENAME_IMAGE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
+    'path': vol.Coerce(str),
+    'first_job_id': vol.Coerce(int),
+})
 
 
 def setup_module(center, config):
@@ -40,7 +46,9 @@ def setup_module(center, config):
                 new_name, image.channel_id, image.field_x, image.field_y,
                 image.well_x, image.well_y)
 
-    center.actions.register(__name__, ACTION_RENAME_IMAGE, handle_action)
+    center.actions.register(
+        'plugins.rename_image', ACTION_RENAME_IMAGE, handle_action,
+        RENAME_IMAGE_ACTION_SCHEMA)
 
 
 def rename_image(path, first_job_id):

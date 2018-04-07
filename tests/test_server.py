@@ -5,10 +5,6 @@ from builtins import object  # pylint: disable=redefined-builtin
 
 from leicacam.cam import tuples_as_bytes
 
-logging.basicConfig(level=logging.DEBUG, format='%(name)s: %(message)s')
-
-_LOGGER = logging.getLogger(__name__)
-
 CAM_REPLY = [
     [(
         'relpath',
@@ -77,19 +73,33 @@ class EchoServer(object):
         self.logger.debug('Sending: %s', data)
         conn.sendall(data + b'\n')
 
+    def run(self):
+        """Run server."""
+        try:
+            self.handle()
+        except OSError as exc:
+            self.logger.error('Error on socket: %s', exc)
+            self.logger.debug('Server close')
+            self.sock.close()
+
+    def stop(self):
+        """Stop server."""
+        try:
+            self.logger.debug('Server shutdown')
+            self.sock.shutdown(socket.SHUT_WR)
+            self.logger.debug('Server close')
+            self.sock.close()
+        except OSError:
+            self.logger.error('Error shutting down server socket')
+
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG, format='%(name)s: %(message)s')
 
     ADDRESS = ('localhost', 8895)
     SERVER = EchoServer(ADDRESS)
 
     try:
-        SERVER.handle()
+        SERVER.run()
     except KeyboardInterrupt:
-        try:
-            _LOGGER.debug('Server shutdown')
-            SERVER.sock.shutdown(socket.SHUT_WR)
-            _LOGGER.debug('Server close')
-            SERVER.sock.close()
-        except OSError:
-            _LOGGER.error('Error shutting down server socket')
+        SERVER.stop()

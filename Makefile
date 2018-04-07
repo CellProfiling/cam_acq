@@ -6,7 +6,7 @@ help:
 	@echo "clean-pyc - remove Python file artifacts"
 	@echo "coverage - check code coverage with pytest-cov plugin"
 	@echo "docs - generate Sphinx HTML documentation"
-	@echo "docs-api - generate leicacam rst file for Sphinx HTML documentation"
+	@echo "docs-api - generate camacq rst file for Sphinx HTML documentation"
 	@echo "docs-live - rebuild the documentation when a change is detected"
 	@echo "lint - check style with flake8, pylint and pydocstyle"
 	@echo "test - run tests quickly with the default Python"

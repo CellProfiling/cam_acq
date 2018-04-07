@@ -1,25 +1,55 @@
-"""Handle gain."""
+"""Handle sample state."""
 import logging
 from builtins import next, object  # pylint: disable=redefined-builtin
 from collections import OrderedDict
+
+import voluptuous as vol
 
 from camacq.api import ImageEvent
 from camacq.const import FIELD_NAME, WELL_NAME
 from camacq.event import (ChannelEvent, FieldEvent, ImageRemovedEvent,
                           PlateEvent, WellEvent)
+from camacq.helper import BASE_ACTION_SCHEMA
 
 _LOGGER = logging.getLogger(__name__)
 
 ACTION_SET_WELL = 'set_well'
 ACTION_SET_PLATE = 'set_plate'
 ACTION_SET_FIELD = 'set_field'
-ACTION_SET_GAIN = 'set_gain'
+ACTION_SET_CHANNEL = 'set_channel'
+
+SET_PLATE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
+    vol.Required('plate_name'): vol.Coerce(str),
+})
+
+SET_WELL_ACTION_SCHEMA = SET_PLATE_ACTION_SCHEMA.extend({
+    vol.Required('well_x'): vol.Coerce(int),
+    vol.Required('well_y'): vol.Coerce(int),
+})
+
+SET_FIELD_ACTION_SCHEMA = SET_WELL_ACTION_SCHEMA.extend({
+    vol.Required('field_x'): vol.Coerce(int),
+    vol.Required('field_y'): vol.Coerce(int),
+    'dxpx': vol.Coerce(int),
+    'dypx': vol.Coerce(int),
+    # pylint: disable=no-value-for-parameter
+    vol.Optional('gain_field', default=False): vol.Boolean(),
+    vol.Optional('img_ok', default=False): vol.Boolean(),
+})
+
+SET_CHANNEL_ACTION_SCHEMA = SET_WELL_ACTION_SCHEMA.extend({
+    vol.Required('channel_name'): vol.Coerce(str),
+    'values': {str: vol.Any(int, float, str)},
+})
 
 ACTION_TO_METHOD = {
-    ACTION_SET_WELL: 'set_well',
-    ACTION_SET_PLATE: 'set_plate',
-    ACTION_SET_FIELD: 'set_field',
-    ACTION_SET_GAIN: 'set_gain',
+    ACTION_SET_WELL: {'method': 'set_well', 'schema': SET_WELL_ACTION_SCHEMA},
+    ACTION_SET_PLATE: {
+        'method': 'set_plate', 'schema': SET_PLATE_ACTION_SCHEMA},
+    ACTION_SET_FIELD: {
+        'method': 'set_field', 'schema': SET_FIELD_ACTION_SCHEMA},
+    ACTION_SET_CHANNEL: {
+        'method': 'set_channel', 'schema': SET_CHANNEL_ACTION_SCHEMA},
 }
 
 
@@ -43,11 +73,12 @@ def setup_module(center, config):
             method when an action is called.
         """
         action_id = kwargs.pop('action_id')
-        method = ACTION_TO_METHOD[action_id]
+        method = ACTION_TO_METHOD[action_id]['method']
         getattr(center.sample, method)(**kwargs)
 
-    for action_id in ACTION_TO_METHOD:
-        center.actions.register(__name__, action_id, handle_action)
+    for action_id, options in ACTION_TO_METHOD.items():
+        schema = options['schema']
+        center.actions.register('sample', action_id, handle_action, schema)
 
 
 class Image(object):
@@ -108,14 +139,12 @@ class Image(object):
 
 
 class Channel(object):
-    """A channel with gain.
+    """A channel with attributes.
 
     Parameters
     ----------
     channel_name : str
         Name of the channel.
-    gain : int
-        Gain value.
 
     Attributes
     ----------
@@ -127,10 +156,12 @@ class Channel(object):
 
     __slots__ = ('name', '_gain', )
 
-    def __init__(self, channel_name, gain):
+    def __init__(self, channel_name, **values):
         """Set up instance."""
         self.name = channel_name
-        self._gain = gain
+        self._gain = None
+        for attr, val in values.items():
+            setattr(self, attr, val)
 
     def __repr__(self):
         """Return the representation."""
@@ -203,7 +234,7 @@ class Field(object):
 
 
 class Well(object):
-    """A well within a plate with fields and gain.
+    """A well within a plate with fields and channels.
 
     Parameters
     ----------
@@ -251,7 +282,7 @@ class Well(object):
             >>> well = Well(bus, sample, 0, 0)
             >>> well.set_field(1, 3, 0, 1, True, False)
             >>> well.fields
-            {'X01--Y03': Field(x=1, y=3, dx=0, dy=1, \
+            {(1, 3): Field(x=1, y=3, dx=0, dy=1, \
 gain_field=True, img_ok=False)}
         """
         return self._fields
@@ -305,7 +336,7 @@ gain_field=True, img_ok=False)}
         # pylint: disable=too-many-arguments
         field = Field(
             self._images, xcoord, ycoord, dxpx, dypx, gain_field, img_ok)
-        self._fields.update({field.name: field})
+        self._fields[(xcoord, ycoord)] = field
         return field
 
 
@@ -331,11 +362,11 @@ class Plate(object):
         """Set up instance."""
         self._images = images
         self.name = name
-        self.wells = {}
+        self._wells = {}
 
     def __repr__(self):
         """Return the representation."""
-        return "<Plate {}: wells: {}>".format(self.name, self.wells)
+        return "<Plate {}: wells: {}>".format(self.name, self._wells)
 
     @property
     def images(self):
@@ -345,8 +376,13 @@ class Plate(object):
             if image.plate_name == self.name
         }
 
-    def set_gain(self, well_x, well_y, channel_name, gain):
-        """Set gain in a channel in a well.
+    @property
+    def wells(self):
+        """:dict: Return all the wells of the plate."""
+        return self._wells
+
+    def set_channel(self, well_x, well_y, channel_name, **values):
+        """Set values of a channel in a well.
 
         Create a Well instance if well not already exists.
 
@@ -357,16 +393,18 @@ class Plate(object):
         well_y : int
             y coordinate of the well.
         channel_name : str
-            The name of the channel where to set gain.
-        gain : int
-            The gain value to set.
+            The name of the channel where to set attribute value.
+        values : dict
+            The attributes and values to set.
         """
-        well_name = WELL_NAME.format(well_x, well_y)
-        if well_name not in self.wells:
+        if (well_x, well_y) not in self._wells:
             self.set_well(well_x, well_y)
-        well = self.wells[well_name]
-        channel = Channel(channel_name, gain)
-        well.channels.update({channel_name: channel})
+        well = self._wells[(well_x, well_y)]
+        if channel_name not in well.channels:
+            well.channels[channel_name] = Channel(channel_name)
+        channel = well.channels[channel_name]
+        for attribute, value in values.items():
+            setattr(channel, attribute, value)
         return channel
 
     def set_well(self, well_x, well_y):
@@ -385,7 +423,7 @@ class Plate(object):
             Return the Well instance.
         """
         well = Well(self._images, well_x, well_y)
-        self.wells[well.name] = well
+        self._wells[(well_x, well_y)] = well
         return well
 
 
@@ -415,6 +453,11 @@ class Sample(object):
     def images(self):
         """:dict: Return all the images of the sample."""
         return self._images
+
+    @property
+    def plates(self):
+        """:dict: Return all the plates of the sample."""
+        return self._plates
 
     def _set_image_on_event(self, center, event):
         """Set sample image on an image event from a microscope API."""
@@ -498,11 +541,11 @@ class Sample(object):
         plate = self.get_plate(plate_name)
         if not plate:
             return None
-        well_name = WELL_NAME.format(well_x, well_y)
-        well = plate.wells.get(well_name)
+        well = plate.wells.get((well_x, well_y))
         if not well:
             _LOGGER.warning(
-                'Well %s %s missing from sample %s', well_x, well_y, self)
+                'Well %s missing from sample %s',
+                WELL_NAME.format(well_x, well_y), self)
             return None
         return well
 
@@ -532,8 +575,9 @@ class Sample(object):
         self._bus.notify(event)
         return well
 
-    def set_gain(self, well_x, well_y, channel_name, gain, plate_name=None):
-        """Set gain in a channel in a well of a plate.
+    def set_channel(
+            self, well_x, well_y, channel_name, plate_name=None, **values):
+        """Set attribute value in a channel in a well of a plate.
 
         Create a Well instance if well not already exists. Pick the
         first plate if no plate is specified.
@@ -545,23 +589,23 @@ class Sample(object):
         well_y : int
             y coordinate of the well.
         channel_name : str
-            The name of the channel where to set gain.
-        gain : int
-            The gain value to set.
+            The name of the channel where to set attribute value.
         plate_name : str
             The name of the plate that should hold the well with the
             channel.
+        values : dict
+            The attributes and values of the channel to set.
         """
         # pylint: disable=too-many-arguments
         plate = self.get_plate(plate_name)
         if not plate:
-            return
-        channel = plate.set_gain(well_x, well_y, channel_name, gain)
-        well_name = WELL_NAME.format(well_x, well_y)
-        well = plate.wells[well_name]
+            return None
+        channel = plate.set_channel(well_x, well_y, channel_name, **values)
+        well = self.get_well(well_x, well_y, plate_name=plate_name)
         event = ChannelEvent({
             'sample': self, 'plate': plate, 'well': well, 'channel': channel})
         self._bus.notify(event)
+        return channel
 
     def all_fields(self, well_x, well_y, plate_name=None):
         """Get all fields of a well of a plate.
@@ -613,11 +657,11 @@ class Sample(object):
         """
         # pylint: disable=too-many-arguments
         well = self.get_well(well_x, well_y, plate_name)
-        field_name = FIELD_NAME.format(field_x, field_y)
-        field = well.fields.get(field_name)
+        field = well.fields.get((field_x, field_y))
         if not field:
             _LOGGER.warning(
-                'Field name %s missing from sample %s', field_name, self)
+                'Field %s missing from sample %s',
+                FIELD_NAME.format(field_x, field_y), self)
             return None
         return field
 
@@ -652,15 +696,16 @@ class Sample(object):
         # pylint: disable=too-many-arguments
         plate = self.get_plate(plate_name)
         if not plate:
-            return
+            return None
         well = self.get_well(well_x, well_y, plate_name)
         if not well:
-            return
+            return None
         field = well.set_field(
             field_x, field_y, dxpx, dypx, gain_field, img_ok)
         event = FieldEvent({
             'sample': self, 'plate': plate, 'well': well, 'field': field})
         self._bus.notify(event)
+        return field
 
     def get_image(self, path):
         """Get image instance via path to image.

@@ -3,35 +3,19 @@ import csv
 import logging
 import os
 import pkgutil
-from builtins import object, range  # pylint: disable=redefined-builtin
+from builtins import object  # pylint: disable=redefined-builtin
 from collections import defaultdict
 from importlib import import_module
+
+import voluptuous as vol
 
 import camacq
 from camacq.const import PACKAGE
 
 _LOGGER = logging.getLogger(__name__)
 
-_MODULE_CACHE = {}
 PACKAGE_MODULE = '{}.{}'
-
-
-def call_saved(job):
-    """Call a saved job of a tuple with func and args.
-
-    Parameters
-    ----------
-    job : tuple
-        A tuple of a callable and possibly arguments to pass to the
-        callable.
-    """
-    func = job[0]
-    if len(job) > 1:
-        args = job[1:]
-    else:
-        args = ()
-    _LOGGER.debug('Calling: %s(%s)', func, args)
-    return func(*args)
+BASE_ACTION_SCHEMA = vol.Schema({'action_id': str})
 
 
 def get_module(package, module_name):
@@ -45,8 +29,6 @@ def get_module(package, module_name):
         The name of the module.
     """
     module_path = PACKAGE_MODULE.format(package, module_name)
-    if module_path in _MODULE_CACHE:
-        return _MODULE_CACHE[module_path]
     matches = [
         name for _, name, _
         in pkgutil.walk_packages(
@@ -55,12 +37,9 @@ def get_module(package, module_name):
     if len(matches) > 1:
         raise ValueError('Invalid module search result, more than one match')
     module_path = matches[0]
-    if module_path in _MODULE_CACHE:
-        return _MODULE_CACHE[module_path]
     try:
         module = import_module(module_path)
         _LOGGER.info('Loaded %s from %s', module_name, module_path)
-        _MODULE_CACHE[module_path] = module
 
         return module
 
@@ -100,11 +79,8 @@ def setup_all_modules(center, config, package_path, **kwargs):
             imported_pkg.__path__, prefix='{}.'.format(imported_pkg.__name__)):
         if 'main' in name:
             continue
-        if name in _MODULE_CACHE:
-            module = _MODULE_CACHE[name]
         else:
             module = import_module(name)
-            _MODULE_CACHE[name] = module
         _LOGGER.debug('Loaded %s', name)
         keys = [
             name for name in imported_pkg.__name__.split('.')
@@ -162,60 +138,13 @@ def write_csv(path, csv_map, header):
         The items in header should correspond to the index key of the
         primary dict and all the keys of the secondary dict.
     """
-    with open(path, 'wb') as file_handle:
+    with open(path, 'w') as file_handle:
         writer = csv.DictWriter(file_handle, fieldnames=header)
         writer.writeheader()
         for index, cells in csv_map.items():
             index_dict = {header[0]: index}
             index_dict.update(cells)
             writer.writerow(index_dict)
-
-
-def handler_factory(center, handler, test):
-    """Create handler that should call another handler if test is True.
-
-    Parameters
-    ----------
-    center : Center instance
-        The Center instance.
-    handler : callable
-        The function that should handle the event.
-    test : callable
-        A function that should test if the handler should be called.
-        The function should accept the event.
-
-    Returns
-    -------
-    callable
-        Return a function that can be used as an event handler. The
-        function will call another handler only if the test returns
-        True.
-    """
-    def handle_test(center, event):
-        """Forward event to handler if test is True."""
-        if test(event):
-            handler(center, event)
-    return handle_test
-
-
-def add_fields(well, fields_x, fields_y):
-    """Add a number of fields in a well with some default values.
-
-    Field 0, 0 and field 1, 1 will be set as gain_field.
-
-    Parameters
-    ----------
-    well : Well instance
-        Well instance where to add the fields.
-    fields_x : int
-        Number of fields in x to add.
-    fields_y : int
-        Number of fields in y to add.
-    """
-    for i in range(fields_y):
-        for j in range(fields_x):
-            well.set_field(
-                j, i, 0, 0, j == 0 and i == 0 or j == 1 and i == 1)
 
 
 class FeatureParent(object):

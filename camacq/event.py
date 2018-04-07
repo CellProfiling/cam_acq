@@ -277,8 +277,10 @@ class EventBus(object):
         event : Event instance
             An instance of Event or an instance of subclass of Event.
         """
-        _LOGGER.debug(event)
+        _LOGGER.debug(event.__class__.__name__)
         # Inspired by https://goo.gl/VEPG3n
+        # copy to make sure the dict is not modified during iteration
+        registry = dict(self._registry)
         for event_class in event.__class__.__mro__:
-            for handler in self._registry.get(event_class, []):
+            for handler in registry.get(event_class, []):
                 handler(event)

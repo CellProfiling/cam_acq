@@ -1,6 +1,5 @@
 """Configure and set up control center."""
 import logging
-import pprint
 
 from pkg_resources import resource_filename
 
@@ -12,6 +11,7 @@ from camacq.control import Center
 from camacq.helper import setup_all_modules
 
 _LOGGER = logging.getLogger(__name__)
+CORE_MODULES = ['sample']
 
 
 def setup_dict(config):
@@ -28,7 +28,8 @@ def setup_dict(config):
         Return the Center instance.
     """
     log_util.enable_log(config)
-    _LOGGER.debug('Contents of config:\n%s', pprint.pformat(config))
+    # Add core modules.
+    config.update({module: {} for module in CORE_MODULES})
     center = Center(config)
     setup_all_modules(center, config, PACKAGE)
     return center

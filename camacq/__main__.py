@@ -4,14 +4,11 @@ from __future__ import print_function
 import argparse
 import logging
 import os
-import re
-import socket
 import sys
 
 import camacq.bootstrap as bootstrap
 import camacq.config as config_util
-from camacq.const import (CONFIG_DIR, FIELDS_X, FIELDS_Y, HOST, IMAGING_DIR,
-                          LOG_LEVEL, PORT)
+from camacq.const import CONFIG_DIR, LOG_LEVEL
 
 
 def check_dir_arg(path):
@@ -22,25 +19,6 @@ def check_dir_arg(path):
     else:
         raise argparse.ArgumentTypeError(
             'String {} is not a path to a directory'.format(path))
-
-
-def check_well_arg(arg):
-    """Check that argument is valid well."""
-    try:
-        return re.match(r'^U\d\d--V\d\d$', arg).group(0)
-    except AttributeError:
-        raise argparse.ArgumentTypeError(
-            'String {} does not match required format'.format(arg))
-
-
-def check_socket_address(value):
-    """Check that value is a valid address."""
-    try:
-        socket.getaddrinfo(value, None)
-        return value
-    except OSError:
-        raise argparse.ArgumentTypeError(
-            'String {} is not a valid domain name or ip address'.format(value))
 
 
 def check_log_level(loglevel):
@@ -61,37 +39,6 @@ def parse_command_line():
     parser = argparse.ArgumentParser(
         description='Control microscope through client-server program.')
     parser.add_argument(
-        IMAGING_DIR,
-        type=check_dir_arg,
-        help='the path to the directory where images are exported')
-    parser.add_argument(
-        '-W',
-        '--last-well',
-        type=check_well_arg,
-        help='the id of the last well in the experiment, e.g. U11--V07')
-    parser.add_argument(
-        '--x-fields',
-        dest=FIELDS_X,
-        type=int,
-        help='the number (int) of fields on x axis in each well, e.g. 2')
-    parser.add_argument(
-        '--y-fields',
-        dest=FIELDS_Y,
-        type=int,
-        help='the number (int) of fields on y axis in each well, e.g. 2')
-    parser.add_argument(
-        '-H',
-        '--host',
-        dest=HOST,
-        type=check_socket_address,
-        help='the address of the host server, i.e. the microscope')
-    parser.add_argument(
-        '-P',
-        '--port',
-        dest=PORT,
-        type=int,
-        help='the tcp port of the host server, i.e. the microscope')
-    parser.add_argument(
         '--log-level',
         dest=LOG_LEVEL,
         type=check_log_level,
@@ -103,8 +50,6 @@ def parse_command_line():
         default=config_util.get_default_config_dir(),
         help='the path to camacq configuration directory')
     args = parser.parse_args()
-    if args.imaging_dir:
-        args.imaging_dir = os.path.normpath(args.imaging_dir)
     if args.config_dir:
         args.config_dir = os.path.normpath(args.config_dir)
     cmd_args_dict = vars(args)
