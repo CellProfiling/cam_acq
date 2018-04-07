@@ -31,7 +31,9 @@ def send(center, commands, api_name=None):
     -------
     ::
 
-        send(center, [[('cmd', 'deletelist')], [('cmd', 'startscan')]])
+        >>> send(center, [[('cmd', 'deletelist')], [('cmd', 'startscan')]])
+
+        >>> send(center, ['/cmd:deletelist', '/cmd:startscan'])
     """
     for cmd in commands:
         center.actions.call(
@@ -83,7 +85,7 @@ class Api(object):
         Parameters
         ----------
         command : str
-            The command to send, should be a JSON string.
+            The command to send.
         """
         raise NotImplementedError()
 
@@ -107,7 +109,7 @@ class CommandEvent(Event):
 
     @property
     def command(self):
-        """:str: Return the JSON command string."""
+        """:str: Return the command string."""
         return None
 
 

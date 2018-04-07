@@ -4,7 +4,7 @@ import os
 import re
 from builtins import str  # pylint: disable=redefined-builtin
 
-from matrixscreener import experiment
+from leicaexperiment import experiment
 
 
 def find_image_path(relpath, root):

@@ -2,7 +2,7 @@
 import logging
 import os
 
-from matrixscreener.experiment import attribute
+from leicaexperiment import attribute
 
 from camacq.api.leica.helper import format_new_name
 

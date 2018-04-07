@@ -3,7 +3,7 @@ import logging
 import socket
 from builtins import object  # pylint: disable=redefined-builtin
 
-from matrixscreener.cam import tuples_as_bytes
+from leicacam.cam import tuples_as_bytes
 
 logging.basicConfig(level=logging.DEBUG, format='%(name)s: %(message)s')
 
