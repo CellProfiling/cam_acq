@@ -4,7 +4,7 @@ from collections import OrderedDict
 import pytest
 from mock import MagicMock
 
-from camacq.api.leica import LeicaApi, LeicaCommandEvent
+from camacq.api.leica import LeicaApi, LeicaStartCommandEvent
 
 # pylint: disable=redefined-outer-name
 
@@ -27,7 +27,7 @@ def test_send(api):
     cmd_tuples = [('cmd', 'startscan')]
     api.client.wait_for.return_value = OrderedDict(cmd_tuples)
     mock_handler = MagicMock()
-    api.center.bus.register(LeicaCommandEvent, mock_handler)
+    api.center.bus.register(LeicaStartCommandEvent, mock_handler)
 
     api.send(cmd_string)
 
@@ -41,5 +41,5 @@ def test_send(api):
     assert len(mock_handler.mock_calls) == 1
     _, args, _ = mock_handler.mock_calls[0]
     # The first argument is Center, the seconds is the event.
-    assert isinstance(args[1], LeicaCommandEvent)
+    assert isinstance(args[1], LeicaStartCommandEvent)
     assert args[1].command == cmd_string
