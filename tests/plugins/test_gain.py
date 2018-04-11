@@ -3,11 +3,10 @@ import os
 import pprint
 
 import pytest
-from mock import patch
 
 from camacq.api.leica import LeicaImageEvent
 from camacq.api.leica.helper import get_imgs
-from camacq.const import IMAGING_DIR, JOB_ID
+from camacq.const import JOB_ID
 from camacq.image import make_proj
 from camacq.plugins.gain import calc_gain
 
@@ -21,29 +20,22 @@ IMAGE_PATH = os.path.join(
     'field--X00--Y00/image--U01--V00--E02--X00--Y00--Z00--C00.ome.tif')
 
 
-@pytest.fixture
-def mock_os_path():
-    """Patch nt path with os path."""
-    with patch('camacq.api.leica.helper.ntpath') as _mock:
-        _mock.split = os.path.split
-        yield _mock
-
-
-def test_gain(center, mock_os_path):
+def test_gain(center):
     """Run gain calculation test."""
     # pylint: disable=redefined-outer-name
     images = get_imgs(WELL_PATH, search=JOB_ID.format(2))
-    config = {'plugins': {'gain': {'objective': 'end_63x'}}}
-    config[IMAGING_DIR] = GAIN_DATA_DIR
+    config = {'plugins': {'gain': {
+        'objective': 'end_63x', 'save_dir': GAIN_DATA_DIR}}}
     pprint.pprint(config)
     center.config = config
-    for path in images:
-        center.bus.notify(LeicaImageEvent({'path': path}))
-    projs = make_proj(center.sample, images)
+    events = [LeicaImageEvent({'path': path}) for path in images]
+    images = {event.channel_id: event.path for event in events}
+    projs = make_proj(images)
     save_path = os.path.join(WELL_PATH, WELL_NAME)
-    gain_dict = calc_gain(center, projs, plot=False, save_path=save_path)
+    gain_dict = calc_gain(
+        center, 1, 0, projs, plot=False, save_path=save_path)
     pprint.pprint(gain_dict)
     gain_dict = {k: int(v) for k, v in gain_dict.items()}
     solution = {
-        'blue': 480, 'green': 740, 'red': 745, 'yellow': 805}
+        'blue': 480, 'green': 740, 'red': 805, 'yellow': 805}
     assert gain_dict == pytest.approx(solution, abs=10)

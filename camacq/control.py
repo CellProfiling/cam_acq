@@ -2,7 +2,9 @@
 import logging
 import time
 from builtins import object  # pylint: disable=redefined-builtin
+from collections import namedtuple
 
+import voluptuous as vol
 from future import standard_library
 
 from camacq.event import CamAcqStartEvent, CamAcqStopEvent, EventBus
@@ -10,8 +12,10 @@ from camacq.sample import Sample
 
 standard_library.install_aliases()
 
-
 _LOGGER = logging.getLogger(__name__)
+
+
+Action = namedtuple('Action', 'func, schema')
 
 
 class ActionsRegistry(object):
@@ -26,30 +30,35 @@ class ActionsRegistry(object):
         """:dict: Return dict of dicts with all registered actions."""
         return self._actions
 
-    def register(self, module, action_id, action_func):
+    def register(self, action_type, action_id, action_func, schema):
         """Register an action.
 
         Register actions per module.
 
         Parameters
         ----------
-        module : str
-            The name of the module to register the action under.
+        action_type : str
+            The name of the action_type to register the action under.
         action_id : str
             The id of the action to register.
         action_func : callable
             The function that should be called for the action.
+        action_func : voluptuous schema
+            The voluptuous schema that should validate the parameters
+            of the action call.
         """
-        if module not in self._actions:
-            self._actions[module] = {}
-        self._actions[module][action_id] = action_func
+        if action_type not in self._actions:
+            self._actions[action_type] = {}
+        _LOGGER.info(
+            'Registering action %s.%s', action_type, action_id)
+        self._actions[action_type][action_id] = Action(action_func, schema)
 
-    def call(self, module, action_id, **kwargs):
+    def call(self, action_type, action_id, **kwargs):
         """Call an action with optional kwargs.
 
         Parameters
         ----------
-        module : str
+        action_type : str
             The name of the module where the action is registered.
         action_id : str
             The id of the action to call.
@@ -57,14 +66,21 @@ class ActionsRegistry(object):
             Arbitrary keyword arguments. These will be passed to the action
             function when an action is called.
         """
-        if (module not in self._actions or
-                action_id not in self._actions[module]):
+        if (action_type not in self._actions or
+                action_id not in self._actions[action_type]):
             _LOGGER.error(
-                'No action registered for module %s or action id %s',
-                module, action_id)
+                'No action registered for type %s or id %s',
+                action_type, action_id)
             return
-        action_func = self._actions[module][action_id]
-        action_func(action_id=action_id, **kwargs)
+        action = self._actions[action_type][action_id]
+        try:
+            kwargs = action.schema(kwargs)
+        except vol.Invalid as exc:
+            _LOGGER.error('Invalid action call parameters: %s', exc)
+            return
+        _LOGGER.info(
+            'Calling action %s.%s: %s', action_type, action_id, kwargs)
+        action.func(action_id=action_id, **kwargs)
 
 
 class Center(object):

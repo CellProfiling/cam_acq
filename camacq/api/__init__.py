@@ -1,17 +1,28 @@
 """Microscope API specific modules."""
 from builtins import object  # pylint: disable=redefined-builtin
 
+import voluptuous as vol
+
 from camacq.event import Event
-from camacq.helper import FeatureParent, setup_all_modules
+from camacq.helper import BASE_ACTION_SCHEMA, FeatureParent, setup_all_modules
 
 ACTION_SEND = 'send'
 ACTION_START_IMAGING = 'start_imaging'
 ACTION_STOP_IMAGING = 'stop_imaging'
+CONF_API = 'api'
+
+SEND_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
+    'command': vol.Coerce(str),
+})
+
+START_IMAGING_ACTION_SCHEMA = STOP_IMAGING_ACTION_SCHEMA = BASE_ACTION_SCHEMA
 
 ACTION_TO_METHOD = {
-    ACTION_SEND: 'send',
-    ACTION_START_IMAGING: 'start_imaging',
-    ACTION_STOP_IMAGING: 'stop_imaging',
+    ACTION_SEND: {'method': 'send', 'schema': SEND_ACTION_SCHEMA},
+    ACTION_START_IMAGING: {
+        'method': 'start_imaging', 'schema': START_IMAGING_ACTION_SCHEMA},
+    ACTION_STOP_IMAGING: {
+        'method': 'stop_imaging', 'schema': STOP_IMAGING_ACTION_SCHEMA},
 }
 
 
@@ -37,7 +48,7 @@ def send(center, commands, api_name=None):
     """
     for cmd in commands:
         center.actions.call(
-            'camacq.api', ACTION_SEND, child_name=api_name, command=cmd)
+            'command', ACTION_SEND, child_name=api_name, command=cmd)
 
 
 def setup_package(center, config):
@@ -63,7 +74,7 @@ def setup_package(center, config):
             child method when an action is called.
         """
         action_id = kwargs.pop('action_id')
-        method = ACTION_TO_METHOD[action_id]
+        method = ACTION_TO_METHOD[action_id]['method']
         child_name = kwargs.pop('child_name', None)
         if child_name:
             children = [parent.children.get(child_name)]
@@ -72,8 +83,9 @@ def setup_package(center, config):
         for child in children:
             getattr(child, method)(**kwargs)
 
-    for action in ACTION_TO_METHOD:
-        center.actions.register(__name__, action, handle_action)
+    for action_id, options in ACTION_TO_METHOD.items():
+        schema = options['schema']
+        center.actions.register('command', action_id, handle_action, schema)
 
 
 class Api(object):

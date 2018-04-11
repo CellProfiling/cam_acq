@@ -46,26 +46,25 @@ plugins:
         init_gain: [550, 585, 620, 655, 690, 725, 760]
       - channel: red
         init_gain: [525, 560, 595, 630, 665, 700, 735]
-    first_job: 2
-    template_file: 'path/to/template_file.csv'
-    input_gain: 'path/to/input_gain.csv'
-    gain_only: false
     objective: end_63x  # objective to use for the experiment
-port: 8895
-host: localhost
-last_well: 'U11--V07'
-fields_x: 2
-fields_y: 2
+    save_dir: path/to/save_dir
 
 api:
   leica:
+    host: localhost
+    port: 8895
+    imaging_dir: '/path/to/imaging_dir'
 
 automations:
   - name: start
     trigger:
       - type: event
-        id: camacq_start
+        id: camacq_start_event
     action:
+      - type: sample
+        id: set_plate
+        data:
+          plate_name: '00'
       - type: sample
         id: set_well
         data:
@@ -84,6 +83,11 @@ automations:
         id: send
         data:
           command: >
+            /cmd:deletelist
+      - type: command
+        id: send
+        data:
+          command: >
             /cmd:add /tar:camlist /exp:gain_job /ext:af /slide:0
             /wellx:{{ trigger.event.well.x }} /welly:{{ trigger.event.well.y }}
             /fieldx:1 /fieldy:1 /dxpos:0 /dypos:0
@@ -94,8 +98,22 @@ automations:
             /cmd:add /tar:camlist /exp:gain_job /ext:af /slide:0
             /wellx:{{ trigger.event.well.x }} /welly:{{ trigger.event.well.y }}
             /fieldx:2 /fieldy:2 /dxpos:0 /dypos:0
+      # Turn off rename image and set_img_ok during gain job phase.
+      - type: automations
+        id: toggle
+        data:
+          name: rename_image
+      - type: automations
+        id: toggle
+        data:
+          name: set_img_ok
       - type: command
-        id: start_scan
+        id: start_imaging
+      - type: command
+        id: send
+        data:
+          command: >
+            /cmd:startcamscan
   - name: analyze_gain
     trigger:
       - type: event
@@ -110,11 +128,15 @@ automations:
       - type: plugin
         id: calc_gain
         data:
-          # FIXME: fix the template.
-          images: >
-            {% for path, image in sample.images.items() %}
-              (
-              trigger.event.well_x, trigger.event.well_y) }}
+          well_x: >
+            {{ trigger.event.well_x }}
+          well_y: >
+            {{ trigger.event.well_y }}
+          plate_name: >
+            {{ trigger.event.plate_name }}
+          save_path: >
+            path/to/imaging_dir/gains/{{ trigger.event.plate_name }}/{{
+            trigger.event.well_name }}/{{ trigger.event.well_name }}
   - name: set_exp_gain
     trigger:
       - type: event
@@ -130,7 +152,24 @@ automations:
             {% elif trigger.event.channel_name == 'yellow' %}2
             {% elif trigger.event.channel_name == 'red' %}2
             {% endif %}
-            /exp:gain_job /prop:gain /value:{{ trigger.event.channel.gain }}
+            /exp:gain_job /prop:gain
+            /value:{% if trigger.event.channel_name == 'green' %}
+              {% if not trigger.event.channel.gain %}800
+              {% else %}{{ [trigger.event.channel.gain, 800] | min }}
+              {% endif %}
+            {% elif trigger.event.channel_name == 'blue' %}
+              {% if not trigger.event.channel.gain %}505
+              {% else %}{{ [trigger.event.channel.gain, 610] | min }}
+              {% endif %}
+            {% elif trigger.event.channel_name == 'yellow' %}
+              {% if not trigger.event.channel.gain %}655
+              {% else %}{{ [trigger.event.channel.gain, 760] | min }}
+              {% endif %}
+            {% elif trigger.event.channel_name == 'red' %}
+              {% if not trigger.event.channel.gain %}630
+              {% else %}{{ [trigger.event.channel.gain + 25, 735] | min }}
+              {% endif %}
+            {% endif %}
   - name: add_exp_job
     trigger:
       - type: event
@@ -149,37 +188,95 @@ automations:
         id: send
         data:
           command: >
-            {% for field in trigger.event.well.fields %}
-              /cmd:add /tar:camlist /exp:exp_job /ext:af /slide:0
-              /wellx:{{ trigger.event.well.x }}
-              /welly:{{ trigger.event.well.y }} /fieldx:{{ field.x }}
-              /fieldy:{{ field.y }} /dxpos:0 /dypos:0
-            {% endfor %}
+            /cmd:deletelist
       - type: command
-        id: start_scan
+        id: send
+        data:
+          # Add exp job for 2 x 3 fields.
+          command: >
+            {% for x_number in range(1, 3) %}
+              {% for y_number in range(1, 4) %}
+                /cmd:add /tar:camlist /exp:exp_job /ext:af /slide:0
+                /wellx:{{ trigger.event.well.x }}
+                /welly:{{ trigger.event.well.y }} /fieldx:{{ x_number }}
+                /fieldy:{{ y_number }} /dxpos:0 /dypos:0
+              {% endfor %}
+            {% endfor %}
+      # Turn on rename image and set_img_ok during experiment job phase.
+      - type: automations
+        id: toggle
+        data:
+          name: rename_image
+      - type: automations
+        id: toggle
+        data:
+          name: set_img_ok
+      - type: command
+        id: start_imaging
+      - type: command
+        id: send
+        data:
+          command: >
+            /cmd:startcamscan
+  - name: set_img_ok
+    trigger:
+      - type: event
+        id: image_event
+        data:
+          job_id: 4
+    condition:
+      type: AND
+      conditions:
+        - condition: >
+            {% if not sample.plates[trigger.event.plate_name].wells[
+              (trigger.event.well_x, trigger.event.well_y)].fields[
+              (trigger.event.field_x, trigger.event.field_y)].img_ok
+              %}true{% endif %}
+    action:
+      - type: sample
+        id: set_field
+        data:
+          well_x: "{{ trigger.event.well_x }}"
+          well_y: "{{ trigger.event.well_y }}"
+          field_x: "{{ trigger.event.field_x }}"
+          field_y: "{{ trigger.event.field_y }}"
+          img_ok: true
+  - name: rename_image
+    trigger:
+      - type: event
+        id: image_event
+    action:
+      - type: plugins.rename_image
+        id: rename_image
+        data:
+          path: >
+            {{ trigger.event.path }}
+          first_job_id: 2
   - name: add_next_well
     trigger:
       - type: event
         id: well_event
         data:
-          img_ok: true
+          well_img_ok: true
     action:
       - type: command
         id: stop_scan
       - type: sample
         id: set_well
         data:
-          # add next sample well with 6 fields
-          # for wells in 1-96 if well is not done
-          # FIXME: fix the template.
+          # Add next sample well for wells in 1-96 if well is not done.
           well_x: >
-            {% for y_number in range(1, 9) %}
-              {% for x_number in range(1, 13) %}
-                {% if not well_is_done(x_number, y_number) and
-                  loop.previtem is not defined or
-                  not well_is_done(x_number, y_number) and
-                  loop.previtem is defined and
-                  well_is_done(loop.previtem, y_number) %}
+            {% for x_number in range(1, 13) %}
+              {% for y_number in range(1, 9) %}
+                {% set well_ok = sample.plates[trigger.event.plate_name].wells[
+                  (x_number, y_number)].img_ok %}
+                {% if loop.previtem is defined %}
+                  {% set prev_well_ok = sample.plates[
+                    trigger.event.plate_name].wells[
+                    (x_number, loop.previtem)].img_ok %}
+                {% endif %}
+                {% if not well_ok and loop.previtem is not defined or
+                  not well_ok and loop.previtem is defined and prev_well_ok %}
                   x_number
                 {% endif %}
               {% endfor %}
@@ -187,11 +284,15 @@ automations:
           well_y: >
             {% for x_number in range(1, 13) %}
               {% for y_number in range(1, 9) %}
-                {% if not well_is_done(x_number, y_number) and
-                  loop.previtem is not defined or
-                  not well_is_done(x_number, y_number) and
-                  loop.previtem is defined and
-                  well_is_done(x_number, loop.previtem) %}
+                {% set well_ok = sample.plates[trigger.event.plate_name].wells[
+                  (x_number, y_number)].img_ok %}
+                {% if loop.previtem is defined %}
+                  {% set prev_well_ok = sample.plates[
+                    trigger.event.plate_name].wells[
+                    (x_number, loop.previtem)].img_ok %}
+                {% endif %}
+                {% if not well_ok and loop.previtem is not defined or
+                  not well_ok and loop.previtem is defined and prev_well_ok %}
                   y_number
                 {% endif %}
               {% endfor %}

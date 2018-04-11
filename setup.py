@@ -84,6 +84,7 @@ CONFIG = {
         'ruamel.yaml<0.15',
         'scipy',
         'tifffile',
+        'voluptuous'
     ],
     'packages': find_packages(exclude=['contrib', 'docs', 'tests*']),
     'include_package_data': True,

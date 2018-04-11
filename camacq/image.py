@@ -65,33 +65,27 @@ def save_image(path, data, metadata=None):
     tifffile.imsave(path, data, metadata=metadata)
 
 
-def make_proj(sample, path_list):
-    """Make a dict of max projections from a list of image paths.
+def make_proj(images):
+    """Make a dict of max projections from a dict of channels and paths.
 
     Each channel will make one max projection.
 
     Parameters
     ----------
-    sample : Sample instance
-        Instance of Sample class.
-    path_list : list
-        List of paths to images.
+    images : dict
+        Dict of channel ids and paths.
 
     Returns
     -------
     dict
-        Return a dict of channels that map image objects.
+        Return a dict of channels that map ImageData objects.
         Each image object have a max projection as data.
     """
     _LOGGER.info('Making max projections...')
     sorted_images = defaultdict(list)
     max_imgs = {}
-    for path in path_list:
-        image = sample.get_image(path)
-        if not image:
-            continue
-        channel = image.channel_id
-        image = ImageData(path=image.path)
+    for channel, path in images.items():
+        image = ImageData(path=path)
         # Exclude images with 0, 16 or 256 pixel side.
         # pylint: disable=len-as-condition
         if (len(image.data) == 0 or len(image.data) == 16 or
@@ -173,13 +167,12 @@ class ImageData(object):
 
     def _load_image_data(self):
         """Load image data from path."""
-        if self.path:
-            try:
-                with tifffile.TiffFile(self.path) as tif:
-                    self._data = tif.asarray(key=0)
-                    self._metadata = tif.ome_metadata
-            except IOError as exception:
-                _LOGGER.error('Bad path to image: %s', exception)
+        try:
+            with tifffile.TiffFile(self.path) as tif:
+                self._data = tif.asarray(key=0)
+                self._metadata = tif.ome_metadata
+        except (IOError, ValueError) as exception:
+            _LOGGER.error('Bad path to image: %s', exception)
 
     def save(self, path=None, data=None, metadata=None):
         """Save image with image data and optional meta data.

@@ -22,6 +22,8 @@ def client():
 @pytest.fixture
 def api(center, client):
     """Return a leica api instance."""
+    config = {'api': {'leica': {}}}
+    center.config = config
     return LeicaApi(center, client)
 
 
@@ -44,7 +46,8 @@ def mock_socket():
 def test_setup_bad_socket(center, caplog, mock_socket):
     """Test setup leica api package with bad host or port."""
     mock_socket.connect.side_effect = socket.error()
-    setup_package(center, {})
+    config = {'api': {'leica': {}}}
+    setup_package(center, config)
     assert 'Connecting to server localhost failed:' in caplog.text
 
 
@@ -57,10 +60,15 @@ def test_send(api):
     api.center.bus.register(LeicaStartCommandEvent, mock_handler)
 
     api.send(cmd_string)
+    replies = api.run_job()
 
     assert len(api.client.send.mock_calls) == 1
     _, args, _ = api.client.send.mock_calls[0]
     assert args[0] == cmd_tuples
+
+    replies = api.run_job()
+    api.receive(replies)
+
     assert len(api.client.wait_for.mock_calls) == 1
     _, _, kwargs = api.client.wait_for.mock_calls[0]
     cmd, value = cmd_tuples[0]
@@ -82,6 +90,8 @@ def test_start_imaging(api):
     api.center.bus.register(LeicaStartCommandEvent, mock_handler)
 
     api.start_imaging()
+    replies = api.run_job()
+    api.receive(replies)
 
     assert len(api.client.start_scan.mock_calls) == 1
     assert len(mock_handler.mock_calls) == 1
@@ -102,15 +112,14 @@ def test_stop_imaging(api):
     api.center.bus.register(LeicaStopCommandEvent, mock_handler)
 
     api.stop_imaging()
+    replies = api.run_job()
+    api.receive(replies)
 
     assert len(api.client.stop_scan.mock_calls) == 1
 
     # pylint: disable=fixme
     # FIXME: Check exactly what is returned from the server when scan finishes.
-
-    api.client.receive.return_value = [OrderedDict(stop_event_tuples)]
-
-    api.receive()
+    api.receive([OrderedDict(stop_event_tuples)])
 
     assert len(mock_handler.mock_calls) == 1
     _, args, _ = mock_handler.mock_calls[0]
@@ -134,16 +143,15 @@ def test_receive(api, get_imgs):
     field_path = (
         'subfolder/exp1/CAM1/slide--S00/chamber--U00--V00/field--X01--Y01')
     root_path = '/root'
-    api.center.config['imaging_dir'] = root_path
+    config = {'api': {'leica': {'imaging_dir': root_path}}}
+    api.center.config = config
     image_path = os.path.join(root_path, image_path)
-    api.client.receive.return_value = [OrderedDict(cmd_tuples)]
     get_imgs.return_value = [image_path]
     mock_handler = MagicMock()
     api.center.bus.register(LeicaImageEvent, mock_handler)
 
-    api.receive()
+    api.receive([OrderedDict(cmd_tuples)])
 
-    assert len(api.client.receive.mock_calls) == 1
     assert len(get_imgs.mock_calls) == 1
     _, args, kwargs = get_imgs.mock_calls[0]
     assert args[0] == os.path.join(root_path, field_path)
