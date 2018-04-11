@@ -245,13 +245,29 @@ automations:
     trigger:
       - type: event
         id: image_event
+    condition:
+      type: AND
+      conditions:
+        - condition: >
+            {% if trigger.event.job_id in [2, 3, 4] %}true{% endif %}
     action:
       - type: plugins.rename_image
         id: rename_image
         data:
-          path: >
+          old_path: >
             {{ trigger.event.path }}
-          first_job_id: 2
+          new_path: >
+            {% if trigger.event.job_id == 2 %}
+              {{ trigger.event.path }}
+            {% elif trigger.event.job_id == 3 and
+                trigger.event.channel_id == 0 %}
+              {{ trigger.event.path | replace('C00', 'C01') }}
+            {% elif trigger.event.job_id == 3 and
+                trigger.event.channel_id == 01 %}
+              {{ trigger.event.path | replace('C01', 'C02') }}
+            {% else trigger.event.job_id == 4 %}
+              {{ trigger.event.path | replace('C00', 'C03') }}
+            {% endif %}
   - name: add_next_well
     trigger:
       - type: event

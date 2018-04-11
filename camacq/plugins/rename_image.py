@@ -3,16 +3,14 @@ import logging
 import os
 
 import voluptuous as vol
-from leicaexperiment import attribute
 
-from camacq.api.leica.helper import format_new_name
 from camacq.helper import BASE_ACTION_SCHEMA
 
 _LOGGER = logging.getLogger(__name__)
 ACTION_RENAME_IMAGE = 'rename_image'
 RENAME_IMAGE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
-    'path': vol.Coerce(str),
-    'first_job_id': vol.Coerce(int),
+    vol.Required('old_path'): vol.Coerce(str),
+    vol.Required('new_path'): vol.Coerce(str),
 })
 
 
@@ -35,58 +33,32 @@ def setup_module(center, config):
             Arbitrary keyword arguments. These will be passed to the
             action function when an action is called.
         """
-        path = kwargs.get('path')
-        first_job_id = kwargs.get('first_job_id')
-        new_name = rename_image(path, first_job_id)
+        old_path = kwargs.get('old_path')
+        new_path = kwargs.get('new_path')
 
-        if new_name:
-            image = center.sample.get_image(path)
-            center.sample.remove_image(path)
-            center.sample.set_image(
-                new_name, image.channel_id, image.field_x, image.field_y,
-                image.well_x, image.well_y)
+        rename_image(old_path, new_path)
+        image = center.sample.get_image(old_path)
+        center.sample.remove_image(old_path)
+        center.sample.set_image(
+            new_path, image.channel_id, image.field_x, image.field_y,
+            image.well_x, image.well_y)
 
     center.actions.register(
         'plugins.rename_image', ACTION_RENAME_IMAGE, handle_action,
         RENAME_IMAGE_ACTION_SCHEMA)
 
 
-def rename_image(path, first_job_id):
-    """Rename image at path and return new path to image.
-
-    Renaming is done according to a specific pattern.
+def rename_image(old_path, new_path):
+    """Rename image at old_path to new_path.
 
     Parameters
     ----------
-    path : str
-        The absolute path to the image.
-    first_job_id : int
-        An integer specifying the id of the first job of a group of
-        jobs that acquire the images for the experiment.
+    old_path : str
+        The absolute path to the existing image.
+    new_path : str
+        The absolute path to the renamed image.
 
-    Returns
-    -------
-    str
-        Return the new path to the renamed image.
     """
-    _LOGGER.debug('Image path: %s', path)
-    image_name = os.path.basename(path)
-    if not image_name.startswith('image'):
-        return None
-    if attribute(path, 'E') == first_job_id:
-        new_name = format_new_name(path)
-    elif (attribute(path, 'E') == first_job_id + 1 and
-          attribute(path, 'C') == 0):
-        new_name = format_new_name(path, new_attr={'C': '01'})
-    elif (attribute(path, 'E') == first_job_id + 1 and
-          attribute(path, 'C') == 1):
-        new_name = format_new_name(path, new_attr={'C': '02'})
-    elif attribute(path, 'E') == first_job_id + 2:
-        new_name = format_new_name(path, new_attr={'C': '03'})
-    else:
-        return None
-    if os.path.exists(new_name):
-        os.remove(new_name)
-    os.rename(path, new_name)
-    _LOGGER.debug('New image path: %s', new_name)
-    return new_name
+    if os.path.exists(new_path):
+        os.remove(new_path)
+    os.rename(old_path, new_path)

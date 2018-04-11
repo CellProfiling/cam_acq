@@ -1,7 +1,6 @@
 """Helper functions for Leica api."""
 import ntpath
 import os
-import re
 from builtins import str  # pylint: disable=redefined-builtin
 
 from leicaexperiment import experiment
@@ -31,38 +30,6 @@ def find_image_path(relpath, root):
         relpath, tail = ntpath.split(relpath)
         paths.append(tail)
     return str(os.path.join(root, *list(reversed(paths))))
-
-
-def format_new_name(image_path, root=None, new_attr=None):
-    """Create filename from image path and replace specific attributes.
-
-    Parameters
-    ----------
-    image_path : string
-        Path to image.
-    root : str
-        Path to directory where path should start.
-    new_attr : dict
-        Dictionary which maps experiment attributes to new attribute
-        ids. The new attribute ids will replace the old ids for the
-        corresponding attributes.
-
-    Returns
-    -------
-    str
-        Return new path to image.
-    """
-    if root is None:
-        root = get_field(image_path)
-
-    path = 'U{}--V{}--E{}--X{}--Y{}--Z{}--C{}.ome.tif'.format(
-        *(experiment.attribute_as_str(image_path, attr)
-          for attr in ('U', 'V', 'E', 'X', 'Y', 'Z', 'C')))
-    if new_attr:
-        for attr, attr_id in new_attr.items():
-            path = re.sub(attr + r'\d\d', attr + attr_id, path)
-
-    return os.path.normpath(os.path.join(root, path))
 
 
 def get_field(path):
