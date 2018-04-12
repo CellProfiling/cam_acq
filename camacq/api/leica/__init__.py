@@ -179,6 +179,8 @@ class LeicaCommandEvent(CommandEvent):
 
     __slots__ = ()
 
+    event_type = 'leica_command_event'
+
     @property
     def command(self):
         """Return the command string."""
@@ -190,17 +192,23 @@ class LeicaStartCommandEvent(StartCommandEvent, LeicaCommandEvent):
 
     __slots__ = ()
 
+    event_type = 'leica_start_command_event'
+
 
 class LeicaStopCommandEvent(StopCommandEvent, LeicaCommandEvent):
     """Leica StopCommandEvent class."""
 
     __slots__ = ()
 
+    event_type = 'leica_stop_command_event'
+
 
 class LeicaImageEvent(ImageEvent):
     """Leica ImageEvent class."""
 
     __slots__ = ()
+
+    event_type = 'leica_image_event'
 
     @property
     def path(self):

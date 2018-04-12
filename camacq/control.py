@@ -7,7 +7,8 @@ from collections import namedtuple
 import voluptuous as vol
 from future import standard_library
 
-from camacq.event import CamAcqStartEvent, CamAcqStopEvent, EventBus
+from camacq.event import Event, EventBus
+from camacq.const import CAMACQ_START_EVENT, CAMACQ_STOP_EVENT
 from camacq.sample import Sample
 
 standard_library.install_aliases()
@@ -156,3 +157,25 @@ class Center(object):
                 time.sleep(1)  # Short sleep to not burn 100% CPU.
         except KeyboardInterrupt:
             self.end(0)
+
+
+# pylint: disable=too-few-public-methods
+class CamAcqStartEvent(Event):
+    """An event fired when camacq has started."""
+
+    __slots__ = ()
+
+    event_type = CAMACQ_START_EVENT
+
+
+class CamAcqStopEvent(Event):
+    """An event fired when camacq is about to stop."""
+
+    __slots__ = ()
+
+    event_type = CAMACQ_STOP_EVENT
+
+    @property
+    def exit_code(self):
+        """:int: Return the plate instance of the event."""
+        return self.data.get('exit_code')

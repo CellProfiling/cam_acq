@@ -3,6 +3,8 @@ from builtins import object  # pylint: disable=redefined-builtin
 
 import voluptuous as vol
 
+from camacq.const import (COMMAND_EVENT, IMAGE_EVENT, START_COMMAND_EVENT,
+                          STOP_COMMAND_EVENT)
 from camacq.event import Event
 from camacq.helper import BASE_ACTION_SCHEMA, FeatureParent, setup_all_modules
 
@@ -119,6 +121,8 @@ class CommandEvent(Event):
 
     __slots__ = ()
 
+    event_type = COMMAND_EVENT
+
     @property
     def command(self):
         """:str: Return the command string."""
@@ -133,6 +137,8 @@ class StartCommandEvent(CommandEvent):
 
     __slots__ = ()
 
+    event_type = START_COMMAND_EVENT
+
 
 class StopCommandEvent(CommandEvent):
     """An event received from the API.
@@ -142,6 +148,8 @@ class StopCommandEvent(CommandEvent):
 
     __slots__ = ()
 
+    event_type = STOP_COMMAND_EVENT
+
 
 class ImageEvent(Event):
     """An event received from the API.
@@ -150,6 +158,8 @@ class ImageEvent(Event):
     """
 
     __slots__ = ()
+
+    event_type = IMAGE_EVENT
 
     @property
     def path(self):

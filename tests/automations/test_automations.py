@@ -4,7 +4,7 @@ from mock import patch
 
 from camacq import sample as sample_mod
 from camacq import api, automations
-from camacq.event import CamAcqStartEvent
+from camacq.control import CamAcqStartEvent
 
 # pylint: disable=redefined-outer-name
 
@@ -248,7 +248,7 @@ def test_nested_condition(center, mock_api):
     assert len(mock_api.calls) == 2
 
 
-def test_sample_access(center):
+def test_sample_access(center, mock_api):
     """Test accessing sample in template."""
 
     config = {

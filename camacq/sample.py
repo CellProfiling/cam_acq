@@ -5,10 +5,10 @@ from collections import OrderedDict
 
 import voluptuous as vol
 
-from camacq.api import ImageEvent
-from camacq.const import FIELD_NAME, WELL_NAME
-from camacq.event import (ChannelEvent, FieldEvent, ImageRemovedEvent,
-                          PlateEvent, WellEvent)
+from camacq.const import (CHANNEL_EVENT, FIELD_EVENT, FIELD_NAME, IMAGE_EVENT,
+                          IMAGE_REMOVED_EVENT, PLATE_EVENT, SAMPLE_EVENT,
+                          SAMPLE_IMAGE_EVENT, WELL_EVENT, WELL_NAME)
+from camacq.event import Event
 from camacq.helper import BASE_ACTION_SCHEMA
 
 _LOGGER = logging.getLogger(__name__)
@@ -443,7 +443,7 @@ class Sample(object):
         self._bus = bus
         self._plates = {}
         self._images = {}
-        bus.register(ImageEvent, self._set_image_on_event)
+        bus.register(IMAGE_EVENT, self._set_image_on_event)
 
     def __repr__(self):
         """Return the representation."""
@@ -780,3 +780,185 @@ class Sample(object):
         image = self._images.pop(path, None)
         if image is not None:
             self._bus.notify(ImageRemovedEvent({'image': image}))
+
+
+# pylint: disable=too-few-public-methods
+class SampleEvent(Event):
+    """An event produced by a sample change event."""
+
+    __slots__ = ()
+
+    event_type = SAMPLE_EVENT
+
+    @property
+    def sample(self):
+        """:Sample instance: Return the sample instance of the event."""
+        return self.data.get('sample')
+
+
+class PlateEvent(SampleEvent):
+    """An event produced by a sample plate change event."""
+
+    __slots__ = ()
+
+    event_type = PLATE_EVENT
+
+    @property
+    def plate(self):
+        """:Plate instance: Return the plate instance of the event."""
+        return self.data.get('plate')
+
+    @property
+    def plate_name(self):
+        """:str: Return the name of the plate."""
+        return self.plate.name
+
+
+class WellEvent(PlateEvent):
+    """An event produced by a sample well change event."""
+
+    __slots__ = ()
+
+    event_type = WELL_EVENT
+
+    @property
+    def well(self):
+        """:Well instance: Return the well of the event."""
+        return self.data.get('well')
+
+    @property
+    def well_x(self):
+        """:int: Return the well x coordinate of the event."""
+        return self.well.x
+
+    @property
+    def well_y(self):
+        """:int: Return the well y coordinate of the event."""
+        return self.well.y
+
+    @property
+    def well_img_ok(self):
+        """:bool: Return if the well has all images acquired ok."""
+        return self.well.img_ok
+
+    @property
+    def well_name(self):
+        """:str: Return the name of the well."""
+        return self.well.name
+
+
+class FieldEvent(WellEvent):
+    """An event produced by a sample field change event."""
+
+    __slots__ = ()
+
+    event_type = FIELD_EVENT
+
+    @property
+    def field(self):
+        """:Field instance: Return the field of the event."""
+        return self.data.get('field')
+
+    @property
+    def field_x(self):
+        """:int: Return the field x coordinate of the event."""
+        return self.field.x
+
+    @property
+    def field_y(self):
+        """:int: Return the field y coordinate of the event."""
+        return self.field.y
+
+    @property
+    def field_dx(self):
+        """:int: Return the field dx pixel coordinate of an ROI."""
+        return self.field.dx
+
+    @property
+    def field_dy(self):
+        """:int: Return the field dy pixel coordinate of an ROI."""
+        return self.field.dy
+
+    @property
+    def gain_field(self):
+        """:bool: Return if field is a field marked for a gain job."""
+        return self.field.gain_field
+
+    @property
+    def field_img_ok(self):
+        """:bool: Return if the field has all images acquired ok."""
+        return self.field.img_ok
+
+    @property
+    def field_name(self):
+        """:str: Return the name of the field."""
+        return self.field.name
+
+
+class ChannelEvent(WellEvent):
+    """An event produced by a sample channel change event."""
+
+    __slots__ = ()
+
+    event_type = CHANNEL_EVENT
+
+    @property
+    def channel(self):
+        """:Channel instance: Return the channel of the event."""
+        return self.data.get('channel')
+
+    @property
+    def channel_name(self):
+        """:str: Return the channel name of the event."""
+        return self.channel.name
+
+
+class SampleImageEvent(Event):
+    """An event produced by a sample image event."""
+
+    __slots__ = ()
+
+    event_type = SAMPLE_IMAGE_EVENT
+
+    @property
+    def image(self):
+        """:Image instance: Return the image instance of the event."""
+        return self.data.get('image')
+
+    @property
+    def path(self):
+        """:str: Return the absolute path to the image."""
+        return self.image.path
+
+    @property
+    def well_x(self):
+        """:int: Return x coordinate of the well of the image."""
+        return self.image.well_x
+
+    @property
+    def well_y(self):
+        """:int: Return y coordinate of the well of the image."""
+        return self.image.well_y
+
+    @property
+    def field_x(self):
+        """:int: Return x coordinate of the well of the image."""
+        return self.image.field_x
+
+    @property
+    def field_y(self):
+        """:int: Return y coordinate of the well of the image."""
+        return self.image.field_y
+
+    @property
+    def channel_id(self):
+        """:int: Return channel id of the image."""
+        return self.image.channel_id
+
+
+class ImageRemovedEvent(SampleImageEvent):
+    """An event produced by a sample image removed event."""
+
+    __slots__ = ()
+
+    event_type = IMAGE_REMOVED_EVENT
