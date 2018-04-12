@@ -750,6 +750,8 @@ class Sample(object):
             path, channel_id, field_x, field_y, well_x, well_y, plate_name)
         self._images[image.path] = image
 
+        self._bus.notify(SampleImageEvent({'image': image}))
+
         if plate_name is not None:
             plate = self.get_plate(plate_name)
             if not plate:
