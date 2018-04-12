@@ -6,6 +6,7 @@ from collections import OrderedDict
 import pytest
 from mock import MagicMock, patch
 
+from camacq import api as base_api
 from camacq.api.leica import (LeicaApi, LeicaImageEvent,
                               LeicaStartCommandEvent, LeicaStopCommandEvent,
                               setup_package)
@@ -24,7 +25,16 @@ def api(center, client):
     """Return a leica api instance."""
     config = {'api': {'leica': {}}}
     center.config = config
-    return LeicaApi(center, client)
+    mock_api = LeicaApi(center, client)
+
+    def setup_mock_api_package(center, config, add_child=None):
+        """Set up a mock api package."""
+        add_child('test_api', mock_api)
+
+    with patch('camacq.api.leica.setup_package') as leica_setup:
+        leica_setup.side_effect = setup_mock_api_package
+        base_api.setup_package(center, {'api': {'leica': {}}})
+        yield mock_api
 
 
 @pytest.fixture
@@ -57,7 +67,7 @@ def test_send(api):
     cmd_tuples = [('cmd', 'startscan')]
     api.client.wait_for.return_value = OrderedDict(cmd_tuples)
     mock_handler = MagicMock()
-    api.center.bus.register(LeicaStartCommandEvent, mock_handler)
+    api.center.bus.register('start_command_event', mock_handler)
 
     api.send(cmd_string)
     replies = api.run_job()
@@ -87,7 +97,7 @@ def test_start_imaging(api):
     cmd_tuples = [('cmd', 'startscan')]
     api.client.start_scan.return_value = OrderedDict(cmd_tuples)
     mock_handler = MagicMock()
-    api.center.bus.register(LeicaStartCommandEvent, mock_handler)
+    api.center.bus.register('start_command_event', mock_handler)
 
     api.start_imaging()
     replies = api.run_job()
@@ -109,7 +119,7 @@ def test_stop_imaging(api):
     cmd_tuples = [('cmd', 'stopscan')]
     api.client.stop_scan.return_value = OrderedDict(cmd_tuples)
     mock_handler = MagicMock()
-    api.center.bus.register(LeicaStopCommandEvent, mock_handler)
+    api.center.bus.register('stop_command_event', mock_handler)
 
     api.stop_imaging()
     replies = api.run_job()
@@ -148,7 +158,7 @@ def test_receive(api, get_imgs):
     image_path = os.path.join(root_path, image_path)
     get_imgs.return_value = [image_path]
     mock_handler = MagicMock()
-    api.center.bus.register(LeicaImageEvent, mock_handler)
+    api.center.bus.register('image_event', mock_handler)
 
     api.receive([OrderedDict(cmd_tuples)])
 

@@ -68,6 +68,7 @@ automations:
       - type: sample
         id: set_well
         data:
+          plate_name: '00'
           well_x: 1
           well_y: 1
   - name: image_next_well
