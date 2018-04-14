@@ -106,8 +106,6 @@ class Center(object):
         Return dict that stores data from other modules than control.
     exit_code : int
         Return the exit code for the app.
-    threads : list
-        Return a list of child threads for the app.
     """
 
     def __init__(self, config):
@@ -118,7 +116,6 @@ class Center(object):
         self.actions = ActionsRegistry()
         self.data = {}
         self.exit_code = 0
-        self.threads = []
 
     def __repr__(self):
         """Return the representation."""
@@ -140,9 +137,6 @@ class Center(object):
         _LOGGER.info('Stopping camacq')
         self.bus.notify(CamAcqStopEvent({'exit_code': code}))
         self.exit_code = code
-        for thread in self.threads:
-            thread.stop_thread.set()
-            thread.join(30)
 
     def start(self):
         """Start the app."""

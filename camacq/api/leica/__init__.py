@@ -12,7 +12,8 @@ from leicaexperiment import attribute, attribute_as_str
 from camacq.api import (CONF_API, Api, CommandEvent, ImageEvent,
                         StartCommandEvent, StopCommandEvent)
 from camacq.api.leica.helper import find_image_path, get_field, get_imgs
-from camacq.const import CONF_HOST, CONF_PORT, IMAGING_DIR, JOB_ID
+from camacq.const import (CAMACQ_STOP_EVENT, CONF_HOST, CONF_PORT, IMAGING_DIR,
+                          JOB_ID)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,8 +49,13 @@ def setup_package(center, config, add_child=None):
     api = LeicaApi(center, cam)
     add_child(__name__, api)
     # Start thread that calls receive on the socket to the microscope
-    center.threads.append(api)
     api.start()
+
+    def stop_thread(center, event):
+        """Stop the thread."""
+        api.stop_thread.set()
+
+    center.bus.register(CAMACQ_STOP_EVENT, stop_thread)
 
 
 class LeicaApi(Api, threading.Thread):
