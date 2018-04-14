@@ -47,7 +47,7 @@ def enable_log(config):
     # '%(log_color)s%(levelname)s:%(name)s:%(message)s'
     # '%(asctime)s;%(name)-16s;%(levelname)-8s;%(message)s'
     root_logger.handlers[0].setFormatter(colorlog.ColoredFormatter(
-        '%(log_color)s%(asctime)s;%(levelname)-8s;%(name)-16s;%(message)s',
+        '%(log_color)s%(asctime)s;%(levelname)-8s;%(name)-18s;%(message)s',
         log_colors={
             'DEBUG': 'cyan',
             'INFO': 'green',
@@ -70,8 +70,11 @@ def enable_log(config):
                 encoding='utf-8', delay=0)
             filelog.setLevel(logging.WARNING)
             formatter = logging.Formatter(
-                '%(asctime)s;%(name)-16s;%(levelname)-8s;%(message)s')
+                '%(asctime)s;%(name)-18s;%(levelname)-8s;%(message)s')
             filelog.setFormatter(formatter)
             logging.getLogger('').addHandler(filelog)
     if config.get(LOG_LEVEL):
         root_logger.handlers[0].setLevel(config[LOG_LEVEL])
+    # Silence matplotlib spam at debug level.
+    logger = logging.getLogger('matplotlib')
+    logger.setLevel(logging.INFO)
