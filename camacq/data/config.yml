@@ -4,7 +4,7 @@ logging:
   formatters:
     colored:
       (): colorlog.ColoredFormatter
-      format: '%(log_color)s%(asctime)s;%(levelname)-8s;%(name)-16s;%(message)s'
+      format: '%(log_color)s%(asctime)s;%(levelname)-8s;%(name)-18s;%(message)s'
       log_colors:
         DEBUG: cyan
         INFO: green
@@ -12,9 +12,9 @@ logging:
         ERROR: red
         CRITICAL: red
     simple:
-      format: '%(name)-16s: %(levelname)-8s %(message)s'
+      format: '%(name)-18s: %(levelname)-8s %(message)s'
     verbose:
-      format: '%(asctime)s;%(name)-16s;%(levelname)-8s;%(message)s'
+      format: '%(asctime)s;%(name)-18s;%(levelname)-8s;%(message)s'
   handlers:
     console:
       class: logging.StreamHandler
@@ -123,6 +123,7 @@ automations:
           field_x: 2
           field_y: 2
           job_id: 2
+          channel_id: 31
     action:
       - type: command
         id: stop_scan

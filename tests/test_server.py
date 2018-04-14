@@ -1,6 +1,7 @@
 """Implement test server."""
 import logging
 import socket
+from time import sleep
 from builtins import object  # pylint: disable=redefined-builtin
 
 from leicacam.cam import tuples_as_bytes
@@ -13,9 +14,9 @@ CAM_REPLY = [
         '--X01--Y01--T0000--Z00--C00.ome')],
     [(
         'relpath',
-        'subfolder/exp1/CAM1/slide--S00/chamber--U00--V00/field--X01--Y01'
+        'subfolder/exp1/CAM1/slide--S00/chamber--U00--V00/field--X02--Y02'
         '/image--L0000--S00--U00--V00--J15--E02--O01'
-        '--X01--Y01--T0000--Z00--C31.ome')]]
+        '--X02--Y02--T0000--Z00--C31.ome')]]
 
 
 def image_event(data):
@@ -59,6 +60,7 @@ class EchoServer(object):
                 reply = image_event(data)
                 if not reply:
                     continue
+                sleep(0.2)
                 self.send(conn, reply)
         except OSError as exc:
             self.logger.error(exc)

@@ -39,7 +39,7 @@ def get_module(package, module_name):
     module_path = matches[0]
     try:
         module = import_module(module_path)
-        _LOGGER.info('Loaded %s from %s', module_name, module_path)
+        _LOGGER.debug('Loaded %s from %s', module_name, module_path)
 
         return module
 
