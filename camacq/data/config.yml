@@ -123,6 +123,7 @@ automations:
           field_x: 2
           field_y: 2
           job_id: 2
+          channel_id: 31
     action:
       - type: command
         id: stop_scan
