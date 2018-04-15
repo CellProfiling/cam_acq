@@ -36,13 +36,13 @@ SAVED_GAINS = 'saved_gains'
 
 ACTION_CALC_GAIN = 'calc_gain'
 CALC_GAIN_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
-    'well_x': vol.Coerce(int),
-    'well_y': vol.Coerce(int),
-    'plate_name': vol.Coerce(str),
+    vol.Required('well_x'): vol.Coerce(int),
+    vol.Required('well_y'): vol.Coerce(int),
+    vol.Required('plate_name'): vol.Coerce(str),
     'images': [vol.Coerce(str)],
     # pylint: disable=no-value-for-parameter
     vol.Optional('make_plots', default=False): vol.Boolean(),
-    'save_path': vol.Coerce(str),
+    vol.Optional('save_path', default=''): vol.Coerce(str),
 })
 
 GREEN = 'green'
@@ -64,8 +64,7 @@ def setup_module(center, config):
         plate_name = kwargs.get('plate_name')
         paths = kwargs.get('images')  # list of paths to calculate gain for
         if not paths:
-            well = center.sample.get_well(
-                well_x, well_y, plate_name=plate_name)
+            well = center.sample.get_well(plate_name, well_x, well_y)
             if not well:
                 return
             images = {
@@ -75,19 +74,20 @@ def setup_module(center, config):
                 path: image.channel_id
                 for path, image in center.sample.images.items()
                 if path in paths}
-        plot = kwargs.get('make_plots', False)
+        plot = kwargs.get('make_plots')
         save_path = kwargs.get('save_path')  # path to save plots
         projs = make_proj(images)
-        calc_gain(center, well_x, well_y, projs, plot, save_path)
+        calc_gain(center, plate_name, well_x, well_y, projs, plot, save_path)
 
     center.actions.register(
         'plugins.gain', ACTION_CALC_GAIN, handle_calc_gain,
         CALC_GAIN_ACTION_SCHEMA)
 
 
-def calc_gain(center, well_x, well_y, projs, plot=True, save_path=''):
+def calc_gain(
+        center, plate_name, well_x, well_y, projs, plot=True, save_path=''):
     """Calculate gain values for the well."""
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments, too-many-locals
     config = center.config
     gain_conf = dict(config[CONF_PLUGINS][CONF_GAIN])
     objective = gain_conf.get(OBJECTIVE)
@@ -116,7 +116,8 @@ def calc_gain(center, well_x, well_y, projs, plot=True, save_path=''):
         save_dir = gain_conf.get('save_dir', '/temp')
         save_gain(save_dir, center.data[SAVED_GAINS])
     for channel_name, gain in gains.items():
-        center.sample.set_channel(well_x, well_y, channel_name, gain=gain)
+        center.sample.set_channel(
+            plate_name, well_x, well_y, channel_name, gain=gain)
     return gains
 
 

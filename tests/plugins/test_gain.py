@@ -33,7 +33,7 @@ def test_gain(center):
     projs = make_proj(images)
     save_path = os.path.join(WELL_PATH, WELL_NAME)
     gain_dict = calc_gain(
-        center, 1, 0, projs, plot=False, save_path=save_path)
+        center, 'slide', 1, 0, projs, plot=False, save_path=save_path)
     pprint.pprint(gain_dict)
     gain_dict = {k: int(v) for k, v in gain_dict.items()}
     solution = {

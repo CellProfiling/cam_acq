@@ -78,13 +78,13 @@ def test_setup_automation(center):
     automation = center.data['camacq.automations']['test_automation']
     assert automation.enabled
 
-    center.sample.set_plate('test')
-    assert not center.sample.all_wells('test')
+    assert not center.sample.plates
     event = CamAcqStartEvent({'test_data': 'start'})
     center.bus.notify(event)
-    wells = center.sample.all_wells('test')
-    assert wells[0].x == 1
-    assert wells[0].y == 1
+    plate = center.sample.get_plate('test')
+    assert plate
+    assert plate.wells[1, 1].x == 1
+    assert plate.wells[1, 1].y == 1
 
     center.actions.call('automations', 'toggle', name='test_automation')
     assert not automation.enabled
@@ -122,11 +122,7 @@ def test_channel_event(center, mock_api):
     automation = center.data['camacq.automations']['set_channel_gain']
     assert automation.enabled
 
-    center.sample.set_plate('test')
-    center.sample.set_channel(1, 1, 'yellow', 'test', gain=333)
-    wells = center.sample.all_wells('test')
-    assert wells[0].x == 1
-    assert wells[0].y == 1
+    center.sample.set_channel('test', 1, 1, 'yellow', gain=333)
     assert 'send' in center.actions.actions['command']
     assert len(mock_api.calls) == 1
     func_name, command = mock_api.calls[0]
@@ -288,12 +284,12 @@ def test_sample_access(center, mock_api):
     automation = center.data['camacq.automations']['set_img_ok']
     assert automation.enabled
     center.sample.set_plate('00')
-    center.sample.set_well(0, 0, plate_name='00')
-    field = center.sample.set_field(0, 0, 1, 1, img_ok=False)
+    center.sample.set_well('00', 0, 0)
+    field = center.sample.set_field('00', 0, 0, 1, 1, img_ok=False)
     assert not field.img_ok
 
     center.bus.notify(api.leica.LeicaImageEvent(data={
         'path': 'image--L0000--S00--U00--V00--J15--E04--O01'
                 '--X01--Y01--T0000--Z00--C00.ome.tif'}))
-    field = center.sample.get_field(0, 0, 1, 1, plate_name=None)
+    field = center.sample.get_field('00', 0, 0, 1, 1)
     assert field.img_ok
