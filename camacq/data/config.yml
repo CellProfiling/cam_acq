@@ -55,22 +55,10 @@ api:
     port: 8895
     imaging_dir: '/path/to/imaging_dir'
 
+sample:
+  state_file: '/path/to/sample/state/file.csv'
+
 automations:
-  - name: start
-    trigger:
-      - type: event
-        id: camacq_start_event
-    action:
-      - type: sample
-        id: set_plate
-        data:
-          plate_name: '00'
-      - type: sample
-        id: set_well
-        data:
-          plate_name: '00'
-          well_x: 1
-          well_y: 1
   - name: image_next_well
     trigger:
       - type: event
@@ -126,16 +114,16 @@ automations:
           channel_id: 31
     action:
       - type: command
-        id: stop_scan
+        id: stop_imaging
       - type: plugin
         id: calc_gain
         data:
+          plate_name: >
+            {{ trigger.event.plate_name }}
           well_x: >
             {{ trigger.event.well_x }}
           well_y: >
             {{ trigger.event.well_y }}
-          plate_name: >
-            {{ trigger.event.plate_name }}
           save_path: >
             path/to/imaging_dir/gains/{{ trigger.event.plate_name }}/{{
             trigger.event.well_name }}/{{ trigger.event.well_name }}
@@ -172,18 +160,31 @@ automations:
               {% else %}{{ [trigger.event.channel.gain + 25, 735] | min }}
               {% endif %}
             {% endif %}
+        # Reset channel to indicate that the channel is set at the microscope.
+      - type: sample
+        id: set_channel
+        data:
+          plate_name: "{{ trigger.event.plate_name }}"
+          well_x: "{{ trigger.event.well_x }}"
+          well_y: "{{ trigger.event.well_y }}"
+          channel_name: "{{ trigger.event.channel_name }}"
+          overwrite: true
   - name: add_exp_job
     trigger:
       - type: event
         id: channel_event
+    # Trigger on condition that all channels have been reset.
     condition:
       type: AND
       conditions:
         - condition: >
             {% if trigger.event.well.channels | length == 4 %}
               true
-            {% else %}
-              false
+            {% endif %}
+        - condition: >
+            {% if trigger.event.well.channels.values() | rejectattr("gain") |
+                list | length == 4 %}
+              true
             {% endif %}
     action:
       - type: command
@@ -238,11 +239,13 @@ automations:
       - type: sample
         id: set_field
         data:
+          plate_name: trigger.event.plate_name
           well_x: "{{ trigger.event.well_x }}"
           well_y: "{{ trigger.event.well_y }}"
           field_x: "{{ trigger.event.field_x }}"
           field_y: "{{ trigger.event.field_y }}"
           img_ok: true
+          overwrite: true
   - name: rename_image
     trigger:
       - type: event
@@ -267,51 +270,53 @@ automations:
             {% elif trigger.event.job_id == 3 and
                 trigger.event.channel_id == 01 %}
               {{ trigger.event.path | replace('C01', 'C02') }}
-            {% else trigger.event.job_id == 4 %}
+            {% elif trigger.event.job_id == 4 %}
               {{ trigger.event.path | replace('C00', 'C03') }}
             {% endif %}
   - name: add_next_well
     trigger:
+      - type: event
+        id: camacq_start_event
       - type: event
         id: well_event
         data:
           well_img_ok: true
     action:
       - type: command
-        id: stop_scan
+        id: stop_imaging
+        # Set a plate the first time.
       - type: sample
-        id: set_well
+        id: set_plate
         data:
-          # Add next sample well for wells in 1-96 if well is not done.
+          plate_name: '00'
+      - type: sample
+        id: set_field
+        data:
+          # Add next sample well for wells in sample if well is not done.
+          plate_name: '00'
           well_x: >
-            {% for x_number in range(1, 13) %}
-              {% for y_number in range(1, 9) %}
-                {% set well_ok = sample.plates[trigger.event.plate_name].wells[
-                  (x_number, y_number)].img_ok %}
-                {% if loop.previtem is defined %}
-                  {% set prev_well_ok = sample.plates[
-                    trigger.event.plate_name].wells[
-                    (x_number, loop.previtem)].img_ok %}
-                {% endif %}
-                {% if not well_ok and loop.previtem is not defined or
-                  not well_ok and loop.previtem is defined and prev_well_ok %}
-                  x_number
-                {% endif %}
-              {% endfor %}
+            {% set not_done = sample.plates['00'].wells.values() |
+              rejectattr("img_ok") %}
+            {% set not_done_wells = {} %}
+            {% for well in not_done %}
+              {% set x=not_done_wells.__setitem__((well.x, well.y), well) %}
+            {% endfor %}
+            {% for well_id, well in not_done_wells | dictsort %}
+              {% if loop.first %}
+                {{ well.x }}
+              {% endif %}
             {% endfor %}
           well_y: >
-            {% for x_number in range(1, 13) %}
-              {% for y_number in range(1, 9) %}
-                {% set well_ok = sample.plates[trigger.event.plate_name].wells[
-                  (x_number, y_number)].img_ok %}
-                {% if loop.previtem is defined %}
-                  {% set prev_well_ok = sample.plates[
-                    trigger.event.plate_name].wells[
-                    (x_number, loop.previtem)].img_ok %}
-                {% endif %}
-                {% if not well_ok and loop.previtem is not defined or
-                  not well_ok and loop.previtem is defined and prev_well_ok %}
-                  y_number
-                {% endif %}
-              {% endfor %}
+            {% set not_done = sample.plates['00'].wells.values() |
+              rejectattr("img_ok") %}
+            {% set not_done_wells = {} %}
+            {% for well in not_done %}
+              {% set x=not_done_wells.__setitem__((well.x, well.y), well) %}
             {% endfor %}
+            {% for well_id, well in not_done_wells | dictsort %}
+              {% if loop.first %}
+                {{ well.y }}
+              {% endif %}
+            {% endfor %}
+          field_x: 1
+          field_y: 1

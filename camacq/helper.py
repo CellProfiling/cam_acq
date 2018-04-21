@@ -15,7 +15,8 @@ from camacq.const import PACKAGE
 _LOGGER = logging.getLogger(__name__)
 
 PACKAGE_MODULE = '{}.{}'
-BASE_ACTION_SCHEMA = vol.Schema({'action_id': str})
+BASE_ACTION_SCHEMA = vol.Schema({'action_id': str}, extra=vol.REMOVE_EXTRA)
+CORE_MODULES = ['sample']
 
 
 def get_module(package, module_name):
@@ -86,7 +87,8 @@ def setup_all_modules(center, config, package_path, **kwargs):
             name for name in imported_pkg.__name__.split('.')
             if name != PACKAGE]
         pkg_config = _deep_conf_access(config, keys)
-        if module.__name__.split('.')[-1] in pkg_config:
+        module_name = module.__name__.split('.')[-1]
+        if module_name in pkg_config and module_name not in CORE_MODULES:
             if is_pkg and hasattr(module, 'setup_package'):
                 _LOGGER.info('Setting up %s package', module.__name__)
                 module.setup_package(center, config, **kwargs)
@@ -95,7 +97,7 @@ def setup_all_modules(center, config, package_path, **kwargs):
                 module.setup_module(center, config, **kwargs)
 
 
-def read_csv(path, index):
+def read_csv(path, index=None):
     """Read a csv file and return a dict of dicts.
 
     Parameters
@@ -105,7 +107,8 @@ def read_csv(path, index):
     index : str
         Index can be any of the column headers of the csv file.
         The column under index will be used as keys in the returned
-        dict.
+        dict. If no index is specified, a list of dicts will be
+        returned instead.
 
     Returns
     -------
@@ -115,12 +118,17 @@ def read_csv(path, index):
         represent a row, with index as key, of the csv file.
     """
     csv_map = defaultdict(dict)
+    if index is None:
+        csv_map = []
     path = os.path.normpath(path)
     with open(path) as file_handle:
         reader = csv.DictReader(file_handle)
         for row in reader:
-            key = row.pop(index)
-            csv_map[key].update(row)
+            if index is None:
+                csv_map.append(row)
+            else:
+                key = row.pop(index)
+                csv_map[key].update(row)
     return csv_map
 
 

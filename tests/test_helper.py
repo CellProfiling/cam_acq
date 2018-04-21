@@ -15,13 +15,13 @@ def mock_leica_setup():
 
 
 @pytest.fixture
-def mock_sample_setup():
+def mock_gain_setup():
     """Mock setup module."""
-    with patch('camacq.sample.setup_module') as mock_setup:
+    with patch('camacq.plugins.gain.setup_module') as mock_setup:
         yield mock_setup
 
 
-def test_setup_modules_api(center, mock_leica_setup):
+def test_setup_modules_package(center, mock_leica_setup):
     """Test setup_all_modules."""
     config = {'api': {'leica': {}}}
     parent = helper.FeatureParent()
@@ -33,11 +33,11 @@ def test_setup_modules_api(center, mock_leica_setup):
     assert kwargs == dict(add_child=parent.add_child)
 
 
-def test_setup_modules_camacq(center, mock_sample_setup):
+def test_setup_modules_module(center, mock_gain_setup):
     """Test setup_all_modules camacq package."""
-    config = {'sample': {}}
+    config = {'plugins': {'gain': {}}}
     helper.setup_all_modules(center, config, 'camacq')
-    assert len(mock_sample_setup.mock_calls) == 1
-    _, args, kwargs = mock_sample_setup.mock_calls[0]
+    assert len(mock_gain_setup.mock_calls) == 1
+    _, args, kwargs = mock_gain_setup.mock_calls[0]
     assert args == (center, config)
     assert kwargs == {}
