@@ -1,9 +1,0 @@
-channels:
-  - channel: green
-    init_gain: [550, 595, 640, 685, 730, 775, 820, 865, 910, 955, 1000]
-  - channel: blue
-    init_gain: [850, 895, 940, 985, 1030, 1075, 1120]
-  - channel: yellow
-    init_gain: [700, 735, 770, 805, 840, 875, 910]
-  - channel: red
-    init_gain: [600, 635, 670, 705, 740, 775, 810]
