@@ -9,11 +9,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import voluptuous as vol
 from future import standard_library
-from pkg_resources import resource_filename
 from scipy.optimize import curve_fit
 
-from camacq.config import load_config_file
-from camacq.const import CHANNEL_ID, CONF_PLUGINS, PACKAGE, WELL, WELL_NAME
+from camacq.const import CHANNEL_ID, CONF_PLUGINS, WELL, WELL_NAME
 from camacq.helper import BASE_ACTION_SCHEMA, write_csv
 from camacq.image import make_proj
 from camacq.sample import Channel
@@ -87,19 +85,13 @@ def setup_module(center, config):
 def calc_gain(
         center, plate_name, well_x, well_y, projs, plot=True, save_path=''):
     """Calculate gain values for the well."""
-    # pylint: disable=too-many-arguments, too-many-locals
-    config = center.config
-    gain_conf = dict(config[CONF_PLUGINS][CONF_GAIN])
-    objective = gain_conf.get(OBJECTIVE)
-    if objective == END_10X:
-        init_gain = resource_filename(PACKAGE, 'data/10x_gain.yml')
-    elif objective == END_40X:
-        init_gain = resource_filename(PACKAGE, 'data/40x_gain.yml')
-    elif objective == END_63X:
-        init_gain = resource_filename(PACKAGE, 'data/63x_gain.yml')
+    # pylint: disable=too-many-arguments
+    gain_conf = center.config[CONF_PLUGINS][CONF_GAIN]
     if CONF_CHANNELS not in gain_conf:
-        init_gain = load_config_file(init_gain)
-        gain_conf[CONF_CHANNELS] = init_gain[CONF_CHANNELS]
+        _LOGGER.error(
+            'Missing config section %s in %s:%s',
+            CONF_CHANNELS, CONF_PLUGINS, CONF_GAIN)
+        return
     init_gain = [
         Channel(channel[CONF_CHANNEL], gain=gain)
         for channel in gain_conf[CONF_CHANNELS]
@@ -125,7 +117,6 @@ def calc_gain(
     for channel_name, gain in gains.items():
         center.sample.set_channel(
             plate_name, well_x, well_y, channel_name, gain=gain)
-    return gains
 
 
 def _power_func(inp, alpha, beta):

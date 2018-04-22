@@ -46,7 +46,6 @@ plugins:
         init_gain: [550, 585, 620, 655, 690, 725, 760]
       - channel: red
         init_gain: [525, 560, 595, 630, 665, 700, 735]
-    objective: end_63x  # objective to use for the experiment
     save_dir: path/to/save_dir
 
 api:

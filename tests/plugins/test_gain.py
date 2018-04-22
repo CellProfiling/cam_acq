@@ -22,20 +22,29 @@ IMAGE_PATH = os.path.join(
 
 def test_gain(center):
     """Run gain calculation test."""
-    # pylint: disable=redefined-outer-name
     images = get_imgs(WELL_PATH, search=JOB_ID.format(2))
-    config = {'plugins': {'gain': {
-        'objective': 'end_63x', 'save_dir': GAIN_DATA_DIR}}}
+    config = {'plugins': {'gain': {'save_dir': GAIN_DATA_DIR, 'channels': [
+        {'channel': 'green',
+         'init_gain': [450, 495, 540, 585, 630, 675, 720, 765, 810, 855, 900]},
+        {'channel': 'blue',
+         'init_gain': [400, 435, 470, 505, 540, 575, 610]},
+        {'channel': 'yellow',
+         'init_gain': [550, 585, 620, 655, 690, 725, 760]},
+        {'channel': 'red',
+         'init_gain': [525, 560, 595, 630, 665, 700, 735]},
+    ]}}}
     pprint.pprint(config)
     center.config = config
     events = [LeicaImageEvent({'path': path}) for path in images]
     images = {event.channel_id: event.path for event in events}
     projs = make_proj(images)
     save_path = os.path.join(WELL_PATH, WELL_NAME)
-    gain_dict = calc_gain(
-        center, 'slide', 1, 0, projs, plot=False, save_path=save_path)
-    pprint.pprint(gain_dict)
-    gain_dict = {k: int(v) for k, v in gain_dict.items()}
+    calc_gain(center, 'slide', 1, 0, projs, plot=False, save_path=save_path)
+    well = center.sample.get_well('slide', 1, 0)
+    calculated = {
+        channel_name: channel.gain
+        for channel_name, channel in well.channels.items()}
+    pprint.pprint(calculated)
     solution = {
         'blue': 480, 'green': 740, 'red': 805, 'yellow': 805}
-    assert gain_dict == pytest.approx(solution, abs=10)
+    assert calculated == pytest.approx(solution, abs=10)
