@@ -107,14 +107,21 @@ def calc_gain(
 
     gains = _calc_gain(projs, init_gain, plot=plot, save_path=save_path)
     _LOGGER.info('Calculated gains: %s', gains)
-    gain_dict = {WELL_NAME.format(well_x, well_y): gains}
     if SAVED_GAINS not in center.data:
         center.data[SAVED_GAINS] = defaultdict(dict)
-    center.data[SAVED_GAINS].update(gain_dict)
+    center.data[SAVED_GAINS].update({WELL_NAME.format(well_x, well_y): gains})
     _LOGGER.debug('All calculated gains: %s', center.data[SAVED_GAINS])
     if plot:
         save_dir = gain_conf.get('save_dir', '/temp')
         save_gain(save_dir, center.data[SAVED_GAINS])
+    well = center.sample.get_well(plate_name, well_x, well_y)
+    if well:
+        # Set existing channel gain to generate event.
+        for channel_name, channel in well.channels.items():
+            center.sample.set_channel(
+                plate_name, well_x, well_y, channel_name, overwrite=True,
+                gain=channel.gain)
+    # Set new channel gain, only if not existing.
     for channel_name, gain in gains.items():
         center.sample.set_channel(
             plate_name, well_x, well_y, channel_name, gain=gain)

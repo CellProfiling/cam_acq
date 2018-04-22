@@ -8,10 +8,9 @@ import camacq.log as log_util
 from camacq.config import DEFAULT_CONFIG_TEMPLATE
 from camacq.const import PACKAGE
 from camacq.control import Center
-from camacq.helper import setup_all_modules
+from camacq.helper import CORE_MODULES, get_module, setup_all_modules
 
 _LOGGER = logging.getLogger(__name__)
-CORE_MODULES = ['sample']
 
 
 def setup_dict(config):
@@ -28,9 +27,13 @@ def setup_dict(config):
         Return the Center instance.
     """
     log_util.enable_log(config)
-    # Add core modules.
-    config.update({module: {} for module in CORE_MODULES})
     center = Center(config)
+    # Add core modules.
+    for module_name in CORE_MODULES:
+        if module_name not in config:
+            config[module_name] = {}
+        module = get_module(PACKAGE, module_name)
+        module.setup_module(center, config)
     setup_all_modules(center, config, PACKAGE)
     return center
 

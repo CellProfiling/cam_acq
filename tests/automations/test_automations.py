@@ -69,6 +69,7 @@ def test_setup_automation(center):
                 },
             }],
         }],
+        'sample': {},
     }
 
     sample_mod.setup_module(center, config)
@@ -115,6 +116,7 @@ def test_channel_event(center, mock_api):
                 },
             }],
         }],
+        'sample': {},
     }
 
     sample_mod.setup_module(center, config)
@@ -158,6 +160,7 @@ def test_condition(center, mock_api):
                 },
             }],
         }],
+        'sample': {},
     }
 
     sample_mod.setup_module(center, config)
@@ -209,6 +212,7 @@ def test_nested_condition(center, mock_api):
                 },
             }],
         }],
+        'sample': {},
     }
 
     sample_mod.setup_module(center, config)
@@ -274,9 +278,11 @@ def test_sample_access(center, mock_api):
                     'field_x': "{{ trigger.event.field_x }}",
                     'field_y': "{{ trigger.event.field_y }}",
                     'img_ok': True,
+                    'overwrite': True,
                 },
             }],
         }],
+        'sample': {},
     }
 
     sample_mod.setup_module(center, config)
