@@ -305,8 +305,7 @@ class Well(object):
             >>> well = Well(bus, sample, 0, 0)
             >>> well.set_field(1, 3, 0, 1, True, False)
             >>> well.fields
-            {(1, 3): Field(x=1, y=3, dx=0, dy=1, \
-gain_field=True, img_ok=False)}
+            {(1, 3): Field(x=1, y=3, dx=0, dy=1, img_ok=False)}
         """
         return self._fields
 
@@ -893,11 +892,6 @@ class FieldEvent(WellEvent):
     def field_dy(self):
         """:int: Return the field dy pixel coordinate of an ROI."""
         return self.field.dy
-
-    @property
-    def gain_field(self):
-        """:bool: Return if field is a field marked for a gain job."""
-        return self.field.gain_field
 
     @property
     def field_img_ok(self):
