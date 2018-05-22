@@ -1,6 +1,6 @@
 """Test automations."""
 import pytest
-from mock import call, MagicMock, patch
+from mock import MagicMock, patch
 
 import ruamel.yaml
 
