@@ -1,6 +1,8 @@
 """Test automations."""
 import pytest
-from mock import patch
+from mock import MagicMock, patch
+
+import ruamel.yaml
 
 from camacq import sample as sample_mod
 from camacq import api, automations
@@ -299,3 +301,43 @@ def test_sample_access(center, mock_api):
                 '--X01--Y01--T0000--Z00--C00.ome.tif'}))
     field = center.sample.get_field('00', 0, 0, 1, 1)
     assert field.img_ok
+
+
+def test_delay_action(center, mock_api):
+    """Test delay action."""
+    config = """
+        automations:
+          - name: test_delay
+            trigger:
+              - type: event
+                id: camacq_start_event
+            action:
+              - type: command
+                id: start_imaging
+              - type: automations
+                id: delay
+                data:
+                  seconds: 5.0
+              - type: command
+                id: stop_imaging
+    """
+    config = ruamel.yaml.safe_load(config)
+    automations.setup_package(center, config)
+    automation = center.data['camacq.automations']['test_delay']
+    assert automation.enabled
+    event = CamAcqStartEvent({'test_data': 'start'})
+    mock_timer = MagicMock()
+    with patch('camacq.automations.Timer') as mock_timer_class:
+        mock_timer_class.return_value = mock_timer
+        center.bus.notify(event)
+    assert len(mock_api.calls) == 1
+    assert mock_api.calls[-1] == ('start_imaging', )
+    assert mock_timer_class.call_count == 1
+    args, kwargs = mock_timer_class.call_args
+    seconds, action_sequence = args
+    variables = kwargs['args']
+    assert seconds == 5.0
+    assert mock_timer.start.call_count == 1
+    action_sequence(variables)
+    assert len(mock_api.calls) == 2
+    assert mock_api.calls[-1] == ('stop_imaging', )

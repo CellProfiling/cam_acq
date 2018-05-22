@@ -3,13 +3,15 @@
 # https://github.com/home-assistant/home-assistant/blob/master/LICENSE.md
 # This file was modified by The Camacq Authors.
 import logging
+from collections import deque
 from functools import partial
+from threading import Timer
 
 import voluptuous as vol
 from jinja2 import Template
 
 from camacq.helper import BASE_ACTION_SCHEMA, get_module
-from camacq.const import CONF_DATA, CONF_ID
+from camacq.const import CAMACQ_STOP_EVENT, CONF_DATA, CONF_ID
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,6 +24,7 @@ CONF_TRIGGER = 'trigger'
 CONF_TYPE = 'type'
 ENABLED = 'enabled'
 NAME = 'name'
+ACTION_DELAY = 'delay'
 ACTION_TOGGLE = 'toggle'
 
 TOGGLE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
@@ -99,9 +102,14 @@ class TemplateAction(object):
 
     def __call__(self, variables=None):
         """Execute action with optional template variables."""
+        rendered = self.render(variables)
+        self._center.actions.call(self.action_type, self.action_id, **rendered)
+
+    def render(self, variables):
+        """Render the template with the kwargs for the action."""
         variables = variables or {}
         rendered = render_template(self.template, variables)
-        self._center.actions.call(self.action_type, self.action_id, **rendered)
+        return rendered
 
 
 class Automation(object):
@@ -109,12 +117,13 @@ class Automation(object):
 
     # pylint: disable=too-many-arguments
 
-    def __init__(self, center, name, attach_triggers, cond_func, actions):
+    def __init__(
+            self, center, name, attach_triggers, cond_func, action_sequence):
         """Set up instance."""
         self._center = center
         self.name = name
         self.enabled = False
-        self._actions = actions
+        self._action_sequence = action_sequence
         self._attach_triggers = attach_triggers
         self._detach_triggers = None
         self._cond_func = cond_func
@@ -144,18 +153,71 @@ class Automation(object):
         """Run actions of this automation."""
         variables['sample'] = self._center.sample
         if self._cond_func(variables):
-            for action in self._actions:
+            self._action_sequence(variables)
+
+
+class ActionSequence(object):
+    """Represent a sequence of actions."""
+
+    # pylint: disable=too-few-public-methods
+
+    def __init__(self, center, actions):
+        """Set up instance."""
+        self._center = center
+        self.actions = list(actions)  # copy to list to make sure it's a list
+        self.waiting = None
+
+    def __call__(self, variables):
+        """Start action sequence."""
+        self.waiting = deque(self.actions)
+        while self.waiting:
+            action = self.waiting.popleft()
+
+            if (action.action_type == 'automations' and
+                    action.action_id == ACTION_DELAY):
+                rendered_kwargs = action.render(variables)
+                seconds = rendered_kwargs.get('seconds')
+                cancel = self.delay(float(seconds), variables)
+
+                def cancel_pending_actions(center, event):
+                    """Cancel pending actions."""
+                    cancel()
+
+                self._center.bus.register(
+                    CAMACQ_STOP_EVENT, cancel_pending_actions)
+
+            else:
                 action(variables)
+
+    def delay(self, seconds, variables):
+        """Delay action sequence.
+
+        Parameters
+        ----------
+        seconds : float
+            A time interval to delay the pending action sequence.
+        variables : dict
+            A dict of template variables.
+
+        Returns
+        -------
+        callable
+            Return a funtion to cancel the delay and the pending action.
+        """
+        sequence = ActionSequence(self._center, self.waiting)
+        self.waiting.clear()
+        timer = Timer(seconds, sequence, args=(variables, ))
+        _LOGGER.debug('Action delay for %s seconds', seconds)
+        timer.start()
+        return timer.cancel
 
 
 def _get_actions(center, config_block):
     """Return actions."""
-    actions = []
+    actions = (
+        TemplateAction(center, action_conf) for action_conf in config_block)
 
-    for action_conf in config_block:
-        actions.append(TemplateAction(center, action_conf))
-
-    return actions
+    return ActionSequence(center, actions)
 
 
 def template_check(value):
@@ -235,7 +297,7 @@ def _process_automations(center, config):
     for block in conf:
         name = block[CONF_NAME]
         _LOGGER.info('Setting up automation %s', name)
-        actions = _get_actions(center, block.get(CONF_ACTION, []))
+        action_sequence = _get_actions(center, block.get(CONF_ACTION, []))
         if CONF_CONDITION in block:
             cond_func = _process_condition(block[CONF_CONDITION])
         else:
@@ -248,4 +310,4 @@ def _process_automations(center, config):
         if __name__ not in center.data:
             center.data[__name__] = {}
         center.data[__name__][name] = Automation(
-            center, name, attach_triggers, cond_func, actions)
+            center, name, attach_triggers, cond_func, action_sequence)
