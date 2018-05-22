@@ -62,7 +62,7 @@ def load_config_file(path):
     """
     try:
         with open(path, 'r') as yml_file:
-            cfg = ruyml.safe_load(yml_file)
+            cfg = ruyml.load(yml_file, ruyml.RoundTripLoader)
         if not isinstance(cfg, dict):
             _LOGGER.error(
                 'The configuration file %s does not contain a dictionary',
@@ -96,7 +96,7 @@ def create_default_config(config_dir):
 
     try:
         with open(config_path, 'w') as config_file:
-            ruyml.safe_dump(data, config_file)
+            ruyml.dump(data, config_file, Dumper=ruyml.RoundTripDumper)
 
         return config_path
 
