@@ -46,16 +46,16 @@ plugins:
         init_gain: [550, 585, 620, 655, 690, 725, 760]
       - channel: red
         init_gain: [525, 560, 595, 630, 665, 700, 735]
-    save_dir: path/to/save_dir
+#    save_dir: path/to/save_dir
 
 api:
   leica:
     host: localhost
     port: 8895
-    imaging_dir: '/path/to/imaging_dir'
+#    imaging_dir: '/path/to/imaging_dir'
 
-sample:
-  state_file: '/path/to/sample/state/file.csv'
+#sample:
+#  state_file: '/path/to/sample/state/file.csv'
 
 automations:
   - name: image_next_well
@@ -123,9 +123,9 @@ automations:
             {{ trigger.event.well_x }}
           well_y: >
             {{ trigger.event.well_y }}
-          save_path: >
-            path/to/imaging_dir/gains/{{ trigger.event.plate_name }}/{{
-            trigger.event.well_name }}/{{ trigger.event.well_name }}
+#          save_path: >
+#            path/to/imaging_dir/gains/{{ trigger.event.plate_name }}/{{
+#            trigger.event.well_name }}/{{ trigger.event.well_name }}
   - name: set_exp_gain
     trigger:
       - type: event
