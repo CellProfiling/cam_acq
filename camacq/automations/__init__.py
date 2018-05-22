@@ -214,14 +214,10 @@ class ActionSequence(object):
 
 def _get_actions(center, config_block):
     """Return actions."""
-    actions = []
+    actions = (
+        TemplateAction(center, action_conf) for action_conf in config_block)
 
-    for action_conf in config_block:
-        actions.append(TemplateAction(center, action_conf))
-
-    action_sequence = ActionSequence(center, actions)
-
-    return action_sequence
+    return ActionSequence(center, actions)
 
 
 def template_check(value):
