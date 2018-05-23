@@ -237,7 +237,7 @@ def handle_imgs(path, imdir, job_id, f_job=2, img_save=True, histo_save=True):
             # Save meta data and image max proj.
             proj.save(save_path)
         if histo_save:
-            img_attr = experiment.attributes(proj.path)
+            img_attr = experiment.attributes(new_paths[-1])
             save_path = os.path.normpath(os.path.join(
                 imdir, (WELL_NAME_CHANNEL + '.ome.csv').format(
                     img_attr.u, img_attr.v, int(c_id))))
