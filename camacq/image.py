@@ -61,7 +61,7 @@ def make_proj(path_list):
             continue
         sorted_images[channel].append(image)
         proj = np.max([img.data for img in sorted_images[channel]], axis=0)
-        max_imgs[channel] = Image(path, proj, image.metadata)
+        max_imgs[channel] = Image(data=proj, metadata=image.metadata)
     return max_imgs
 
 
