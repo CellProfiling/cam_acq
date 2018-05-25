@@ -791,6 +791,10 @@ class SampleEvent(Event):
         """:Sample instance: Return the sample instance of the event."""
         return self.data.get('sample')
 
+    def __repr__(self):
+        """Return the representation."""
+        return "<{}: {}>".format(type(self).__name__, self.sample)
+
 
 class PlateEvent(SampleEvent):
     """An event produced by a sample plate change event."""
@@ -808,6 +812,10 @@ class PlateEvent(SampleEvent):
     def plate_name(self):
         """:str: Return the name of the plate."""
         return self.plate.name
+
+    def __repr__(self):
+        """Return the representation."""
+        return "<{}: {}>".format(type(self).__name__, self.plate)
 
 
 class WellEvent(PlateEvent):
@@ -842,6 +850,10 @@ class WellEvent(PlateEvent):
         """:str: Return the name of the well."""
         return self.well.name
 
+    def __repr__(self):
+        """Return the representation."""
+        return "<{}: {}>".format(type(self).__name__, self.well)
+
 
 class ChannelEvent(WellEvent):
     """An event produced by a sample channel change event."""
@@ -859,6 +871,10 @@ class ChannelEvent(WellEvent):
     def channel_name(self):
         """:str: Return the channel name of the event."""
         return self.channel.name
+
+    def __repr__(self):
+        """Return the representation."""
+        return "<{}: {}>".format(type(self).__name__, self.channel)
 
 
 class FieldEvent(WellEvent):
@@ -903,6 +919,10 @@ class FieldEvent(WellEvent):
         """:str: Return the name of the field."""
         return self.field.name
 
+    def __repr__(self):
+        """Return the representation."""
+        return "<{}: {}>".format(type(self).__name__, self.field)
+
 
 class SampleImageEvent(Event):
     """An event produced by a sample image event."""
@@ -945,6 +965,10 @@ class SampleImageEvent(Event):
     def channel_id(self):
         """:int: Return channel id of the image."""
         return self.image.channel_id
+
+    def __repr__(self):
+        """Return the representation."""
+        return "<{}: {}>".format(type(self).__name__, self.image)
 
 
 class ImageRemovedEvent(SampleImageEvent):
