@@ -87,7 +87,11 @@ class EventBus(object):
 
         def remove():
             """Remove registered event handler."""
-            self._registry.pop(event_type, None)
+            handlers = self._registry[event_type]
+            try:
+                handlers.remove(handler)
+            except ValueError:
+                _LOGGER.warning('Handler %s already removed from bus', handler)
 
         return remove
 
@@ -99,7 +103,7 @@ class EventBus(object):
         event : Event instance
             An instance of Event or an instance of subclass of Event.
         """
-        _LOGGER.debug('Notifying event %s', event.event_type)
+        _LOGGER.debug('Notifying event %s', event)
         # Inspired by https://goo.gl/VEPG3n
         # copy to make sure the dict is not modified during iteration
         registry = dict(self._registry)
