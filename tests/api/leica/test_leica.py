@@ -65,6 +65,8 @@ def test_send(api):
     """Test the leica api send method."""
     cmd_string = '/cmd:startscan'
     cmd_tuples = [('cmd', 'startscan')]
+    event_string = '/inf:scanstart'
+    start_event_tuples = [('inf', 'scanstart')]
     api.client.wait_for.return_value = OrderedDict(cmd_tuples)
     mock_handler = MagicMock()
     api.center.bus.register('start_command_event', mock_handler)
@@ -83,18 +85,23 @@ def test_send(api):
     _, _, kwargs = api.client.wait_for.mock_calls[0]
     cmd, value = cmd_tuples[0]
     assert kwargs == dict(cmd=cmd, value=value, timeout=0.3)
+    assert len(mock_handler.mock_calls) == 0
+
+    api.receive([OrderedDict(start_event_tuples)])
+
     assert len(mock_handler.mock_calls) == 1
     _, args, _ = mock_handler.mock_calls[0]
     # The first argument is Center, the seconds is the event.
     event = args[1]
     assert isinstance(event, LeicaStartCommandEvent)
-    assert event.command == cmd_string
+    assert event.command == event_string
 
 
 def test_start_imaging(api):
     """Test the leica api start imaging method."""
-    cmd_string = '/cmd:startscan'
+    event_string = '/inf:scanstart'
     cmd_tuples = [('cmd', 'startscan')]
+    start_event_tuples = [('inf', 'scanstart')]
     api.client.start_scan.return_value = OrderedDict(cmd_tuples)
     mock_handler = MagicMock()
     api.center.bus.register('start_command_event', mock_handler)
@@ -104,18 +111,22 @@ def test_start_imaging(api):
     api.receive(replies)
 
     assert len(api.client.start_scan.mock_calls) == 1
+    assert len(mock_handler.mock_calls) == 0
+
+    api.receive([OrderedDict(start_event_tuples)])
+
     assert len(mock_handler.mock_calls) == 1
     _, args, _ = mock_handler.mock_calls[0]
     # The first argument is Center, the seconds is the event.
     event = args[1]
     assert isinstance(event, LeicaStartCommandEvent)
-    assert event.command == cmd_string
+    assert event.command == event_string
 
 
 def test_stop_imaging(api):
     """Test the leica api stop imaging method."""
-    event_string = '/scanfinished:scanfinished'
-    stop_event_tuples = [('scanfinished', 'scanfinished')]
+    event_string = '/inf:scanfinished'
+    stop_event_tuples = [('inf', 'scanfinished')]
     cmd_tuples = [('cmd', 'stopscan')]
     api.client.stop_scan.return_value = OrderedDict(cmd_tuples)
     mock_handler = MagicMock()
@@ -127,8 +138,6 @@ def test_stop_imaging(api):
 
     assert len(api.client.stop_scan.mock_calls) == 1
 
-    # pylint: disable=fixme
-    # FIXME: Check exactly what is returned from the server when scan finishes.
     api.receive([OrderedDict(stop_event_tuples)])
 
     assert len(mock_handler.mock_calls) == 1
