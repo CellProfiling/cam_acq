@@ -119,7 +119,7 @@ class Center(object):
 
     def __repr__(self):
         """Return the representation."""
-        return "<Center: config: {}>".format(self.config)
+        return "<Center>"
 
     @property
     def finished(self):
