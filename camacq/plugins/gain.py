@@ -168,6 +168,7 @@ def _calc_gain(projs, init_gain, plot=True, save_path=''):
             BOX: list(range(len(proj.histogram[0]))),
             COUNT: proj.histogram[0]})
         # Find the max box holding pixels
+        # FIXME: Handle all zero pixels
         box_max_count = hist_data[
             (hist_data[COUNT] > 0) &
             (hist_data[BOX] > 0)][BOX].iloc[-1]
