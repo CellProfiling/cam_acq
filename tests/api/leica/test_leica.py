@@ -11,7 +11,7 @@ from camacq.api.leica import (LeicaApi, LeicaImageEvent,
                               LeicaStartCommandEvent, LeicaStopCommandEvent,
                               setup_package)
 
-# pylint: disable=redefined-outer-name
+# pylint: disable=redefined-outer-name, len-as-condition
 
 
 @pytest.fixture
