@@ -66,10 +66,10 @@ def setup_module(center, config):
             if not well:
                 return
             images = {
-                path: image.channel_id for path, image in well.images.items()}
+                image.channel_id: path for path, image in well.images.items()}
         else:
             images = {
-                path: image.channel_id
+                image.channel_id: path
                 for path, image in center.sample.images.items()
                 if path in paths}
         plot = kwargs.get('make_plots')
