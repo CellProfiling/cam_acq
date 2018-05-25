@@ -20,8 +20,7 @@ _LOGGER = logging.getLogger(__name__)
 CONF_LEICA = 'leica'
 REL_IMAGE_PATH = 'relpath'
 SCAN_FINISHED = 'scanfinished'
-# FIXME: Check exactly what string is sent from the api. pylint: disable=fixme
-SCAN_STARTED = 'startscan'
+SCAN_STARTED = 'scanstart'
 
 
 def setup_package(center, config, add_child=None):
