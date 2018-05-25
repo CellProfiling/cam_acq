@@ -18,7 +18,7 @@ def handle_trigger(center, config, trigger_func):
     def handle_event(center, event):
         """Listen for events and call trigger when data matches."""
         if not event_data or all(
-                val == event.data.get(key)
+                val == getattr(event, key, None)
                 for key, val in event_data.items()):
             # pass variables from trigger with event
             trigger_func({
