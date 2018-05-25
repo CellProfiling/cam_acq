@@ -172,7 +172,9 @@ class ImageData(object):
                 self._data = tif.asarray(key=0)
                 self._metadata = tif.ome_metadata
         except (IOError, ValueError) as exception:
-            _LOGGER.error('Bad path to image: %s', exception)
+            _LOGGER.error('Bad path %s to image: %s', self.path, exception)
+            self._data = np.array([])
+            self._metadata = {}
 
     def save(self, path=None, data=None, metadata=None):
         """Save image with image data and optional meta data.
