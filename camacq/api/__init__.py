@@ -195,3 +195,10 @@ class ImageEvent(Event):
     def plate_name(self):
         """:str: Return plate name of the image."""
         return None
+
+    def __repr__(self):
+        """Return the representation."""
+        return ("<{}: plate_name {}: well_x {}: well_y {}: field_x {}: "
+                "field_y {}: channel_id {}>".format(
+                    type(self).__name__, self.plate_name, self.well_x,
+                    self.well_y, self.field_x, self.field_y, self.channel_id))
