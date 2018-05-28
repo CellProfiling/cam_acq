@@ -163,7 +163,7 @@ class ImageData(object):
             max_int = 65535
         else:
             max_int = 255
-        return np.histogram(self._data, 256, (0, max_int))
+        return np.histogram(self._data, bins=256, range=(0, max_int))
 
     def _load_image_data(self):
         """Load image data from path."""
