@@ -167,11 +167,13 @@ def _calc_gain(projs, init_gain, plot=True, save_path=''):
         hist_data = pd.DataFrame({
             BOX: list(range(len(proj.histogram[0]))),
             COUNT: proj.histogram[0]})
+        # Handle all zero pixels
+        non_zero_hist_data = hist_data[
+            (hist_data[COUNT] > 0) & (hist_data[BOX] > 0)]
+        if non_zero_hist_data.empty:
+            continue
         # Find the max box holding pixels
-        # FIXME: Handle all zero pixels
-        box_max_count = hist_data[
-            (hist_data[COUNT] > 0) &
-            (hist_data[BOX] > 0)][BOX].iloc[-1]
+        box_max_count = non_zero_hist_data[BOX].iloc[-1]
         # Select only histo data where count is > 0 and 255 > box > 0.
         # Only use values in interval 10-100 and
         # > (max box holding pixels - 175).
@@ -219,7 +221,7 @@ def _calc_gain(projs, init_gain, plot=True, save_path=''):
             _power_func, [p[1].box for p in long_group],
             [p[1].gain for p in long_group], p0=(1, 1))
         if plot:
-            _save_path = '{}{}.png'.format(save_path, channel)
+            _save_path = '{}_{}.png'.format(save_path, channel)
             _create_plot(
                 _save_path, [p.box for p in points],
                 [p.gain for p in points], coeffs, 'box-gain')
