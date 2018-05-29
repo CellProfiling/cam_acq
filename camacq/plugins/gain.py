@@ -5,7 +5,7 @@ from builtins import range  # pylint: disable=redefined-builtin
 from collections import defaultdict, namedtuple
 from itertools import groupby
 
-import matplotlib.pyplot as plt
+import matplotlib
 import pandas as pd
 import voluptuous as vol
 from future import standard_library
@@ -15,6 +15,10 @@ from camacq.const import CHANNEL_ID, CONF_PLUGINS, WELL, WELL_NAME
 from camacq.helper import BASE_ACTION_SCHEMA, write_csv
 from camacq.image import make_proj
 from camacq.sample import Channel
+
+matplotlib.use('AGG')  # use noninteractive default backend
+# pylint: disable=wrong-import-order, wrong-import-position, ungrouped-imports
+import matplotlib.pyplot as plt  # noqa: E402
 
 standard_library.install_aliases()
 
