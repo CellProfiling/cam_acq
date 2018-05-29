@@ -9,6 +9,7 @@ from camacq.event import Event
 from camacq.helper import BASE_ACTION_SCHEMA, FeatureParent, setup_all_modules
 
 ACTION_SEND = 'send'
+ACTION_SEND_MANY = 'send_many'
 ACTION_START_IMAGING = 'start_imaging'
 ACTION_STOP_IMAGING = 'stop_imaging'
 CONF_API = 'api'
@@ -17,10 +18,16 @@ SEND_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
     'command': vol.Coerce(str),
 })
 
+SEND_MANY_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
+    'commands': [vol.Coerce(str)],
+})
+
 START_IMAGING_ACTION_SCHEMA = STOP_IMAGING_ACTION_SCHEMA = BASE_ACTION_SCHEMA
 
 ACTION_TO_METHOD = {
     ACTION_SEND: {'method': 'send', 'schema': SEND_ACTION_SCHEMA},
+    ACTION_SEND_MANY: {
+        'method': 'send_many', 'schema': SEND_MANY_ACTION_SCHEMA},
     ACTION_START_IMAGING: {
         'method': 'start_imaging', 'schema': START_IMAGING_ACTION_SCHEMA},
     ACTION_STOP_IMAGING: {
@@ -102,6 +109,17 @@ class Api(object):
             The command to send.
         """
         raise NotImplementedError()
+
+    def send_many(self, commands):
+        """Send multiple commands to the microscope API.
+
+        Parameters
+        ----------
+        commands : list
+            A list of commands to send.
+        """
+        for cmd in commands:
+            self.send(cmd)
 
     def start_imaging(self):
         """Send a command to the microscope to start the imaging."""
