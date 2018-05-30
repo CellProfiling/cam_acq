@@ -1,4 +1,5 @@
 """Microscope API specific modules."""
+import json
 from builtins import object  # pylint: disable=redefined-builtin
 
 import voluptuous as vol
@@ -7,6 +8,19 @@ from camacq.const import (COMMAND_EVENT, IMAGE_EVENT, START_COMMAND_EVENT,
                           STOP_COMMAND_EVENT)
 from camacq.event import Event
 from camacq.helper import BASE_ACTION_SCHEMA, FeatureParent, setup_all_modules
+
+
+def validate_commands(value):
+    """Validate a template string via JSON."""
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except ValueError:
+            raise vol.Invalid('Invalid commands: {}'.format(value))
+    else:
+        schema = vol.Schema([vol.Coerce(str)])
+        return schema(value)
+
 
 ACTION_SEND = 'send'
 ACTION_SEND_MANY = 'send_many'
@@ -19,7 +33,7 @@ SEND_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
 })
 
 SEND_MANY_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
-    'commands': [vol.Coerce(str)],
+    'commands': validate_commands,
 })
 
 START_IMAGING_ACTION_SCHEMA = STOP_IMAGING_ACTION_SCHEMA = BASE_ACTION_SCHEMA
