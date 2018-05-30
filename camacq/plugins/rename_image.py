@@ -61,4 +61,7 @@ def rename_image(old_path, new_path):
     """
     if os.path.exists(new_path):
         os.remove(new_path)
-    os.rename(old_path, new_path)
+    try:
+        os.rename(old_path, new_path)
+    except FileNotFoundError as exc:
+        _LOGGER.error('File not found: %s', exc)
