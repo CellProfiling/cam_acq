@@ -31,9 +31,6 @@ CONF_CHANNELS = 'channels'
 CONF_GAIN = 'gain'
 CONF_INIT_GAIN = 'init_gain'
 COUNT_CLOSE_TO_ZERO = 2
-END_10X = 'end_10x'
-END_40X = 'end_40x'
-END_63X = 'end_63x'
 SAVED_GAINS = 'saved_gains'
 
 ACTION_CALC_GAIN = 'calc_gain'
@@ -47,13 +44,7 @@ CALC_GAIN_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
     vol.Optional('save_path', default=''): vol.Coerce(str),
 })
 
-GREEN = 'green'
-BLUE = 'blue'
-YELLOW = 'yellow'
-RED = 'red'
-
 GAIN = 'gain'
-OBJECTIVE = 'objective'
 Data = namedtuple('Data', [BOX, GAIN, VALID])  # pylint: disable=invalid-name
 
 
@@ -109,7 +100,7 @@ def calc_gain(
     _LOGGER.debug('All calculated gains: %s', center.data[SAVED_GAINS])
     if plot:
         save_dir = gain_conf.get('save_dir', '/temp')
-        save_gain(save_dir, center.data[SAVED_GAINS])
+        save_gain(save_dir, center.data[SAVED_GAINS], [WELL].extend(gains))
     well = center.sample.get_well(plate_name, well_x, well_y)
     if well:
         # Set existing channel gain to generate event.
@@ -234,9 +225,8 @@ def _calc_gain(projs, init_gain, plot=True, save_path=''):
     return gains
 
 
-def save_gain(save_dir, saved_gains):
+def save_gain(save_dir, saved_gains, header):
     """Save a csv file with gain values per image channel."""
-    header = [WELL, GREEN, BLUE, YELLOW, RED]
     path = os.path.normpath(
         os.path.join(save_dir, 'output_gains.csv'))
     write_csv(path, saved_gains, header)
