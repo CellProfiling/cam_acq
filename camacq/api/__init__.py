@@ -219,6 +219,11 @@ class ImageEvent(Event):
         return None
 
     @property
+    def z_slice(self):
+        """:int: Return z index of the image."""
+        return None
+
+    @property
     def channel_id(self):
         """:int: Return channel id of the image."""
         return None

@@ -241,6 +241,11 @@ class LeicaImageEvent(ImageEvent):
         return attribute(self.path, 'Y')
 
     @property
+    def z_slice(self):
+        """:int: Return z index of the image."""
+        return attribute(self.path, 'Z')
+
+    @property
     def channel_id(self):
         """:int: Return channel id of the image."""
         return attribute(self.path, 'C')

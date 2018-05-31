@@ -108,6 +108,8 @@ class Image(object):
         Path to the image.
     channel_id : int
         The channel id of the image.
+    z_slice : int
+        The z index of the image.
     field_x : int
         The field x coordinate of the image.
     field_y : int
@@ -125,6 +127,8 @@ class Image(object):
         The path to the image.
     channel_id : int
         The channel id of the image.
+    z_slice : int
+        The z index of the image.
     field_x : int
         The field x coordinate of the image.
     field_y : int
@@ -138,17 +142,19 @@ class Image(object):
     """
 
     # pylint: disable=too-many-arguments, too-few-public-methods
+    # pylint: disable=too-many-instance-attributes
 
     __slots__ = (
-        'path', 'channel_id', 'field_x', 'field_y', 'well_x', 'well_y',
-        'plate_name')
+        'path', 'z_slice', 'channel_id', 'field_x', 'field_y', 'well_x',
+        'well_y', 'plate_name')
 
     def __init__(
-            self, path=None, channel_id=None, field_x=None, field_y=None,
-            well_x=None, well_y=None, plate_name=None):
+            self, path=None, channel_id=None, z_slice=None, field_x=None,
+            field_y=None, well_x=None, well_y=None, plate_name=None):
         """Set up instance."""
         self.path = path
         self.channel_id = channel_id
+        self.z_slice = z_slice
         self.field_x = field_x
         self.field_y = field_y
         self.well_x = well_x
@@ -474,9 +480,9 @@ class Sample(object):
     def _set_image_on_event(self, center, event):
         """Set sample image on an image event from a microscope API."""
         self.set_image(
-            event.path, channel_id=event.channel_id, field_x=event.field_x,
-            field_y=event.field_y, well_x=event.well_x, well_y=event.well_y,
-            plate_name=event.plate_name)
+            event.path, channel_id=event.channel_id, z_slice=event.z_slice,
+            field_x=event.field_x, field_y=event.field_y, well_x=event.well_x,
+            well_y=event.well_y, plate_name=event.plate_name)
 
     def get_plate(self, plate_name):
         """Get plate via plate_name.
@@ -717,8 +723,8 @@ class Sample(object):
         return self._images.get(path)
 
     def set_image(
-            self, path, channel_id=None, field_x=None, field_y=None,
-            well_x=None, well_y=None, plate_name=None):
+            self, path, channel_id=None, z_slice=None, field_x=None,
+            field_y=None, well_x=None, well_y=None, plate_name=None):
         """Add an image to the sample.
 
         Parameters
@@ -727,6 +733,8 @@ class Sample(object):
             Path to the image.
         channel_id : int
             The channel id of the image.
+        z_slice : int
+            The z index of the image.
         field_x : int
             The field x coordinate of the image.
         field_y : int
@@ -740,7 +748,8 @@ class Sample(object):
         """
         # pylint: disable=too-many-arguments, too-many-locals
         image = Image(
-            path, channel_id, field_x, field_y, well_x, well_y, plate_name)
+            path, channel_id, z_slice, field_x, field_y, well_x, well_y,
+            plate_name)
         self._images[image.path] = image
 
         self._bus.notify(SampleImageEvent({'image': image}))
@@ -965,6 +974,11 @@ class SampleImageEvent(Event):
     def channel_id(self):
         """:int: Return channel id of the image."""
         return self.image.channel_id
+
+    @property
+    def z_slice(self):
+        """:int: Return z index of the image."""
+        return self.image.z_slice
 
     def __repr__(self):
         """Return the representation."""
