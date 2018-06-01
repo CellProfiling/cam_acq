@@ -100,7 +100,9 @@ def calc_gain(
     _LOGGER.debug('All calculated gains: %s', center.data[SAVED_GAINS])
     if plot:
         save_dir = gain_conf.get('save_dir', '/temp')
-        save_gain(save_dir, center.data[SAVED_GAINS], [WELL].extend(gains))
+        header = [WELL]
+        header.extend(gains)
+        save_gain(save_dir, center.data[SAVED_GAINS], header)
     well = center.sample.get_well(plate_name, well_x, well_y)
     if well:
         # Set existing channel gain to generate event.
@@ -155,10 +157,12 @@ def _calc_gain(projs, init_gain, plot=True, save_path=''):
     Do the actual math.
     """
     # pylint: disable=too-many-locals
-    box_vs_gain = defaultdict(list)
+    box_vs_gain = {}
 
     for c_id, proj in projs.items():
         channel = init_gain[c_id]
+        if channel.name not in box_vs_gain:
+            box_vs_gain[channel.name] = []
         hist_data = pd.DataFrame({
             BOX: list(range(len(proj.histogram[0]))),
             COUNT: proj.histogram[0]})
