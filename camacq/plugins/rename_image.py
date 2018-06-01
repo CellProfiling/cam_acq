@@ -38,7 +38,9 @@ def setup_module(center, config):
         new_path = kwargs.get('new_path')
         new_name = kwargs.get('new_name')
 
-        rename_image(old_path, new_path=new_path, new_name=new_name)
+        result = rename_image(old_path, new_path=new_path, new_name=new_name)
+        if not result:
+            return
         image = center.sample.get_image(old_path)
         center.sample.remove_image(old_path)
         center.sample.set_image(
@@ -63,15 +65,23 @@ def rename_image(old_path, new_path=None, new_name=None):
         The file name (basename) of the renamed image in the old directory.
 
     """
+    renamed = False
     if new_name:
         old_dir = os.path.dirname(old_path)
         new_path = os.path.join(old_dir, new_name)
+    if not new_path:
+        return renamed
     if os.path.exists(new_path):
         try:
             os.remove(new_path)
         except OSError as exc:
             _LOGGER.error('Failed to remove existing image: %s', exc)
+            return renamed
     try:
         os.rename(old_path, new_path)
+        renamed = True
     except FileNotFoundError as exc:
         _LOGGER.error('File not found: %s', exc)
+    except OSError as exc:
+        _LOGGER.error('Failed to rename image: %s', exc)
+    return renamed
