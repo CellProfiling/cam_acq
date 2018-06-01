@@ -207,7 +207,11 @@ class Channel(object):
     @gain.setter
     def gain(self, value):
         """Set gain."""
-        self._gain = int(value)
+        try:
+            self._gain = int(value)
+        except TypeError:
+            _LOGGER.warning(
+                'Invalid gain value %s, falling back to %s', value, self._gain)
 
 
 class Field(object):
