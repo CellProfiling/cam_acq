@@ -100,9 +100,7 @@ def calc_gain(
     _LOGGER.debug('All calculated gains: %s', center.data[SAVED_GAINS])
     if plot:
         save_dir = gain_conf.get('save_dir', '/temp')
-        header = [WELL]
-        header.extend(gains)
-        save_gain(save_dir, center.data[SAVED_GAINS], header)
+        save_gain(save_dir, center.data[SAVED_GAINS], [WELL] + list(gains))
     well = center.sample.get_well(plate_name, well_x, well_y)
     if well:
         # Set existing channel gain to generate event.
