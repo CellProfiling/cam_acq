@@ -6,6 +6,22 @@ from setuptools import find_packages, setup
 from camacq.const import __version__
 
 GITHUB_URL = 'https://github.com/CellProfiling/cam_acq'
+REQUIRES = [
+    'colorlog',
+    'future',
+    'jinja2',
+    'leicacam',
+    'leicaexperiment',
+    'matplotlib',
+    'numpy',
+    'pandas',
+    'Pillow',
+    'PyYAML',
+    'ruamel.yaml<0.15',
+    'scipy',
+    'tifffile',
+    'voluptuous'
+]
 
 
 def read(*filenames, **kwargs):
@@ -70,22 +86,7 @@ CONFIG = {
     'license': 'GPLv3',
     'author_email': 'marhje52@kth.se',
     'version': __version__,
-    'install_requires': [
-        'colorlog',
-        'future',
-        'jinja2',
-        'leicacam',
-        'leicaexperiment',
-        'matplotlib',
-        'numpy',
-        'pandas',
-        'Pillow',
-        'PyYAML',
-        'ruamel.yaml<0.15',
-        'scipy',
-        'tifffile',
-        'voluptuous'
-    ],
+    'install_requires': REQUIRES,
     'packages': find_packages(exclude=['contrib', 'docs', 'tests*']),
     'include_package_data': True,
     'entry_points': {
