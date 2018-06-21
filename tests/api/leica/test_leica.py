@@ -84,7 +84,7 @@ def test_send(api):
     assert len(api.client.wait_for.mock_calls) == 1
     _, _, kwargs = api.client.wait_for.mock_calls[0]
     cmd, value = cmd_tuples[0]
-    assert kwargs == dict(cmd=cmd, value=value, timeout=0.3)
+    assert kwargs == dict(cmd=cmd, value=value, timeout=0.2)
     assert len(mock_handler.mock_calls) == 0
 
     api.receive([OrderedDict(start_event_tuples)])
