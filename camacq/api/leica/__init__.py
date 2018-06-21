@@ -20,8 +20,7 @@ _LOGGER = logging.getLogger(__name__)
 CONF_LEICA = 'leica'
 REL_IMAGE_PATH = 'relpath'
 SCAN_FINISHED = 'scanfinished'
-# FIXME: Check exactly what string is sent from the api. pylint: disable=fixme
-SCAN_STARTED = 'startscan'
+SCAN_STARTED = 'scanstart'
 
 
 def setup_package(center, config, add_child=None):
@@ -121,7 +120,7 @@ class LeicaApi(Api, threading.Thread):
         cmd, value = command[0]  # use the first cmd and value to wait for
         self.add_job(self.client.send, command)
         self.add_job(partial(
-            self.client.wait_for, cmd=cmd, value=value, timeout=0.3))
+            self.client.wait_for, cmd=cmd, value=value, timeout=0.2))
 
     def start_imaging(self):
         """Send a command to the microscope to start the imaging."""
@@ -130,6 +129,8 @@ class LeicaApi(Api, threading.Thread):
     def stop_imaging(self):
         """Send a command to the microscope to stop the imaging."""
         self.add_job(self.client.stop_scan)
+        self.add_job(partial(
+            self.client.wait_for, cmd='inf', value=SCAN_FINISHED, timeout=0.2))
 
     def run(self):
         """Thread loop that receive from the microscope socket."""
@@ -240,6 +241,11 @@ class LeicaImageEvent(ImageEvent):
     def field_y(self):
         """:int: Return y coordinate of the well of the image."""
         return attribute(self.path, 'Y')
+
+    @property
+    def z_slice(self):
+        """:int: Return z index of the image."""
+        return attribute(self.path, 'Z')
 
     @property
     def channel_id(self):

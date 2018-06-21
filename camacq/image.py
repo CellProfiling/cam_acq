@@ -163,7 +163,7 @@ class ImageData(object):
             max_int = 65535
         else:
             max_int = 255
-        return np.histogram(self._data, 256, (0, max_int))
+        return np.histogram(self._data, bins=256, range=(0, max_int))
 
     def _load_image_data(self):
         """Load image data from path."""
@@ -172,7 +172,9 @@ class ImageData(object):
                 self._data = tif.asarray(key=0)
                 self._metadata = tif.ome_metadata
         except (IOError, ValueError) as exception:
-            _LOGGER.error('Bad path to image: %s', exception)
+            _LOGGER.error('Bad path %s to image: %s', self.path, exception)
+            self._data = np.array([])
+            self._metadata = {}
 
     def save(self, path=None, data=None, metadata=None):
         """Save image with image data and optional meta data.

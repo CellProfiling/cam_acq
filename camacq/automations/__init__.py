@@ -131,7 +131,8 @@ class Automation(object):
 
     def __repr__(self):
         """Return the representation."""
-        return "<Automation: name: {}>".format(self.name)
+        return "<Automation: name: {}: enabled: {}>".format(
+            self.name, self.enabled)
 
     def enable(self):
         """Enable automation."""

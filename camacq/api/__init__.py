@@ -1,4 +1,5 @@
 """Microscope API specific modules."""
+import json
 from builtins import object  # pylint: disable=redefined-builtin
 
 import voluptuous as vol
@@ -8,7 +9,21 @@ from camacq.const import (COMMAND_EVENT, IMAGE_EVENT, START_COMMAND_EVENT,
 from camacq.event import Event
 from camacq.helper import BASE_ACTION_SCHEMA, FeatureParent, setup_all_modules
 
+
+def validate_commands(value):
+    """Validate a template string via JSON."""
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except ValueError:
+            raise vol.Invalid('Invalid commands: {}'.format(value))
+    else:
+        schema = vol.Schema([vol.Coerce(str)])
+        return schema(value)
+
+
 ACTION_SEND = 'send'
+ACTION_SEND_MANY = 'send_many'
 ACTION_START_IMAGING = 'start_imaging'
 ACTION_STOP_IMAGING = 'stop_imaging'
 CONF_API = 'api'
@@ -17,10 +32,16 @@ SEND_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
     'command': vol.Coerce(str),
 })
 
+SEND_MANY_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
+    'commands': validate_commands,
+})
+
 START_IMAGING_ACTION_SCHEMA = STOP_IMAGING_ACTION_SCHEMA = BASE_ACTION_SCHEMA
 
 ACTION_TO_METHOD = {
     ACTION_SEND: {'method': 'send', 'schema': SEND_ACTION_SCHEMA},
+    ACTION_SEND_MANY: {
+        'method': 'send_many', 'schema': SEND_MANY_ACTION_SCHEMA},
     ACTION_START_IMAGING: {
         'method': 'start_imaging', 'schema': START_IMAGING_ACTION_SCHEMA},
     ACTION_STOP_IMAGING: {
@@ -102,6 +123,17 @@ class Api(object):
             The command to send.
         """
         raise NotImplementedError()
+
+    def send_many(self, commands):
+        """Send multiple commands to the microscope API.
+
+        Parameters
+        ----------
+        commands : list
+            A list of commands to send.
+        """
+        for cmd in commands:
+            self.send(cmd)
 
     def start_imaging(self):
         """Send a command to the microscope to start the imaging."""
@@ -187,6 +219,11 @@ class ImageEvent(Event):
         return None
 
     @property
+    def z_slice(self):
+        """:int: Return z index of the image."""
+        return None
+
+    @property
     def channel_id(self):
         """:int: Return channel id of the image."""
         return None
@@ -195,3 +232,10 @@ class ImageEvent(Event):
     def plate_name(self):
         """:str: Return plate name of the image."""
         return None
+
+    def __repr__(self):
+        """Return the representation."""
+        return ("<{}: plate_name {}: well_x {}: well_y {}: field_x {}: "
+                "field_y {}: channel_id {}>".format(
+                    type(self).__name__, self.plate_name, self.well_x,
+                    self.well_y, self.field_x, self.field_y, self.channel_id))

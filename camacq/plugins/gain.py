@@ -5,7 +5,7 @@ from builtins import range  # pylint: disable=redefined-builtin
 from collections import defaultdict, namedtuple
 from itertools import groupby
 
-import matplotlib.pyplot as plt
+import matplotlib
 import pandas as pd
 import voluptuous as vol
 from future import standard_library
@@ -15,6 +15,10 @@ from camacq.const import CHANNEL_ID, CONF_PLUGINS, WELL, WELL_NAME
 from camacq.helper import BASE_ACTION_SCHEMA, write_csv
 from camacq.image import make_proj
 from camacq.sample import Channel
+
+matplotlib.use('AGG')  # use noninteractive default backend
+# pylint: disable=wrong-import-order, wrong-import-position, ungrouped-imports
+import matplotlib.pyplot as plt  # noqa: E402
 
 standard_library.install_aliases()
 
@@ -27,9 +31,6 @@ CONF_CHANNELS = 'channels'
 CONF_GAIN = 'gain'
 CONF_INIT_GAIN = 'init_gain'
 COUNT_CLOSE_TO_ZERO = 2
-END_10X = 'end_10x'
-END_40X = 'end_40x'
-END_63X = 'end_63x'
 SAVED_GAINS = 'saved_gains'
 
 ACTION_CALC_GAIN = 'calc_gain'
@@ -43,13 +44,7 @@ CALC_GAIN_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
     vol.Optional('save_path', default=''): vol.Coerce(str),
 })
 
-GREEN = 'green'
-BLUE = 'blue'
-YELLOW = 'yellow'
-RED = 'red'
-
 GAIN = 'gain'
-OBJECTIVE = 'objective'
 Data = namedtuple('Data', [BOX, GAIN, VALID])  # pylint: disable=invalid-name
 
 
@@ -66,10 +61,10 @@ def setup_module(center, config):
             if not well:
                 return
             images = {
-                path: image.channel_id for path, image in well.images.items()}
+                image.channel_id: path for path, image in well.images.items()}
         else:
             images = {
-                path: image.channel_id
+                image.channel_id: path
                 for path, image in center.sample.images.items()
                 if path in paths}
         plot = kwargs.get('make_plots')
@@ -105,7 +100,7 @@ def calc_gain(
     _LOGGER.debug('All calculated gains: %s', center.data[SAVED_GAINS])
     if plot:
         save_dir = gain_conf.get('save_dir', '/temp')
-        save_gain(save_dir, center.data[SAVED_GAINS])
+        save_gain(save_dir, center.data[SAVED_GAINS], [WELL] + list(gains))
     well = center.sample.get_well(plate_name, well_x, well_y)
     if well:
         # Set existing channel gain to generate event.
@@ -160,17 +155,22 @@ def _calc_gain(projs, init_gain, plot=True, save_path=''):
     Do the actual math.
     """
     # pylint: disable=too-many-locals
-    box_vs_gain = defaultdict(list)
+    box_vs_gain = {}
 
     for c_id, proj in projs.items():
         channel = init_gain[c_id]
+        if channel.name not in box_vs_gain:
+            box_vs_gain[channel.name] = []
         hist_data = pd.DataFrame({
             BOX: list(range(len(proj.histogram[0]))),
             COUNT: proj.histogram[0]})
+        # Handle all zero pixels
+        non_zero_hist_data = hist_data[
+            (hist_data[COUNT] > 0) & (hist_data[BOX] > 0)]
+        if non_zero_hist_data.empty:
+            continue
         # Find the max box holding pixels
-        box_max_count = hist_data[
-            (hist_data[COUNT] > 0) &
-            (hist_data[BOX] > 0)][BOX].iloc[-1]
+        box_max_count = non_zero_hist_data[BOX].iloc[-1]
         # Select only histo data where count is > 0 and 255 > box > 0.
         # Only use values in interval 10-100 and
         # > (max box holding pixels - 175).
@@ -218,7 +218,7 @@ def _calc_gain(projs, init_gain, plot=True, save_path=''):
             _power_func, [p[1].box for p in long_group],
             [p[1].gain for p in long_group], p0=(1, 1))
         if plot:
-            _save_path = '{}{}.png'.format(save_path, channel)
+            _save_path = '{}_{}.png'.format(save_path, channel)
             _create_plot(
                 _save_path, [p.box for p in points],
                 [p.gain for p in points], coeffs, 'box-gain')
@@ -227,9 +227,8 @@ def _calc_gain(projs, init_gain, plot=True, save_path=''):
     return gains
 
 
-def save_gain(save_dir, saved_gains):
+def save_gain(save_dir, saved_gains, header):
     """Save a csv file with gain values per image channel."""
-    header = [WELL, GREEN, BLUE, YELLOW, RED]
     path = os.path.normpath(
         os.path.join(save_dir, 'output_gains.csv'))
     write_csv(path, saved_gains, header)
