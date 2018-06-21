@@ -120,7 +120,7 @@ class LeicaApi(Api, threading.Thread):
         cmd, value = command[0]  # use the first cmd and value to wait for
         self.add_job(self.client.send, command)
         self.add_job(partial(
-            self.client.wait_for, cmd=cmd, value=value, timeout=0.3))
+            self.client.wait_for, cmd=cmd, value=value, timeout=0.2))
 
     def start_imaging(self):
         """Send a command to the microscope to start the imaging."""
@@ -129,6 +129,8 @@ class LeicaApi(Api, threading.Thread):
     def stop_imaging(self):
         """Send a command to the microscope to stop the imaging."""
         self.add_job(self.client.stop_scan)
+        self.add_job(partial(
+            self.client.wait_for, cmd='inf', value=SCAN_FINISHED, timeout=0.2))
 
     def run(self):
         """Thread loop that receive from the microscope socket."""
