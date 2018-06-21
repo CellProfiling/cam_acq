@@ -2,7 +2,7 @@
 import logging
 import time
 from builtins import object  # pylint: disable=redefined-builtin
-from collections import namedtuple
+from collections import deque, namedtuple
 
 import voluptuous as vol
 from future import standard_library
@@ -116,6 +116,7 @@ class Center(object):
         self.actions = ActionsRegistry()
         self.data = {}
         self.exit_code = 0
+        self._queue = deque()
 
     def __repr__(self):
         """Return the representation."""
@@ -148,9 +149,45 @@ class Center(object):
                     _LOGGER.info('Experiment finished!')
                     self.end(0)
                     break
-                time.sleep(1)  # Short sleep to not burn 100% CPU.
+                self.run_job()
+                if self._queue:
+                    continue
+                time.sleep(0.050)  # Short sleep to not burn 100% CPU.
         except KeyboardInterrupt:
             self.end(0)
+
+    def add_job(self, func, *args, **kwargs):
+        """Add job to the queue.
+
+        Parameters
+        ----------
+        func : callable
+            A target function to call.
+        args : tuple
+            A tuple of optional arguments.
+        callback : callable
+            A function to call with the return value of func.
+        """
+        callback = kwargs.get('callback')
+        job = func, args, callback
+        self._queue.append(job)
+
+    def run_job(self, job=None):
+        """Run job either passed in or off the queue.
+
+        Parameters
+        ----------
+        job : tuple
+            An optional tuple of target function, arguments and callback.
+        """
+        if job is None:
+            if not self._queue:
+                return
+            job = self._queue.popleft()
+        func, args, callback = job
+        result = func(*args)
+        if callback:
+            callback(result)
 
 
 # pylint: disable=too-few-public-methods
