@@ -3,7 +3,6 @@ import logging
 import socket
 import threading
 import time
-from collections import deque
 from functools import partial
 
 from leicacam.cam import CAM, bytes_as_dict, tuples_as_bytes
@@ -66,7 +65,6 @@ class LeicaApi(Api, threading.Thread):
         self.center = center
         self.client = client
         self.stop_thread = threading.Event()
-        self.queue = deque()
 
     # TODO: Check what events are reported by CAM server. pylint: disable=fixme
     # Make sure that all images get reported eventually.
@@ -81,14 +79,14 @@ class LeicaApi(Api, threading.Thread):
         # if reply check reply and call correct listener
         # parse reply and create Event
         # reply must be an iterable
-        conf = self.center.config[CONF_API][CONF_LEICA]
-        imaging_dir = conf.get(IMAGING_DIR, '')
         if not isinstance(replies, list):
             replies = [replies]
         for reply in replies:
             if not reply or not isinstance(reply, dict):
                 continue
             if REL_IMAGE_PATH in reply:
+                conf = self.center.config[CONF_API][CONF_LEICA]
+                imaging_dir = conf.get(IMAGING_DIR, '')
                 rel_path = reply[REL_IMAGE_PATH]
                 image_path = find_image_path(rel_path, imaging_dir)
                 field_path = get_field(image_path)
@@ -118,66 +116,31 @@ class LeicaApi(Api, threading.Thread):
             command = bytes_as_dict(command.encode())
             command = list(command.items())
         cmd, value = command[0]  # use the first cmd and value to wait for
-        self.add_job(self.client.send, command)
-        self.add_job(partial(
-            self.client.wait_for, cmd=cmd, value=value, timeout=0.2))
+        self.center.add_job(self.client.send, command)
+        self.center.add_job(
+            partial(self.client.wait_for, cmd=cmd, value=value, timeout=0.2),
+            callback=self.receive)
 
     def start_imaging(self):
         """Send a command to the microscope to start the imaging."""
-        self.add_job(self.client.start_scan)
+        self.center.add_job(self.client.start_scan, callback=self.receive)
 
     def stop_imaging(self):
         """Send a command to the microscope to stop the imaging."""
-        self.add_job(self.client.stop_scan)
-        self.add_job(partial(
-            self.client.wait_for, cmd='inf', value=SCAN_FINISHED, timeout=0.2))
+        self.center.add_job(self.client.stop_scan, callback=self.receive)
+        self.center.add_job(
+            partial(self.client.wait_for, cmd='inf', value=SCAN_FINISHED,
+                    timeout=0.2),
+            callback=self.receive)
 
     def run(self):
         """Thread loop that receive from the microscope socket."""
         while True:
             if self.stop_thread.is_set():
                 break
-            replies = self.run_job()
-            if replies:
-                self.receive(replies)
-            if self.queue:
-                continue
             replies = self.client.receive()
-            self.receive(replies)
+            self.center.add_job(self.receive, replies)
             time.sleep(0.050)  # Short sleep to not burn 100% CPU.
-
-    def add_job(self, func, *args):
-        """Add job to the queue.
-
-        Parameters
-        ----------
-        func : callable
-            A target function to call.
-        args : tuple
-            A tuple of optional arguments.
-        """
-        job = func, args
-        self.queue.append(job)
-
-    def run_job(self, job=None):
-        """Run job either passed in or off the queue.
-
-        Parameters
-        ----------
-        job : tuple
-            An optional tuple of target function and arguments.
-
-        Returns
-        -------
-        Any
-            Return the return value of the target function call.
-        """
-        if job is None:
-            if not self.queue:
-                return None
-            job = self.queue.popleft()
-        func, args = job
-        return func(*args)
 
 
 # pylint: disable=too-few-public-methods

@@ -72,14 +72,13 @@ def test_send(api):
     api.center.bus.register('start_command_event', mock_handler)
 
     api.send(cmd_string)
-    replies = api.run_job()
+    api.center.run_job()
 
     assert len(api.client.send.mock_calls) == 1
     _, args, _ = api.client.send.mock_calls[0]
     assert args[0] == cmd_tuples
 
-    replies = api.run_job()
-    api.receive(replies)
+    api.center.run_job()
 
     assert len(api.client.wait_for.mock_calls) == 1
     _, _, kwargs = api.client.wait_for.mock_calls[0]
@@ -107,8 +106,7 @@ def test_start_imaging(api):
     api.center.bus.register('start_command_event', mock_handler)
 
     api.start_imaging()
-    replies = api.run_job()
-    api.receive(replies)
+    api.center.run_job()
 
     assert len(api.client.start_scan.mock_calls) == 1
     assert len(mock_handler.mock_calls) == 0
@@ -133,8 +131,7 @@ def test_stop_imaging(api):
     api.center.bus.register('stop_command_event', mock_handler)
 
     api.stop_imaging()
-    replies = api.run_job()
-    api.receive(replies)
+    api.center.run_job()
 
     assert len(api.client.stop_scan.mock_calls) == 1
 
