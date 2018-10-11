@@ -2,7 +2,7 @@
 from camacq.helper import setup_all_modules
 
 
-def setup_package(center, config):
+async def setup_package(center, config):
     """Set up the plugins package.
 
     Parameters
@@ -12,4 +12,4 @@ def setup_package(center, config):
     config : dict
         The config dict.
     """
-    setup_all_modules(center, config, __name__)
+    await setup_all_modules(center, config, __name__)

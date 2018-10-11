@@ -1,13 +1,18 @@
 """Test the event bus."""
+import pytest
+
 from camacq import event as event_mod
 
+# All test coroutines will be treated as marked.
+pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
 
-def test_event_bus(center):
+
+async def test_event_bus(center):
     """Test register handler, fire event and remove handler."""
     event = event_mod.Event({'test': 2})
     bus = center.bus
 
-    def handler(center, event):
+    async def handler(center, event):
         """Handle event."""
         if 'test' not in center.data:
             center.data['test'] = 0
@@ -21,12 +26,12 @@ def test_event_bus(center):
     assert not center.data
 
     bus.notify(event)
-    center.run_all()
+    await center.wait_for()
 
     assert center.data.get('test') == 2
 
     remove()
     bus.notify(event)
-    center.run_all()
+    await center.wait_for()
 
     assert center.data.get('test') == 2

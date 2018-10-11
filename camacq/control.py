@@ -1,14 +1,16 @@
 """Control the microscope."""
+import asyncio
 import logging
-import time
 from builtins import object  # pylint: disable=redefined-builtin
-from collections import deque, namedtuple
+from collections import namedtuple
 
+from async_timeout import timeout as async_timeout
 import voluptuous as vol
 from future import standard_library
 
 from camacq.event import Event, EventBus
-from camacq.const import CAMACQ_START_EVENT, CAMACQ_STOP_EVENT
+from camacq.const import ACTION_TIMEOUT, CAMACQ_START_EVENT, CAMACQ_STOP_EVENT
+from camacq.helper import register_signals
 from camacq.sample import Sample
 
 standard_library.install_aliases()
@@ -22,9 +24,10 @@ Action = namedtuple('Action', 'func, schema')
 class ActionsRegistry(object):
     """Manage all registered actions."""
 
-    def __init__(self):
+    def __init__(self, center):
         """Set up instance."""
         self._actions = {}
+        self._center = center
 
     @property
     def actions(self):
@@ -48,13 +51,18 @@ class ActionsRegistry(object):
             The voluptuous schema that should validate the parameters
             of the action call.
         """
+        if not asyncio.iscoroutinefunction(action_func):
+            _LOGGER.error(
+                'Action handler function %s is not a coroutine function',
+                action_func)
+            return
         if action_type not in self._actions:
             self._actions[action_type] = {}
         _LOGGER.info(
             'Registering action %s.%s', action_type, action_id)
         self._actions[action_type][action_id] = Action(action_func, schema)
 
-    def call(self, action_type, action_id, **kwargs):
+    async def call(self, action_type, action_id, **kwargs):
         """Call an action with optional kwargs.
 
         Parameters
@@ -77,11 +85,15 @@ class ActionsRegistry(object):
         try:
             kwargs = action.schema(kwargs)
         except vol.Invalid as exc:
-            _LOGGER.error('Invalid action call parameters: %s', exc)
+            _LOGGER.error('Invalid action call parameters %s: %s', kwargs, exc)
             return
         _LOGGER.info(
             'Calling action %s.%s: %s', action_type, action_id, kwargs)
-        action.func(action_id=action_id, **kwargs)
+        try:
+            async with async_timeout(ACTION_TIMEOUT):
+                await action.func(action_id=action_id, **kwargs)
+        except asyncio.TimeoutError:
+            _LOGGER.error('Action timed out after %s seconds', ACTION_TIMEOUT)
 
 
 class Center(object):
@@ -89,13 +101,13 @@ class Center(object):
 
     Parameters
     ----------
-    config : dict
-        The config dict.
+    loop : asyncio.EventLoop
+        The event loop.
 
     Attributes
     ----------
-    config : dict
-        Return the config dict.
+    loop : asyncio.EventLoop
+        Return the event loop.
     bus : EventBus instance
         Return the EventBus instance.
     sample : Sample instance
@@ -104,30 +116,27 @@ class Center(object):
         Return the ActionsRegistry instance.
     data : dict
         Return dict that stores data from other modules than control.
-    exit_code : int
-        Return the exit code for the app.
     """
 
-    def __init__(self, config):
+    # pylint: disable=too-many-instance-attributes
+
+    def __init__(self, loop=None):
         """Set up instance."""
-        self.config = config
+        self.loop = loop or asyncio.get_event_loop()
         self.bus = EventBus(self)
         self.sample = Sample(self.bus)
-        self.actions = ActionsRegistry()
+        self.actions = ActionsRegistry(self)
         self.data = {}
-        self.exit_code = 0
-        self._queue = deque()
+        self._exit_code = 0
+        self._stopped = None
+        self._pending_tasks = []
+        self._track_tasks = False
 
     def __repr__(self):
         """Return the representation."""
         return "<Center>"
 
-    @property
-    def finished(self):
-        """:bool: Return True if nothing is registered on the bus."""
-        return not self.bus.event_types
-
-    def end(self, code):
+    async def end(self, code):
         """Prepare app for exit.
 
         Parameters
@@ -136,64 +145,60 @@ class Center(object):
             Exit code to return when the app exits.
         """
         _LOGGER.info('Stopping camacq')
+        self._track_tasks = True
         self.bus.notify(CamAcqStopEvent({'exit_code': code}))
-        self.exit_code = code
+        self._exit_code = code
+        await self.wait_for()
+        if self._stopped is not None:
+            self._stopped.set()
+        else:
+            self.loop.stop()
 
-    def start(self):
+    async def start(self):
         """Start the app."""
-        try:
-            _LOGGER.info('Starting camacq')
-            self.bus.notify(CamAcqStartEvent())
-            while True:
-                if self.finished:
-                    _LOGGER.info('Experiment finished!')
-                    self.end(0)
-                    break
-                self.run_job()
-                if self._queue:
-                    continue
-                time.sleep(0.050)  # Short sleep to not burn 100% CPU.
-        except KeyboardInterrupt:
-            self.end(0)
-            self.run_all()
+        _LOGGER.info('Starting camacq')
+        self.bus.notify(CamAcqStartEvent())
+        self._stopped = asyncio.Event()
+        register_signals(self)
+        await self._stopped.wait()
+        return self._exit_code
 
-    def add_job(self, func, *args, **kwargs):
-        """Add job to the queue.
+    def add_executor_job(self, func, *args):
+        """Schedule a function to be run in the thread pool.
 
-        Parameters
-        ----------
-        func : callable
-            A target function to call.
-        args : tuple
-            A tuple of optional arguments.
-        callback : callable
-            A function to call with the return value of func.
+        Return a task.
         """
-        callback = kwargs.get('callback')
-        job = func, args, callback
-        self._queue.append(job)
+        task = self.loop.run_in_executor(None, func, *args)
 
-    def run_job(self, job=None):
-        """Run job either passed in or off the queue.
+        if self._track_tasks:
+            self._pending_tasks.append(task)
 
-        Parameters
-        ----------
-        job : tuple
-            An optional tuple of target function, arguments and callback.
+        return task
+
+    def create_task(self, coro):
+        """Schedule a coroutine on the event loop.
+
+        Return a task.
         """
-        if job is None:
-            if not self._queue:
-                return
-            job = self._queue.popleft()
-        func, args, callback = job
-        result = func(*args)
-        if callback:
-            callback(result)
+        task = self.loop.create_task(coro)
 
-    def run_all(self):
-        """Run all jobs in queue."""
-        while self._queue:
-            self.run_job()
+        if self._track_tasks:
+            self._pending_tasks.append(task)
+
+        return task
+
+    async def wait_for(self):
+        """Wait for all pending tasks."""
+        _LOGGER.debug('Waiting for pending tasks')
+        await asyncio.sleep(0)
+        while self._pending_tasks:
+            pending = [task for task in self._pending_tasks
+                       if not task.done()]
+            self._pending_tasks.clear()
+            if pending:
+                await asyncio.wait(pending)
+            else:
+                await asyncio.sleep(0)
 
 
 # pylint: disable=too-few-public-methods

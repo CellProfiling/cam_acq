@@ -15,7 +15,7 @@ RENAME_IMAGE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
 })
 
 
-def setup_module(center, config):
+async def setup_module(center, config):
     """Set up image rename plugin.
 
     Parameters
@@ -25,7 +25,7 @@ def setup_module(center, config):
     config : dict
         The config dict.
     """
-    def handle_action(**kwargs):
+    async def handle_action(**kwargs):
         """Handle the action call to rename an image.
 
         Parameters
@@ -43,7 +43,8 @@ def setup_module(center, config):
             new_path = os.path.join(old_dir, new_name)
         if not new_path:
             return
-        result = rename_image(old_path, new_path)
+        result = await center.add_executor_job(
+            rename_image, old_path, new_path)
         if not result:
             return
         image = center.sample.get_image(old_path)

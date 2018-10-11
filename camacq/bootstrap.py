@@ -1,4 +1,5 @@
 """Configure and set up control center."""
+import asyncio
 import logging
 
 import camacq.config as config_util
@@ -10,7 +11,7 @@ from camacq.helper import CORE_MODULES, get_module, setup_all_modules
 _LOGGER = logging.getLogger(__name__)
 
 
-def setup_dict(config):
+async def setup_dict(center, config):
     """Set up control center from config dict.
 
     Parameters
@@ -24,18 +25,19 @@ def setup_dict(config):
         Return the Center instance.
     """
     log_util.enable_log(config)
-    center = Center(config)
     # Add core modules.
+    tasks = []
     for module_name in CORE_MODULES:
         if module_name not in config:
             config[module_name] = {}
         module = get_module(PACKAGE, module_name)
-        module.setup_module(center, config)
-    setup_all_modules(center, config, PACKAGE)
-    return center
+        tasks.append(center.create_task(module.setup_module(center, config)))
+    if tasks:
+        await asyncio.wait(tasks)
+    await setup_all_modules(center, config, PACKAGE)
 
 
-def setup_file(config_file, cmd_args):
+async def setup_file(config_file, cmd_args):
     """Set up control center from config file and command line args.
 
     Parameters
@@ -50,7 +52,9 @@ def setup_file(config_file, cmd_args):
     Center instance
         Return the Center instance.
     """
-    user_config = config_util.load_config_file(config_file)
+    center = Center()
+    user_config = await center.add_executor_job(
+        config_util.load_config_file, config_file)
     user_config.update(cmd_args)  # merge config dict with command line args
-    center = setup_dict(user_config)
+    await setup_dict(center, user_config)
     return center

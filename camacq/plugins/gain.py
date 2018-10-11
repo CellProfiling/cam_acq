@@ -3,6 +3,7 @@ import logging
 import os
 from builtins import range  # pylint: disable=redefined-builtin
 from collections import defaultdict, namedtuple
+from functools import partial
 from itertools import groupby
 
 import matplotlib
@@ -12,9 +13,10 @@ from future import standard_library
 from scipy.optimize import curve_fit
 
 from camacq.const import CHANNEL_ID, CONF_PLUGINS, WELL, WELL_NAME
-from camacq.helper import BASE_ACTION_SCHEMA, write_csv
+from camacq.helper import BASE_ACTION_SCHEMA
 from camacq.image import make_proj
 from camacq.sample import Channel
+from camacq.util import write_csv
 
 matplotlib.use('AGG')  # use noninteractive default backend
 # pylint: disable=wrong-import-order, wrong-import-position, ungrouped-imports
@@ -48,9 +50,9 @@ GAIN = 'gain'
 Data = namedtuple('Data', [BOX, GAIN, VALID])  # pylint: disable=invalid-name
 
 
-def setup_module(center, config):
+async def setup_module(center, config):
     """Set up gain calculation plugin."""
-    def handle_calc_gain(**kwargs):
+    async def handle_calc_gain(**kwargs):
         """Handle call to calc_gain action."""
         well_x = kwargs.get('well_x')
         well_y = kwargs.get('well_y')
@@ -69,19 +71,21 @@ def setup_module(center, config):
                 if path in paths}
         plot = kwargs.get('make_plots')
         save_path = kwargs.get('save_path')  # path to save plots
-        projs = make_proj(images)
-        calc_gain(center, plate_name, well_x, well_y, projs, plot, save_path)
+        projs = await center.add_executor_job(make_proj, images)
+        await calc_gain(
+            center, config, plate_name, well_x, well_y, projs, plot, save_path)
 
     center.actions.register(
         'plugins.gain', ACTION_CALC_GAIN, handle_calc_gain,
         CALC_GAIN_ACTION_SCHEMA)
 
 
-def calc_gain(
-        center, plate_name, well_x, well_y, projs, plot=True, save_path=''):
+async def calc_gain(
+        center, config, plate_name, well_x, well_y, projs, plot=True,
+        save_path=''):
     """Calculate gain values for the well."""
-    # pylint: disable=too-many-arguments
-    gain_conf = center.config[CONF_PLUGINS][CONF_GAIN]
+    # pylint: disable=too-many-arguments, too-many-locals
+    gain_conf = config[CONF_PLUGINS][CONF_GAIN]
     if CONF_CHANNELS not in gain_conf:
         _LOGGER.error(
             'Missing config section %s in %s:%s',
@@ -92,7 +96,8 @@ def calc_gain(
         for channel in gain_conf[CONF_CHANNELS]
         for gain in channel[CONF_INIT_GAIN]]
 
-    gains = _calc_gain(projs, init_gain, plot=plot, save_path=save_path)
+    gains = await center.add_executor_job(
+        partial(_calc_gain, projs, init_gain, plot=plot, save_path=save_path))
     _LOGGER.info('Calculated gains: %s', gains)
     if SAVED_GAINS not in center.data:
         center.data[SAVED_GAINS] = defaultdict(dict)
@@ -100,7 +105,9 @@ def calc_gain(
     _LOGGER.debug('All calculated gains: %s', center.data[SAVED_GAINS])
     if plot:
         save_dir = gain_conf.get('save_dir', '/temp')
-        save_gain(save_dir, center.data[SAVED_GAINS], [WELL] + list(gains))
+        await center.add_executor_job(
+            save_gain, save_dir, center.data[SAVED_GAINS],
+            [WELL] + list(gains))
     well = center.sample.get_well(plate_name, well_x, well_y)
     if well:
         # Set existing channel gain to generate event.

@@ -1,4 +1,6 @@
 """Handle sample state."""
+# pylint: disable=too-many-lines
+import asyncio
 import logging
 from builtins import object  # pylint: disable=redefined-builtin
 from collections import OrderedDict
@@ -9,7 +11,8 @@ from camacq.const import (CHANNEL_EVENT, FIELD_EVENT, FIELD_NAME, IMAGE_EVENT,
                           IMAGE_REMOVED_EVENT, PLATE_EVENT, SAMPLE_EVENT,
                           SAMPLE_IMAGE_EVENT, WELL_EVENT, WELL_NAME)
 from camacq.event import Event
-from camacq.helper import BASE_ACTION_SCHEMA, read_csv
+from camacq.helper import BASE_ACTION_SCHEMA
+from camacq.util import read_csv
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -56,7 +59,7 @@ ACTION_TO_METHOD = {
 SAMPLE_STATE_FILE = 'state_file'
 
 
-def setup_module(center, config):
+async def setup_module(center, config):
     """Set up sample module.
 
     Parameters
@@ -66,7 +69,7 @@ def setup_module(center, config):
     config : dict
         The config dict.
     """
-    def handle_action(**kwargs):
+    async def handle_action(**kwargs):
         """Handle action call to add a state to the sample.
 
         Parameters
@@ -87,7 +90,8 @@ def setup_module(center, config):
     state_file = conf.get(SAMPLE_STATE_FILE)
     if state_file is None:
         return
-    state_data = read_csv(state_file)
+    state_data = await center.add_executor_job(read_csv, state_file)
+    tasks = []
     for data in state_data:
         for action_id, options in ACTION_TO_METHOD.items():
             schema = options['schema']
@@ -96,7 +100,11 @@ def setup_module(center, config):
             except vol.Invalid as exc:
                 _LOGGER.debug('Skipping action %s: %s', action_id, exc)
                 continue
-            center.actions.call('sample', action_id, **data)
+            tasks.append(center.create_task(
+                center.actions.call('sample', action_id, **data)))
+
+    if tasks:
+        await asyncio.wait(tasks)
 
 
 class Image(object):
@@ -481,7 +489,7 @@ class Sample(object):
         """:dict: Return all the plates of the sample."""
         return self._plates
 
-    def _set_image_on_event(self, center, event):
+    async def _set_image_on_event(self, center, event):
         """Set sample image on an image event from a microscope API."""
         self.set_image(
             event.path, channel_id=event.channel_id, z_slice=event.z_slice,
