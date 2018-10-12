@@ -1,11 +1,8 @@
 """Configure and set up control center."""
 import logging
 
-from pkg_resources import resource_filename
-
 import camacq.config as config_util
 import camacq.log as log_util
-from camacq.config import DEFAULT_CONFIG_TEMPLATE
 from camacq.const import PACKAGE
 from camacq.control import Center
 from camacq.helper import CORE_MODULES, get_module, setup_all_modules
@@ -53,10 +50,7 @@ def setup_file(config_file, cmd_args):
     Center instance
         Return the Center instance.
     """
-    min_config_template = resource_filename(__name__, DEFAULT_CONFIG_TEMPLATE)
-    config = config_util.load_config_file(min_config_template)
     user_config = config_util.load_config_file(config_file)
     user_config.update(cmd_args)  # merge config dict with command line args
-    config.update(user_config)
-    center = setup_dict(config)
+    center = setup_dict(user_config)
     return center
