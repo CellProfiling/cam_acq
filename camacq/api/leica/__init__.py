@@ -137,8 +137,7 @@ class LeicaApi(Api, threading.Thread):
         while True:
             if self.stop_thread.is_set():
                 break
-            replies = self.client.receive()
-            self.center.add_job(self.receive, replies)
+            self.center.add_job(self.client.receive, callback=self.receive)
             time.sleep(0.050)  # Short sleep to not burn 100% CPU.
 
 

@@ -155,6 +155,7 @@ class Center(object):
                 time.sleep(0.050)  # Short sleep to not burn 100% CPU.
         except KeyboardInterrupt:
             self.end(0)
+            self.run_all()
 
     def add_job(self, func, *args, **kwargs):
         """Add job to the queue.
