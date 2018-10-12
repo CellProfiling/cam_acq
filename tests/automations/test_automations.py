@@ -348,5 +348,6 @@ def test_delay_action(center, mock_api):
     assert seconds == 5.0
     assert mock_timer.start.call_count == 1
     action_sequence(variables)
+    center.run_all()
     assert len(mock_api.calls) == 2
     assert mock_api.calls[-1] == ('stop_imaging', )
