@@ -189,6 +189,11 @@ class Center(object):
         if callback:
             callback(result)
 
+    def run_all(self):
+        """Run all jobs in queue."""
+        while self._queue:
+            self.run_job()
+
 
 # pylint: disable=too-few-public-methods
 class CamAcqStartEvent(Event):

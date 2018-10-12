@@ -84,6 +84,7 @@ def test_setup_automation(center):
     assert not center.sample.plates
     event = CamAcqStartEvent({'test_data': 'start'})
     center.bus.notify(event)
+    center.run_all()
     plate = center.sample.get_plate('test')
     assert plate
     assert plate.wells[1, 1].x == 1
@@ -127,6 +128,7 @@ def test_channel_event(center, mock_api):
     assert automation.enabled
 
     center.sample.set_channel('test', 1, 1, 'yellow', gain=333)
+    center.run_all()
     assert 'send' in center.actions.actions['command']
     assert len(mock_api.calls) == 1
     func_name, command = mock_api.calls[0]
@@ -172,6 +174,7 @@ def test_condition(center, mock_api):
 
     assert 'send' in center.actions.actions['command']
     center.bus.notify(api.CommandEvent(data={'test': 1}))
+    center.run_all()
     assert len(mock_api.calls) == 1
     func_name, command = mock_api.calls[0]
     assert func_name == 'send'
@@ -225,11 +228,13 @@ def test_nested_condition(center, mock_api):
 
     # This should not add a call to the api.
     center.bus.notify(api.CommandEvent(data={'test': 0}))
+    center.run_all()
 
     assert not mock_api.calls
 
     # This should add a call to the api.
     center.bus.notify(api.CommandEvent(data={'test': 1}))
+    center.run_all()
 
     assert len(mock_api.calls) == 1
     func_name, command = mock_api.calls[-1]
@@ -238,6 +243,7 @@ def test_nested_condition(center, mock_api):
 
     # This should add a call to the api.
     center.bus.notify(api.CommandEvent(data={'test': 2}))
+    center.run_all()
 
     assert len(mock_api.calls) == 2
     func_name, command = mock_api.calls[-1]
@@ -246,6 +252,7 @@ def test_nested_condition(center, mock_api):
 
     # This should not add a call to the api.
     center.bus.notify(api.CommandEvent(data={'test': 3}))
+    center.run_all()
 
     assert len(mock_api.calls) == 2
 
@@ -299,6 +306,7 @@ def test_sample_access(center, mock_api):
     center.bus.notify(api.leica.LeicaImageEvent(data={
         'path': 'image--L0000--S00--U00--V00--J15--E04--O01'
                 '--X01--Y01--T0000--Z00--C00.ome.tif'}))
+    center.run_all()
     field = center.sample.get_field('00', 0, 0, 1, 1)
     assert field.img_ok
 
@@ -330,6 +338,7 @@ def test_delay_action(center, mock_api):
     with patch('camacq.automations.Timer') as mock_timer_class:
         mock_timer_class.return_value = mock_timer
         center.bus.notify(event)
+        center.run_all()
     assert len(mock_api.calls) == 1
     assert mock_api.calls[-1] == ('start_imaging', )
     assert mock_timer_class.call_count == 1
