@@ -153,35 +153,3 @@ def write_csv(path, csv_map, header):
             index_dict = {header[0]: index}
             index_dict.update(cells)
             writer.writerow(index_dict)
-
-
-class FeatureParent(object):
-    """Represent a parent of features of a package.
-
-    Attributes
-    ----------
-    children : dict
-        Return dict of children of the parent.
-    """
-
-    # pylint: disable=too-few-public-methods
-
-    def __init__(self):
-        """Set up the feature parent."""
-        self.children = {}
-
-    def add_child(self, child_name, child):
-        """Add a child to the parent feature registry.
-
-        A child is the instance that provides a feature, eg a
-        microscope API.
-
-        Parameters
-        ----------
-        child_name : str
-            Name of the child. The name will be the key in the registry
-            dict.
-        child : child instance
-            The instance of the child that should be stored.
-        """
-        self.children[child_name] = child

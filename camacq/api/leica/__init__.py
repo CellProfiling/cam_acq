@@ -9,7 +9,7 @@ from leicacam.cam import CAM, bytes_as_dict, tuples_as_bytes
 from leicaexperiment import attribute, attribute_as_str
 
 from camacq.api import (CONF_API, Api, CommandEvent, ImageEvent,
-                        StartCommandEvent, StopCommandEvent)
+                        StartCommandEvent, StopCommandEvent, register_api)
 from camacq.api.leica.helper import find_image_path, get_field, get_imgs
 from camacq.const import (CAMACQ_STOP_EVENT, CONF_HOST, CONF_PORT, IMAGING_DIR,
                           JOB_ID)
@@ -22,7 +22,7 @@ SCAN_FINISHED = 'scanfinished'
 SCAN_STARTED = 'scanstart'
 
 
-def setup_package(center, config, add_child=None):
+def setup_package(center, config):
     """Set up Leica api package.
 
     Parameters
@@ -31,8 +31,6 @@ def setup_package(center, config, add_child=None):
         The Center instance.
     config : dict
         The config dict.
-    add_child : callable
-        A function that registers the child with the parent package.
     """
     conf = config[CONF_API][CONF_LEICA]
     host = conf.get(CONF_HOST, 'localhost')
@@ -45,7 +43,7 @@ def setup_package(center, config, add_child=None):
         return
     cam.delay = 0.2
     api = LeicaApi(center, cam)
-    add_child(__name__, api)
+    register_api(center, __name__, api)
     # Start thread that calls receive on the socket to the microscope
     api.start()
 

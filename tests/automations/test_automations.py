@@ -42,12 +42,12 @@ def mock_api(center):
     """Set up a mock api."""
     _mock_api = MockApi()
 
-    def setup_mock_api_package(center, config, add_child=None):
-        """Set up a mock api package."""
-        add_child('test_api', _mock_api)
+    def register_mock_api(center, config):
+        """Register a mock api package."""
+        api.register_api(center, 'test_api', _mock_api)
 
     with patch('camacq.api.leica.setup_package') as leica_setup:
-        leica_setup.side_effect = setup_mock_api_package
+        leica_setup.side_effect = register_mock_api
         api.setup_package(center, {'api': {'leica': None}})
         yield _mock_api
 
