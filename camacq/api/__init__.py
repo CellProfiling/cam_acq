@@ -50,31 +50,6 @@ ACTION_TO_METHOD = {
 }
 
 
-def send(center, commands, api_name=None):
-    """Send each command in commands.
-
-    Parameters
-    ----------
-    center : Center instance
-        The Center instance.
-    commands : list
-        List of commands to send.
-    api_name : str
-        Name of API.
-
-    Example
-    -------
-    ::
-
-        >>> send(center, [[('cmd', 'deletelist')], [('cmd', 'startscan')]])
-
-        >>> send(center, ['/cmd:deletelist', '/cmd:startscan'])
-    """
-    for cmd in commands:
-        center.actions.call(
-            'command', ACTION_SEND, api_name=api_name, command=cmd)
-
-
 def register_api(center, api_name, api):
     """Register api."""
     if DATA_API not in center.data:
