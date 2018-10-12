@@ -67,6 +67,7 @@ def setup_package(center, config):
     config : dict
         The config dict.
     """
+    center.data[DATA_API] = {}
     setup_all_modules(center, config, __name__)
 
     def handle_action(**kwargs):
