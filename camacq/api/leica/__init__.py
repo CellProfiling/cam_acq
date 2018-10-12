@@ -128,6 +128,7 @@ class LeicaApi(Api, threading.Thread):
     def stop_imaging(self):
         """Send a command to the microscope to stop the imaging."""
         self.center.add_job(self.client.stop_scan, callback=self.receive)
+        _LOGGER.debug('Waiting for incomming message for 12 seconds')
         self.center.add_job(
             partial(self.client.wait_for, cmd='inf', value=SCAN_FINISHED,
                     timeout=0.2),
