@@ -113,4 +113,4 @@ class EventBus(object):
                     event_class.__name__ == 'newobject'):
                 continue
             for handler in registry.get(event_class.event_type, []):
-                handler(event)
+                self._center.add_job(handler, event)

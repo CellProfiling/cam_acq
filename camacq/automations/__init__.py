@@ -188,7 +188,7 @@ class ActionSequence(object):
                     CAMACQ_STOP_EVENT, cancel_pending_actions)
 
             else:
-                action(variables)
+                self._center.add_job(action, variables)
 
     def delay(self, seconds, variables):
         """Delay action sequence.

@@ -27,12 +27,12 @@ def api(center, client):
     center.config = config
     mock_api = LeicaApi(center, client)
 
-    def setup_mock_api_package(center, config, add_child=None):
-        """Set up a mock api package."""
-        add_child('test_api', mock_api)
+    def register_mock_api(center, config):
+        """Register a mock api package."""
+        base_api.register_api(center, 'test_api', mock_api)
 
     with patch('camacq.api.leica.setup_package') as leica_setup:
-        leica_setup.side_effect = setup_mock_api_package
+        leica_setup.side_effect = register_mock_api
         base_api.setup_package(center, {'api': {'leica': {}}})
         yield mock_api
 
@@ -87,6 +87,7 @@ def test_send(api):
     assert len(mock_handler.mock_calls) == 0
 
     api.receive([OrderedDict(start_event_tuples)])
+    api.center.run_all()
 
     assert len(mock_handler.mock_calls) == 1
     _, args, _ = mock_handler.mock_calls[0]
@@ -112,6 +113,7 @@ def test_start_imaging(api):
     assert len(mock_handler.mock_calls) == 0
 
     api.receive([OrderedDict(start_event_tuples)])
+    api.center.run_all()
 
     assert len(mock_handler.mock_calls) == 1
     _, args, _ = mock_handler.mock_calls[0]
@@ -136,6 +138,7 @@ def test_stop_imaging(api):
     assert len(api.client.stop_scan.mock_calls) == 1
 
     api.receive([OrderedDict(stop_event_tuples)])
+    api.center.run_all()
 
     assert len(mock_handler.mock_calls) == 1
     _, args, _ = mock_handler.mock_calls[0]
@@ -167,6 +170,7 @@ def test_receive(api, get_imgs):
     api.center.bus.register('image_event', mock_handler)
 
     api.receive([OrderedDict(cmd_tuples)])
+    api.center.run_all()
 
     assert len(get_imgs.mock_calls) == 1
     _, args, kwargs = get_imgs.mock_calls[0]

@@ -24,13 +24,10 @@ def mock_gain_setup():
 def test_setup_modules_package(center, mock_leica_setup):
     """Test setup_all_modules."""
     config = {'api': {'leica': {}}}
-    parent = helper.FeatureParent()
-    helper.setup_all_modules(
-        center, config, 'camacq.api', add_child=parent.add_child)
+    helper.setup_all_modules(center, config, 'camacq.api')
     assert len(mock_leica_setup.mock_calls) == 1
-    _, args, kwargs = mock_leica_setup.mock_calls[0]
+    _, args, _ = mock_leica_setup.mock_calls[0]
     assert args == (center, config)
-    assert kwargs == dict(add_child=parent.add_child)
 
 
 def test_setup_modules_module(center, mock_gain_setup):

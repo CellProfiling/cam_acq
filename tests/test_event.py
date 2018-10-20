@@ -21,10 +21,12 @@ def test_event_bus(center):
     assert not center.data
 
     bus.notify(event)
+    center.run_all()
 
     assert center.data.get('test') == 2
 
     remove()
     bus.notify(event)
+    center.run_all()
 
     assert center.data.get('test') == 2

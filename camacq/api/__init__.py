@@ -7,7 +7,7 @@ import voluptuous as vol
 from camacq.const import (COMMAND_EVENT, IMAGE_EVENT, START_COMMAND_EVENT,
                           STOP_COMMAND_EVENT)
 from camacq.event import Event
-from camacq.helper import BASE_ACTION_SCHEMA, FeatureParent, setup_all_modules
+from camacq.helper import BASE_ACTION_SCHEMA, setup_all_modules
 
 
 def validate_commands(value):
@@ -27,6 +27,7 @@ ACTION_SEND_MANY = 'send_many'
 ACTION_START_IMAGING = 'start_imaging'
 ACTION_STOP_IMAGING = 'stop_imaging'
 CONF_API = 'api'
+DATA_API = 'api'
 
 SEND_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
     'command': vol.Coerce(str),
@@ -49,29 +50,11 @@ ACTION_TO_METHOD = {
 }
 
 
-def send(center, commands, api_name=None):
-    """Send each command in commands.
-
-    Parameters
-    ----------
-    center : Center instance
-        The Center instance.
-    commands : list
-        List of commands to send.
-    api_name : str
-        Name of API.
-
-    Example
-    -------
-    ::
-
-        >>> send(center, [[('cmd', 'deletelist')], [('cmd', 'startscan')]])
-
-        >>> send(center, ['/cmd:deletelist', '/cmd:startscan'])
-    """
-    for cmd in commands:
-        center.actions.call(
-            'command', ACTION_SEND, child_name=api_name, command=cmd)
+def register_api(center, api_name, api):
+    """Register api."""
+    if DATA_API not in center.data:
+        center.data[DATA_API] = {}
+    center.data[DATA_API][api_name] = api
 
 
 def setup_package(center, config):
@@ -84,27 +67,27 @@ def setup_package(center, config):
     config : dict
         The config dict.
     """
-    parent = FeatureParent()
-    setup_all_modules(center, config, __name__, add_child=parent.add_child)
+    center.data[DATA_API] = {}
+    setup_all_modules(center, config, __name__)
 
     def handle_action(**kwargs):
-        """Handle action call to send a command to an api of a child.
+        """Handle action call to send a command to an api.
 
         Parameters
         ----------
         **kwargs
             Arbitrary keyword arguments. These will be passed to the
-            child method when an action is called.
+            api method when an action is called.
         """
         action_id = kwargs.pop('action_id')
         method = ACTION_TO_METHOD[action_id]['method']
-        child_name = kwargs.pop('child_name', None)
-        if child_name:
-            children = [parent.children.get(child_name)]
+        api_name = kwargs.pop('api_name', None)
+        if api_name:
+            apis = [center.data[DATA_API][api_name]]
         else:
-            children = list(parent.children.values())
-        for child in children:
-            getattr(child, method)(**kwargs)
+            apis = list(center.data[DATA_API].values())
+        for api in apis:
+            getattr(api, method)(**kwargs)
 
     for action_id, options in ACTION_TO_METHOD.items():
         schema = options['schema']
