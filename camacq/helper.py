@@ -3,7 +3,6 @@ import csv
 import logging
 import os
 import pkgutil
-from builtins import object  # pylint: disable=redefined-builtin
 from collections import defaultdict
 from importlib import import_module
 
