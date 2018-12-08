@@ -7,9 +7,9 @@ from collections import deque
 from functools import partial
 
 import voluptuous as vol
-from jinja2 import Template
 
 from camacq.helper import BASE_ACTION_SCHEMA, get_module
+from camacq.helper.template import make_template, render_template
 from camacq.const import CAMACQ_STOP_EVENT, CONF_DATA, CONF_ID
 
 _LOGGER = logging.getLogger(__name__)
@@ -63,29 +63,6 @@ async def setup_package(center, config):
         'automations', ACTION_TOGGLE, handle_action, TOGGLE_ACTION_SCHEMA)
 
 
-def make_template(data):
-    """Make templated data."""
-    if isinstance(data, dict):
-        return {key: make_template(val) for key, val in data.items()}
-
-    if isinstance(data, list):
-        return [make_template(val) for val in data]
-
-    return Template(str(data))
-
-
-def render_template(data, variables):
-    """Render templated data."""
-    if isinstance(data, dict):
-        return {
-            key: render_template(val, variables) for key, val in data.items()}
-
-    if isinstance(data, list):
-        return [render_template(val, variables) for val in data]
-
-    return data.render(variables)
-
-
 class TemplateAction(object):
     """Representation of an action with template data."""
 
@@ -97,7 +74,7 @@ class TemplateAction(object):
         self.action_id = action_conf.get(CONF_ID)
         self.action_type = action_conf.get(CONF_TYPE)
         action_data = action_conf.get(CONF_DATA, {})
-        self.template = make_template(action_data)
+        self.template = make_template(center, action_data)
 
     async def __call__(self, variables=None):
         """Execute action with optional template variables."""
@@ -239,19 +216,19 @@ def make_checker(condition_type, checks):
     return check_condition
 
 
-def _process_condition(config_block):
+def _process_condition(center, config_block):
     """Return a function that parses the condition."""
     if CONF_TYPE in config_block:
         checks = []
         condition_type = config_block[CONF_TYPE]
         conditions = config_block[CONF_CONDITIONS]
         for cond in conditions:
-            check = _process_condition(cond)
+            check = _process_condition(center, cond)
             checks.append(check)
         return make_checker(condition_type, checks)
     elif CONF_CONDITION in config_block:
         data = config_block[CONF_CONDITION]
-        template = make_template(data)
+        template = make_template(center, data)
         return partial(render_template, template)
     raise ValueError('Invalid condition: {}'.format(config_block))
 
@@ -294,7 +271,7 @@ def _process_automations(center, config):
         _LOGGER.info('Setting up automation %s', name)
         action_sequence = _get_actions(center, block.get(CONF_ACTION, []))
         if CONF_CONDITION in block:
-            cond_func = _process_condition(block[CONF_CONDITION])
+            cond_func = _process_condition(center, block[CONF_CONDITION])
         else:
             def cond_func(variables):
                 """Return always True when condition is not used."""
