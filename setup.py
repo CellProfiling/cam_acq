@@ -7,10 +7,11 @@ from camacq.const import __version__
 
 GITHUB_URL = 'https://github.com/CellProfiling/cam_acq'
 REQUIRES = [
+    'async_timeout',
     'colorlog',
     'future',
     'jinja2',
-    'leicacam',
+    'leicacam[asyncio]',
     'leicaexperiment',
     'matplotlib',
     'numpy',
@@ -72,7 +73,6 @@ CLASSIFIERS = [
 
     # Specify the Python versions you support here. In particular, ensure
     # that you indicate whether you support Python 2, Python 3 or both.
-    'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
 ]

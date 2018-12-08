@@ -1,7 +1,9 @@
 """Test automations."""
-import pytest
-from mock import MagicMock, patch
+import logging
 
+import pytest
+
+import asynctest
 import ruamel.yaml
 
 from camacq import sample as sample_mod
@@ -9,6 +11,8 @@ from camacq import api, automations
 from camacq.control import CamAcqStartEvent
 
 # pylint: disable=redefined-outer-name
+# All test coroutines will be treated as marked.
+pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
 
 
 class MockApi(api.Api):
@@ -18,7 +22,7 @@ class MockApi(api.Api):
         """Set up instance."""
         self.calls = []
 
-    def send(self, command):
+    async def send(self, command):
         """Send a command to the microscope API.
 
         Parameters
@@ -28,11 +32,11 @@ class MockApi(api.Api):
         """
         self.calls.append((self.send.__name__, command))
 
-    def start_imaging(self):
+    async def start_imaging(self):
         """Send a command to the microscope to start the imaging."""
         self.calls.append((self.start_imaging.__name__, ))
 
-    def stop_imaging(self):
+    async def stop_imaging(self):
         """Send a command to the microscope to stop the imaging."""
         self.calls.append((self.stop_imaging.__name__, ))
 
@@ -46,13 +50,14 @@ def mock_api(center):
         """Register a mock api package."""
         api.register_api(center, 'test_api', _mock_api)
 
-    with patch('camacq.api.leica.setup_package') as leica_setup:
+    with asynctest.patch('camacq.api.leica.setup_package') as leica_setup:
         leica_setup.side_effect = register_mock_api
-        api.setup_package(center, {'api': {'leica': None}})
+        center.loop.run_until_complete(
+            api.setup_package(center, {'api': {'leica': None}}))
         yield _mock_api
 
 
-def test_setup_automation(center):
+async def test_setup_automation(center):
     """Test setup of an automation."""
     config = {
         'automations': [{
@@ -74,9 +79,9 @@ def test_setup_automation(center):
         'sample': {},
     }
 
-    sample_mod.setup_module(center, config)
+    await sample_mod.setup_module(center, config)
     assert 'set_well' in center.actions.actions['sample']
-    automations.setup_package(center, config)
+    await automations.setup_package(center, config)
     assert 'toggle' in center.actions.actions['automations']
     automation = center.data['camacq.automations']['test_automation']
     assert automation.enabled
@@ -84,17 +89,17 @@ def test_setup_automation(center):
     assert not center.sample.plates
     event = CamAcqStartEvent({'test_data': 'start'})
     center.bus.notify(event)
-    center.run_all()
+    await center.wait_for()
     plate = center.sample.get_plate('test')
     assert plate
     assert plate.wells[1, 1].x == 1
     assert plate.wells[1, 1].y == 1
 
-    center.actions.call('automations', 'toggle', name='test_automation')
+    await center.actions.call('automations', 'toggle', name='test_automation')
     assert not automation.enabled
 
 
-def test_channel_event(center, mock_api):
+async def test_channel_event(center, mock_api):
     """Test a trigger for channel event."""
 
     config = {
@@ -122,13 +127,13 @@ def test_channel_event(center, mock_api):
         'sample': {},
     }
 
-    sample_mod.setup_module(center, config)
-    automations.setup_package(center, config)
+    await sample_mod.setup_module(center, config)
+    await automations.setup_package(center, config)
     automation = center.data['camacq.automations']['set_channel_gain']
     assert automation.enabled
 
     center.sample.set_channel('test', 1, 1, 'yellow', gain=333)
-    center.run_all()
+    await center.wait_for()
     assert 'send' in center.actions.actions['command']
     assert len(mock_api.calls) == 1
     func_name, command = mock_api.calls[0]
@@ -137,7 +142,7 @@ def test_channel_event(center, mock_api):
         '/cmd:adjust /tar:pmt /num:2 /exp:gain_job /prop:gain /value:333')
 
 
-def test_condition(center, mock_api):
+async def test_condition(center, mock_api):
     """Test a condition for command event."""
 
     config = {
@@ -167,23 +172,22 @@ def test_condition(center, mock_api):
         'sample': {},
     }
 
-    sample_mod.setup_module(center, config)
-    automations.setup_package(center, config)
+    await sample_mod.setup_module(center, config)
+    await automations.setup_package(center, config)
     automation = center.data['camacq.automations']['add_exp_job']
     assert automation.enabled
 
     assert 'send' in center.actions.actions['command']
     center.bus.notify(api.CommandEvent(data={'test': 1}))
-    center.run_all()
+    await center.wait_for()
     assert len(mock_api.calls) == 1
     func_name, command = mock_api.calls[0]
     assert func_name == 'send'
     assert command == 'success'
 
 
-def test_nested_condition(center, mock_api):
+async def test_nested_condition(center, mock_api):
     """Test a nested condition for command event."""
-
     config = {
         'automations': [{
             'name': 'add_exp_job',
@@ -220,21 +224,21 @@ def test_nested_condition(center, mock_api):
         'sample': {},
     }
 
-    sample_mod.setup_module(center, config)
-    automations.setup_package(center, config)
+    await sample_mod.setup_module(center, config)
+    await automations.setup_package(center, config)
     automation = center.data['camacq.automations']['add_exp_job']
     assert automation.enabled
     assert 'send' in center.actions.actions['command']
 
     # This should not add a call to the api.
     center.bus.notify(api.CommandEvent(data={'test': 0}))
-    center.run_all()
+    await center.wait_for()
 
     assert not mock_api.calls
 
     # This should add a call to the api.
     center.bus.notify(api.CommandEvent(data={'test': 1}))
-    center.run_all()
+    await center.wait_for()
 
     assert len(mock_api.calls) == 1
     func_name, command = mock_api.calls[-1]
@@ -243,7 +247,7 @@ def test_nested_condition(center, mock_api):
 
     # This should add a call to the api.
     center.bus.notify(api.CommandEvent(data={'test': 2}))
-    center.run_all()
+    await center.wait_for()
 
     assert len(mock_api.calls) == 2
     func_name, command = mock_api.calls[-1]
@@ -252,14 +256,13 @@ def test_nested_condition(center, mock_api):
 
     # This should not add a call to the api.
     center.bus.notify(api.CommandEvent(data={'test': 3}))
-    center.run_all()
+    await center.wait_for()
 
     assert len(mock_api.calls) == 2
 
 
-def test_sample_access(center, mock_api):
+async def test_sample_access(center, mock_api):
     """Test accessing sample in template."""
-
     config = {
         'automations': [{
             'name': 'set_img_ok',
@@ -294,8 +297,8 @@ def test_sample_access(center, mock_api):
         'sample': {},
     }
 
-    sample_mod.setup_module(center, config)
-    automations.setup_package(center, config)
+    await sample_mod.setup_module(center, config)
+    await automations.setup_package(center, config)
     automation = center.data['camacq.automations']['set_img_ok']
     assert automation.enabled
     center.sample.set_plate('00')
@@ -306,12 +309,12 @@ def test_sample_access(center, mock_api):
     center.bus.notify(api.leica.LeicaImageEvent(data={
         'path': 'image--L0000--S00--U00--V00--J15--E04--O01'
                 '--X01--Y01--T0000--Z00--C00.ome.tif'}))
-    center.run_all()
+    await center.wait_for()
     field = center.sample.get_field('00', 0, 0, 1, 1)
     assert field.img_ok
 
 
-def test_delay_action(center, mock_api):
+async def test_delay_action(center, mock_api, caplog):
     """Test delay action."""
     config = """
         automations:
@@ -325,29 +328,19 @@ def test_delay_action(center, mock_api):
               - type: automations
                 id: delay
                 data:
-                  seconds: 5.0
+                  seconds: 0.0
               - type: command
                 id: stop_imaging
     """
-    config = ruamel.yaml.safe_load(config)
-    automations.setup_package(center, config)
+    caplog.set_level(logging.INFO)
+    config = await center.add_executor_job(ruamel.yaml.safe_load, config)
+    await automations.setup_package(center, config)
     automation = center.data['camacq.automations']['test_delay']
     assert automation.enabled
     event = CamAcqStartEvent({'test_data': 'start'})
-    mock_timer = MagicMock()
-    with patch('camacq.automations.Timer') as mock_timer_class:
-        mock_timer_class.return_value = mock_timer
-        center.bus.notify(event)
-        center.run_all()
-    assert len(mock_api.calls) == 1
-    assert mock_api.calls[-1] == ('start_imaging', )
-    assert mock_timer_class.call_count == 1
-    args, kwargs = mock_timer_class.call_args
-    seconds, action_sequence = args
-    variables = kwargs['args']
-    assert seconds == 5.0
-    assert mock_timer.start.call_count == 1
-    action_sequence(variables)
-    center.run_all()
+    center.bus.notify(event)
+    await center.wait_for()
     assert len(mock_api.calls) == 2
+    assert mock_api.calls[-2] == ('start_imaging', )
     assert mock_api.calls[-1] == ('stop_imaging', )
+    assert 'Action delay for 0.0 seconds' in caplog.text

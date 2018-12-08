@@ -1,39 +1,40 @@
 """Test Leica API."""
+import asyncio
 import os
-import socket
 from collections import OrderedDict
+from unittest.mock import MagicMock, patch
 
+import asynctest
 import pytest
-from mock import MagicMock, patch
+from leicacam.async_cam import AsyncCAM
 
 from camacq import api as base_api
-from camacq.api.leica import (LeicaApi, LeicaImageEvent,
+from camacq.api.leica import (LEICA_COMMAND_EVENT, LEICA_START_COMMAND_EVENT,
+                              LEICA_STOP_COMMAND_EVENT, LeicaApi,
+                              LeicaCommandEvent, LeicaImageEvent,
                               LeicaStartCommandEvent, LeicaStopCommandEvent,
                               setup_package)
 
 # pylint: disable=redefined-outer-name, len-as-condition
+# All test coroutines will be treated as marked.
+pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
 
 
 @pytest.fixture
-def client():
-    """Return a mock client."""
-    return MagicMock()
-
-
-@pytest.fixture
-def api(center, client):
+def api(center):
     """Return a leica api instance."""
     config = {'api': {'leica': {}}}
-    center.config = config
-    mock_api = LeicaApi(center, client)
+    client = asynctest.Mock(AsyncCAM(loop=center.loop))
+    mock_api = LeicaApi(center, config, client)
 
     def register_mock_api(center, config):
         """Register a mock api package."""
         base_api.register_api(center, 'test_api', mock_api)
 
-    with patch('camacq.api.leica.setup_package') as leica_setup:
+    with asynctest.patch('camacq.api.leica.setup_package') as leica_setup:
         leica_setup.side_effect = register_mock_api
-        base_api.setup_package(center, {'api': {'leica': {}}})
+        center.loop.run_until_complete(
+            base_api.setup_package(center, {'api': {'leica': {}}}))
         yield mock_api
 
 
@@ -48,107 +49,84 @@ def get_imgs():
 def mock_socket():
     """Mock a socket."""
     with patch('socket.socket') as mock_socket_class:
-        mock_socket = MagicMock()
-        mock_socket_class.return_value = mock_socket
-        yield mock_socket
+        _mock_socket = MagicMock()
+        mock_socket_class.return_value = _mock_socket
+        yield _mock_socket
 
 
-def test_setup_bad_socket(center, caplog, mock_socket):
+async def test_setup_bad_socket(center, caplog, api):
     """Test setup leica api package with bad host or port."""
-    mock_socket.connect.side_effect = socket.error()
+    api.client.connect.side_effect = OSError()
     config = {'api': {'leica': {}}}
-    setup_package(center, config)
+    await setup_package(center, config)
     assert 'Connecting to server localhost failed:' in caplog.text
 
 
-def test_send(api):
+async def test_send(api):
     """Test the leica api send method."""
-    cmd_string = '/cmd:startscan'
-    cmd_tuples = [('cmd', 'startscan')]
-    event_string = '/inf:scanstart'
-    start_event_tuples = [('inf', 'scanstart')]
-    api.client.wait_for.return_value = OrderedDict(cmd_tuples)
-    mock_handler = MagicMock()
-    api.center.bus.register('start_command_event', mock_handler)
+    cmd_string = '/cmd:deletelist'
+    cmd_tuples = [('cmd', 'deletelist')]
+    api.client.receive.return_value = OrderedDict(cmd_tuples)
+    api.client.send.return_value = api.receive([OrderedDict(cmd_tuples)])
+    mock_handler = asynctest.CoroutineMock()
+    api.center.bus.register(LEICA_COMMAND_EVENT, mock_handler)
 
-    api.send(cmd_string)
-    api.center.run_job()
+    await api.send(cmd_string)
 
     assert len(api.client.send.mock_calls) == 1
     _, args, _ = api.client.send.mock_calls[0]
     assert args[0] == cmd_tuples
-
-    api.center.run_job()
-
-    assert len(api.client.wait_for.mock_calls) == 1
-    _, _, kwargs = api.client.wait_for.mock_calls[0]
-    cmd, value = cmd_tuples[0]
-    assert kwargs == dict(cmd=cmd, value=value, timeout=0.2)
-    assert len(mock_handler.mock_calls) == 0
-
-    api.receive([OrderedDict(start_event_tuples)])
-    api.center.run_all()
-
     assert len(mock_handler.mock_calls) == 1
     _, args, _ = mock_handler.mock_calls[0]
-    # The first argument is Center, the seconds is the event.
+    # The first argument is Center, the second is the event.
     event = args[1]
-    assert isinstance(event, LeicaStartCommandEvent)
-    assert event.command == event_string
+    assert isinstance(event, LeicaCommandEvent)
+    assert event.command == cmd_string
 
 
-def test_start_imaging(api):
+async def test_start_imaging(api):
     """Test the leica api start imaging method."""
     event_string = '/inf:scanstart'
     cmd_tuples = [('cmd', 'startscan')]
     start_event_tuples = [('inf', 'scanstart')]
-    api.client.start_scan.return_value = OrderedDict(cmd_tuples)
-    mock_handler = MagicMock()
-    api.center.bus.register('start_command_event', mock_handler)
+    api.client.send.return_value = api.receive([
+        OrderedDict(cmd_tuples), OrderedDict(start_event_tuples)])
+    mock_handler = asynctest.CoroutineMock()
+    api.center.bus.register(LEICA_START_COMMAND_EVENT, mock_handler)
 
-    api.start_imaging()
-    api.center.run_job()
+    await api.start_imaging()
 
-    assert len(api.client.start_scan.mock_calls) == 1
-    assert len(mock_handler.mock_calls) == 0
-
-    api.receive([OrderedDict(start_event_tuples)])
-    api.center.run_all()
-
+    assert len(api.client.send.mock_calls) == 1
     assert len(mock_handler.mock_calls) == 1
     _, args, _ = mock_handler.mock_calls[0]
-    # The first argument is Center, the seconds is the event.
+    # The first argument is Center, the second is the event.
     event = args[1]
     assert isinstance(event, LeicaStartCommandEvent)
     assert event.command == event_string
 
 
-def test_stop_imaging(api):
+async def test_stop_imaging(api):
     """Test the leica api stop imaging method."""
     event_string = '/inf:scanfinished'
     stop_event_tuples = [('inf', 'scanfinished')]
     cmd_tuples = [('cmd', 'stopscan')]
-    api.client.stop_scan.return_value = OrderedDict(cmd_tuples)
-    mock_handler = MagicMock()
-    api.center.bus.register('stop_command_event', mock_handler)
+    api.client.send.return_value = api.receive([
+        OrderedDict(cmd_tuples), OrderedDict(stop_event_tuples)])
+    mock_handler = asynctest.CoroutineMock()
+    api.center.bus.register(LEICA_STOP_COMMAND_EVENT, mock_handler)
 
-    api.stop_imaging()
-    api.center.run_job()
+    await api.stop_imaging()
 
-    assert len(api.client.stop_scan.mock_calls) == 1
-
-    api.receive([OrderedDict(stop_event_tuples)])
-    api.center.run_all()
-
+    assert len(api.client.send.mock_calls) == 1
     assert len(mock_handler.mock_calls) == 1
     _, args, _ = mock_handler.mock_calls[0]
-    # The first argument is Center, the seconds is the event.
+    # The first argument is Center, the second is the event.
     event = args[1]
     assert isinstance(event, LeicaStopCommandEvent)
     assert event.command == event_string
 
 
-def test_receive(api, get_imgs):
+async def test_receive(api, get_imgs):
     """Test the leica api receive method."""
     image_path = (
         'subfolder/exp1/CAM1/slide--S00/chamber--U00--V00/'
@@ -163,14 +141,13 @@ def test_receive(api, get_imgs):
         'subfolder/exp1/CAM1/slide--S00/chamber--U00--V00/field--X01--Y01')
     root_path = '/root'
     config = {'api': {'leica': {'imaging_dir': root_path}}}
-    api.center.config = config
+    api.config = config
     image_path = os.path.join(root_path, image_path)
     get_imgs.return_value = [image_path]
-    mock_handler = MagicMock()
+    mock_handler = asynctest.CoroutineMock()
     api.center.bus.register('image_event', mock_handler)
 
-    api.receive([OrderedDict(cmd_tuples)])
-    api.center.run_all()
+    await api.receive([OrderedDict(cmd_tuples)])
 
     assert len(get_imgs.mock_calls) == 1
     _, args, kwargs = get_imgs.mock_calls[0]
@@ -184,3 +161,28 @@ def test_receive(api, get_imgs):
     assert event.path == image_path
     assert event.job_id == 4
     assert event.plate_name == '00'
+
+
+async def test_start_listen(center, caplog):
+    """Test start listen for incoming messages."""
+    config = {'api': {'leica': {}}}
+    cmd_tuples = [('cmd', 'deletelist')]
+
+    async def mock_receive():
+        """Mock receive."""
+        await asyncio.sleep(0)
+        return [OrderedDict(cmd_tuples)]
+
+    mock_handler = asynctest.CoroutineMock()
+    center.bus.register(LEICA_COMMAND_EVENT, mock_handler)
+
+    with patch('camacq.api.leica.AsyncCAM') as mock_cam_class:
+        mock_cam_class.return_value = mock_cam = asynctest.Mock(
+            AsyncCAM(loop=center.loop))
+        mock_cam.receive.return_value = mock_receive()
+        await setup_package(center, config)
+        await center.wait_for()
+        await center.end(0)
+
+    mock_cam.receive.assert_awaited()
+    assert len(mock_handler.mock_calls) == 1

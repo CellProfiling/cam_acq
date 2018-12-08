@@ -5,7 +5,6 @@
 import logging
 from collections import deque
 from functools import partial
-from threading import Timer
 
 import voluptuous as vol
 from jinja2 import Template
@@ -33,7 +32,7 @@ TOGGLE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
 })
 
 
-def setup_package(center, config):
+async def setup_package(center, config):
     """Set up automations package.
 
     Parameters
@@ -45,7 +44,7 @@ def setup_package(center, config):
     """
     _process_automations(center, config)
 
-    def handle_action(**kwargs):
+    async def handle_action(**kwargs):
         """Enable or disable an automation."""
         name = kwargs.get(NAME)
         if name is None:
@@ -100,10 +99,11 @@ class TemplateAction(object):
         action_data = action_conf.get(CONF_DATA, {})
         self.template = make_template(action_data)
 
-    def __call__(self, variables=None):
+    async def __call__(self, variables=None):
         """Execute action with optional template variables."""
         rendered = self.render(variables)
-        self._center.actions.call(self.action_type, self.action_id, **rendered)
+        await self._center.actions.call(
+            self.action_type, self.action_id, **rendered)
 
     def render(self, variables):
         """Render the template with the kwargs for the action."""
@@ -150,11 +150,11 @@ class Automation(object):
         self._detach_triggers = None
         self.enabled = False
 
-    def trigger(self, variables):
+    async def trigger(self, variables):
         """Run actions of this automation."""
         variables['sample'] = self._center.sample
         if self._cond_func(variables):
-            self._action_sequence(variables)
+            await self._action_sequence(variables)
 
 
 class ActionSequence(object):
@@ -168,7 +168,7 @@ class ActionSequence(object):
         self.actions = list(actions)  # copy to list to make sure it's a list
         self.waiting = None
 
-    def __call__(self, variables):
+    async def __call__(self, variables):
         """Start action sequence."""
         self.waiting = deque(self.actions)
         while self.waiting:
@@ -178,17 +178,10 @@ class ActionSequence(object):
                     action.action_id == ACTION_DELAY):
                 rendered_kwargs = action.render(variables)
                 seconds = rendered_kwargs.get('seconds')
-                cancel = self.delay(float(seconds), variables)
-
-                def cancel_pending_actions(center, event):
-                    """Cancel pending actions."""
-                    cancel()
-
-                self._center.bus.register(
-                    CAMACQ_STOP_EVENT, cancel_pending_actions)
+                self.delay(float(seconds), variables)
 
             else:
-                self._center.add_job(action, variables)
+                await action(variables)
 
     def delay(self, seconds, variables):
         """Delay action sequence.
@@ -199,18 +192,19 @@ class ActionSequence(object):
             A time interval to delay the pending action sequence.
         variables : dict
             A dict of template variables.
-
-        Returns
-        -------
-        callable
-            Return a funtion to cancel the delay and the pending action.
         """
         sequence = ActionSequence(self._center, self.waiting)
+        callback = partial(self._center.create_task, sequence(variables))
         self.waiting.clear()
-        timer = Timer(seconds, sequence, args=(variables, ))
-        _LOGGER.debug('Action delay for %s seconds', seconds)
-        timer.start()
-        return timer.cancel
+        _LOGGER.info('Action delay for %s seconds', seconds)
+        callback = self._center.loop.call_later(seconds, callback)
+
+        async def cancel_pending_actions(center, event):
+            """Cancel pending actions."""
+            callback.cancel()
+
+        self._center.bus.register(
+            CAMACQ_STOP_EVENT, cancel_pending_actions)
 
 
 def _get_actions(center, config_block):

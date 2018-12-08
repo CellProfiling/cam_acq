@@ -2,7 +2,6 @@
 import logging
 from builtins import object  # pylint: disable=redefined-builtin
 from collections import defaultdict
-from functools import partial
 
 from camacq.const import BASE_EVENT
 
@@ -71,7 +70,7 @@ class EventBus(object):
         event_type : str
             A string representing the type of event.
         handler : callable
-            A function that should accept two parameters, center and
+            A coroutine function that should accept two parameters, center and
             event. The first parameter is the Center instance, the
             second parameter is the Event instance that has fired.
 
@@ -82,7 +81,6 @@ class EventBus(object):
         """
         _LOGGER.debug(
             'Registering event handler for event type %s', event_type)
-        handler = partial(handler, self._center)
         self._register_handler(event_type, handler)
 
         def remove():
@@ -113,4 +111,4 @@ class EventBus(object):
                     event_class.__name__ == 'newobject'):
                 continue
             for handler in registry.get(event_class.event_type, []):
-                self._center.add_job(handler, event)
+                self._center.create_task(handler(self._center, event))

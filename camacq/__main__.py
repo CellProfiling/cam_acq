@@ -9,6 +9,7 @@ import sys
 import camacq.bootstrap as bootstrap
 import camacq.config as config_util
 from camacq.const import CONFIG_DIR, LOG_LEVEL
+from camacq.util import asyncio_run
 
 
 def check_dir_arg(path):
@@ -87,6 +88,16 @@ def ensure_config_file(config_dir):
     return config_path
 
 
+async def setup_and_start(config_file, cmd_args):
+    """Set up app and start."""
+    try:
+        center = await bootstrap.setup_file(config_file, cmd_args)
+    except Exception as exc:  # pylint: disable=broad-except
+        print('An error occurred during setup:', exc)
+        return 1
+    return await center.start()
+
+
 def main():
     """Main function."""
     # Parse command line arguments
@@ -94,12 +105,8 @@ def main():
     config_dir = os.path.join(os.getcwd(), cmd_args[CONFIG_DIR])
     ensure_config_path(config_dir)
     config_file = ensure_config_file(config_dir)
-    center = bootstrap.setup_file(config_file, cmd_args)
-    if not center:
-        print('Could not load config file at:', config_file)
-        sys.exit(1)
-    center.start()
-    return center.exit_code
+    exit_code = asyncio_run(setup_and_start(config_file, cmd_args))
+    return exit_code
 
 
 if __name__ == '__main__':

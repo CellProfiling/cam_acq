@@ -1,9 +1,9 @@
 """Helper functions for camacq."""
-import csv
+import asyncio
 import logging
-import os
 import pkgutil
-from collections import defaultdict
+import signal
+import sys
 from importlib import import_module
 
 import voluptuous as vol
@@ -58,7 +58,7 @@ def _deep_conf_access(config, key_list):
     return val
 
 
-def setup_all_modules(center, config, package_path, **kwargs):
+async def setup_all_modules(center, config, package_path, **kwargs):
     """Helper to set up all modules of a package.
 
     Parameters
@@ -74,6 +74,7 @@ def setup_all_modules(center, config, package_path, **kwargs):
         setup_package and setup_module functions.
     """
     imported_pkg = import_module(package_path)
+    tasks = []
     # yields, non recursively, modules under package_path
     for _, name, is_pkg in pkgutil.iter_modules(
             imported_pkg.__path__, prefix='{}.'.format(imported_pkg.__name__)):
@@ -90,65 +91,40 @@ def setup_all_modules(center, config, package_path, **kwargs):
         if module_name in pkg_config and module_name not in CORE_MODULES:
             if is_pkg and hasattr(module, 'setup_package'):
                 _LOGGER.info('Setting up %s package', module.__name__)
-                module.setup_package(center, config, **kwargs)
+                tasks.append(center.create_task(
+                    module.setup_package(center, config, **kwargs)))
             elif hasattr(module, 'setup_module'):
                 _LOGGER.info('Setting up %s module', module.__name__)
-                module.setup_module(center, config, **kwargs)
+                tasks.append(center.create_task(
+                    module.setup_module(center, config, **kwargs)))
+
+    if tasks:
+        await asyncio.wait(tasks)
 
 
-def read_csv(path, index=None):
-    """Read a csv file and return a dict of dicts.
+def register_signals(center):
+    """Register signal handlers."""
+    if sys.platform != 'win32':
 
-    Parameters
-    ----------
-    path : str
-        Path to csv file.
-    index : str
-        Index can be any of the column headers of the csv file.
-        The column under index will be used as keys in the returned
-        dict. If no index is specified, a list of dicts will be
-        returned instead.
+        def handle_signal(exit_code):
+            """Handle a signal."""
+            center.loop.remove_signal_handler(signal.SIGTERM)
+            center.loop.remove_signal_handler(signal.SIGINT)
+            center.create_task(center.end(exit_code))
 
-    Returns
-    -------
-    defaultdict(dict)
-        Return a dict of dicts with the contents of the csv file,
-        indicated by the index parameter. Each item in the dict will
-        represent a row, with index as key, of the csv file.
-    """
-    csv_map = defaultdict(dict)
-    if index is None:
-        csv_map = []
-    path = os.path.normpath(path)
-    with open(path) as file_handle:
-        reader = csv.DictReader(file_handle)
-        for row in reader:
-            if index is None:
-                csv_map.append(row)
-            else:
-                key = row.pop(index)
-                csv_map[key].update(row)
-    return csv_map
+        center.loop.add_signal_handler(signal.SIGTERM, handle_signal, 0)
+        center.loop.add_signal_handler(signal.SIGINT, handle_signal, 0)
 
+    else:
 
-def write_csv(path, csv_map, header):
-    """Write a dict of dicts as a csv file.
+        prev_sig_term = None
+        prev_sig_int = None
 
-    Parameters
-    ----------
-    path : str
-        Path to csv file.
-    csv_map : dict(dict)
-        The dict of dicts that should be written as a csv file.
-    header : list
-        List of strings with the wanted column headers of the csv file.
-        The items in header should correspond to the index key of the
-        primary dict and all the keys of the secondary dict.
-    """
-    with open(path, 'w') as file_handle:
-        writer = csv.DictWriter(file_handle, fieldnames=header)
-        writer.writeheader()
-        for index, cells in csv_map.items():
-            index_dict = {header[0]: index}
-            index_dict.update(cells)
-            writer.writerow(index_dict)
+        def handle_signal(signum, frame):
+            """Handle a signal."""
+            signal.signal(signal.SIGTERM, prev_sig_term)
+            signal.signal(signal.SIGINT, prev_sig_int)
+            center.create_task(center.end(signum))
+
+        prev_sig_term = signal.signal(signal.SIGTERM, handle_signal)
+        prev_sig_int = signal.signal(signal.SIGINT, handle_signal)

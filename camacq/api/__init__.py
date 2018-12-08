@@ -1,4 +1,5 @@
 """Microscope API specific modules."""
+import asyncio
 import json
 from builtins import object  # pylint: disable=redefined-builtin
 
@@ -57,7 +58,7 @@ def register_api(center, api_name, api):
     center.data[DATA_API][api_name] = api
 
 
-def setup_package(center, config):
+async def setup_package(center, config):
     """Set up the microscope API package.
 
     Parameters
@@ -68,9 +69,9 @@ def setup_package(center, config):
         The config dict.
     """
     center.data[DATA_API] = {}
-    setup_all_modules(center, config, __name__)
+    await setup_all_modules(center, config, __name__)
 
-    def handle_action(**kwargs):
+    async def handle_action(**kwargs):
         """Handle action call to send a command to an api.
 
         Parameters
@@ -86,8 +87,11 @@ def setup_package(center, config):
             apis = [center.data[DATA_API][api_name]]
         else:
             apis = list(center.data[DATA_API].values())
+        tasks = []
         for api in apis:
-            getattr(api, method)(**kwargs)
+            tasks.append(center.create_task(getattr(api, method)(**kwargs)))
+        if tasks:
+            await asyncio.wait(tasks)
 
     for action_id, options in ACTION_TO_METHOD.items():
         schema = options['schema']
@@ -97,7 +101,7 @@ def setup_package(center, config):
 class Api(object):
     """Represent the microscope API."""
 
-    def send(self, command):
+    async def send(self, command):
         """Send a command to the microscope API.
 
         Parameters
@@ -107,7 +111,7 @@ class Api(object):
         """
         raise NotImplementedError()
 
-    def send_many(self, commands):
+    async def send_many(self, commands):
         """Send multiple commands to the microscope API.
 
         Parameters
@@ -116,13 +120,14 @@ class Api(object):
             A list of commands to send.
         """
         for cmd in commands:
-            self.send(cmd)
+            # It's important that each task is done before we start the next.
+            await self.send(cmd)
 
-    def start_imaging(self):
+    async def start_imaging(self):
         """Send a command to the microscope to start the imaging."""
         raise NotImplementedError()
 
-    def stop_imaging(self):
+    async def stop_imaging(self):
         """Send a command to the microscope to stop the imaging."""
         raise NotImplementedError()
 
