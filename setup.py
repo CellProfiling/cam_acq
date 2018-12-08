@@ -11,7 +11,7 @@ REQUIRES = [
     'colorlog',
     'future',
     'jinja2',
-    'leicacam',
+    'leicacam[asyncio]',
     'leicaexperiment',
     'matplotlib',
     'numpy',
