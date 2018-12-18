@@ -12,9 +12,10 @@ import voluptuous as vol
 from scipy.optimize import curve_fit
 
 from camacq.const import CHANNEL_ID, CONF_PLUGINS, WELL, WELL_NAME
+from camacq.event import Event
+from camacq.sample import Channel
 from camacq.helper import BASE_ACTION_SCHEMA
 from camacq.image import make_proj
-from camacq.sample import Channel
 from camacq.util import write_csv
 
 matplotlib.use("AGG")  # use noninteractive default backend
@@ -30,6 +31,7 @@ CONF_CHANNELS = "channels"
 CONF_GAIN = "gain"
 CONF_INIT_GAIN = "init_gain"
 COUNT_CLOSE_TO_ZERO = 2
+GAIN_CALC_EVENT = 'gain_calc_event'
 SAVED_GAINS = "saved_gains"
 
 ACTION_CALC_GAIN = "calc_gain"
@@ -111,21 +113,12 @@ async def calc_gain(
         await center.add_executor_job(
             save_gain, save_dir, center.data[SAVED_GAINS], [WELL] + list(gains)
         )
-    well = center.sample.get_well(plate_name, well_x, well_y)
-    if well:
-        # Set existing channel gain to generate event.
-        for channel_name, channel in well.channels.items():
-            center.sample.set_channel(
-                plate_name,
-                well_x,
-                well_y,
-                channel_name,
-                overwrite=True,
-                gain=channel.gain,
-            )
-    # Set new channel gain, only if not existing.
+
     for channel_name, gain in gains.items():
-        center.sample.set_channel(plate_name, well_x, well_y, channel_name, gain=gain)
+        event = GainCalcEvent({
+            'plate_name': plate_name, 'well_x': well_x, 'well_y': well_y,
+            'channel_name': channel_name, 'gain': gain})
+        center.bus.notify(event)
 
 
 def _power_func(inp, alpha, beta):
@@ -257,3 +250,40 @@ def save_gain(save_dir, saved_gains, header):
     """Save a csv file with gain values per image channel."""
     path = os.path.normpath(os.path.join(save_dir, "output_gains.csv"))
     write_csv(path, saved_gains, header)
+
+
+class GainCalcEvent(Event):
+    """An event produced by a sample channel change event."""
+
+    __slots__ = ()
+
+    event_type = GAIN_CALC_EVENT
+
+    @property
+    def channel_name(self):
+        """:str: Return the channel name of the event."""
+        return self.data.get('channel_name')
+
+    @property
+    def gain(self):
+        """:str: Return the channel gain of the event."""
+        return self.data.get('gain')
+
+    @property
+    def plate_name(self):
+        """:str: Return the name of the plate."""
+        return self.data.get('plate_name')
+
+    @property
+    def well_x(self):
+        """:int: Return the well x coordinate of the event."""
+        return self.data.get('well_x')
+
+    @property
+    def well_y(self):
+        """:int: Return the well y coordinate of the event."""
+        return self.data.get('well_y')
+
+    def __repr__(self):
+        """Return the representation."""
+        return "<{}: {}>".format(type(self).__name__, self.gain)
