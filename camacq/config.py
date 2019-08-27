@@ -4,8 +4,7 @@ from __future__ import print_function
 import logging
 import os
 
-import ruamel.yaml as ruyml  # pylint: disable=import-error
-import yaml
+from ruamel.yaml import YAML, YAMLError
 from pkg_resources import resource_filename
 
 _LOGGER = logging.getLogger(__name__)
@@ -60,19 +59,20 @@ def load_config_file(path):
     dict
         Return a dict with the configuration contents.
     """
+    yaml = YAML()
     try:
         with open(path, 'r') as yml_file:
-            cfg = ruyml.load(yml_file, ruyml.RoundTripLoader)
-        if not isinstance(cfg, dict):
-            _LOGGER.error(
-                'The configuration file %s does not contain a dictionary',
-                os.path.basename(path))
-            raise TypeError()  # or let it pass?
-        return cfg
-    except yaml.YAMLError as exception:
+            cfg = yaml.load(yml_file)
+    except YAMLError as exception:
         _LOGGER.error(
             'Error reading YAML configuration file %s', path)
-        raise yaml.YAMLError(exception)  # or let it pass?
+        raise YAMLError(exception)  # or let it pass?
+    if not isinstance(cfg, dict):
+        _LOGGER.error(
+            'The configuration file %s does not contain a dictionary',
+            os.path.basename(path))
+        raise TypeError()  # or let it pass?
+    return cfg
 
 
 def create_default_config(config_dir):
@@ -93,17 +93,17 @@ def create_default_config(config_dir):
     default_config_template = resource_filename(
         __name__, DEFAULT_CONFIG_TEMPLATE)
     data = load_config_file(default_config_template)
+    yaml = YAML()
 
     try:
         with open(config_path, 'w') as config_file:
-            ruyml.dump(data, config_file, Dumper=ruyml.RoundTripDumper)
-
-        return config_path
-
-    except IOError:
+            yaml.dump(data, config_file)
+    except OSError:
         _LOGGER.error(
             'Unable to create default configuration file %s', config_path)
         return None
+
+    return config_path
 
 
 def ensure_config_exists(config_dir):

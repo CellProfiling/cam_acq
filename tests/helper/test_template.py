@@ -1,6 +1,6 @@
 """Test the template helper."""
 import pytest
-import ruamel.yaml
+from ruamel.yaml import YAML
 
 from camacq.helper.template import make_template, render_template
 
@@ -18,7 +18,7 @@ async def test_next_well(center):
             {{next_well_y('test_plate')}}
     """
 
-    data = await center.add_executor_job(ruamel.yaml.safe_load, data)
+    data = await center.add_executor_job(YAML(typ='safe').load, data)
     center.sample.set_plate('test_plate')
     tmpl = make_template(center, data)
     render = render_template(tmpl, {})
@@ -43,7 +43,7 @@ async def test_next_well_no_plate(center):
             {{next_well_y('test_plate')}}
     """
 
-    data = await center.add_executor_job(ruamel.yaml.safe_load, data)
+    data = await center.add_executor_job(YAML(typ='safe').load, data)
     tmpl = make_template(center, data)
     render = render_template(tmpl, {})
     assert render['data']['next_well_x'] == 'None'
