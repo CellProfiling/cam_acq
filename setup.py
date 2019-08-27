@@ -1,9 +1,10 @@
 """Set up file for camacq package."""
 import io
+from pathlib import Path
 
 from setuptools import find_packages, setup
 
-from camacq.const import __version__
+VERSION = (Path('camacq') / 'VERSION').read_text().strip()
 
 GITHUB_URL = 'https://github.com/CellProfiling/cam_acq'
 REQUIRES = [
@@ -85,7 +86,7 @@ CONFIG = {
     'download_url': DOWNLOAD_URL,
     'license': 'GPLv3',
     'author_email': 'marhje52@kth.se',
-    'version': __version__,
+    'version': VERSION,
     'install_requires': REQUIRES,
     'packages': find_packages(exclude=['contrib', 'docs', 'tests*']),
     'include_package_data': True,
