@@ -4,7 +4,7 @@ import logging
 import pytest
 
 import asynctest
-import ruamel.yaml
+from ruamel.yaml import YAML
 
 from camacq import sample as sample_mod
 from camacq import api, automations
@@ -333,7 +333,7 @@ async def test_delay_action(center, mock_api, caplog):
                 id: stop_imaging
     """
     caplog.set_level(logging.INFO)
-    config = await center.add_executor_job(ruamel.yaml.safe_load, config)
+    config = await center.add_executor_job(YAML(typ='safe').load, config)
     await automations.setup_package(center, config)
     automation = center.data['camacq.automations']['test_delay']
     assert automation.enabled
