@@ -18,7 +18,6 @@ REQUIRES = [
     'numpy',
     'pandas',
     'Pillow',
-    'PyYAML',
     'ruamel.yaml',
     'scipy',
     'tifffile',
