@@ -4,7 +4,7 @@ future==0.17.1
 jinja2==2.10.1
 leicacam==0.3.0
 leicaexperiment==0.2.0
-matplotlib==3.1.1
+matplotlib==3.0.3
 numpy==1.17.1
 pandas==0.25.1
 Pillow==6.1.0
