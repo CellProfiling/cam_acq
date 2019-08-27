@@ -1,7 +1,6 @@
 """Microscope API specific modules."""
 import asyncio
 import json
-from builtins import object  # pylint: disable=redefined-builtin
 
 import voluptuous as vol
 
@@ -98,7 +97,7 @@ async def setup_package(center, config):
         center.actions.register('command', action_id, handle_action, schema)
 
 
-class Api(object):
+class Api:
     """Represent the microscope API."""
 
     async def send(self, command):

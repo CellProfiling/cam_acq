@@ -63,7 +63,7 @@ async def setup_package(center, config):
         'automations', ACTION_TOGGLE, handle_action, TOGGLE_ACTION_SCHEMA)
 
 
-class TemplateAction(object):
+class TemplateAction:
     """Representation of an action with template data."""
 
     # pylint: disable=too-few-public-methods
@@ -89,7 +89,7 @@ class TemplateAction(object):
         return rendered
 
 
-class Automation(object):
+class Automation:
     """Automation class."""
 
     # pylint: disable=too-many-arguments
@@ -134,7 +134,7 @@ class Automation(object):
             await self._action_sequence(variables)
 
 
-class ActionSequence(object):
+class ActionSequence:
     """Represent a sequence of actions."""
 
     # pylint: disable=too-few-public-methods
@@ -209,7 +209,7 @@ def make_checker(condition_type, checks):
         if condition_type.lower() == 'and':
             return all(
                 template_check(check(variables)) for check in checks)
-        elif condition_type.lower() == 'or':
+        if condition_type.lower() == 'or':
             return any(
                 template_check(check(variables)) for check in checks)
         return None
@@ -226,7 +226,7 @@ def _process_condition(center, config_block):
             check = _process_condition(center, cond)
             checks.append(check)
         return make_checker(condition_type, checks)
-    elif CONF_CONDITION in config_block:
+    if CONF_CONDITION in config_block:
         data = config_block[CONF_CONDITION]
         template = make_template(center, data)
         return partial(render_template, template)

@@ -110,7 +110,6 @@ async def test_register_non_coroutine(center, caplog):
 
     def test_action(**kwargs):
         """Test the action handler as non coroutine function."""
-        pass
 
     schema = vol.Schema({'one': int, 'two': int})
     center.actions.register(action_type, action_id, test_action, schema)

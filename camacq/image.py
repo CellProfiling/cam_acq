@@ -1,6 +1,5 @@
 """Handle images."""
 import logging
-from builtins import object  # pylint: disable=redefined-builtin
 from collections import defaultdict
 
 import numpy as np
@@ -98,7 +97,7 @@ def make_proj(images):
     return max_imgs
 
 
-class ImageData(object):
+class ImageData:
     """Represent the data of an image with path, data, metadata and histogram.
 
     Parameters

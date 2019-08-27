@@ -2,7 +2,6 @@
 import logging
 import socket
 from time import sleep
-from builtins import object  # pylint: disable=redefined-builtin
 
 from leicacam.cam import tuples_as_bytes
 
@@ -26,7 +25,7 @@ def image_event(data):
     return None
 
 
-class EchoServer(object):
+class EchoServer:
     """Test server."""
 
     def __init__(self, server_address):

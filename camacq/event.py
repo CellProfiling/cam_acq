@@ -1,6 +1,5 @@
 """Hold events."""
 import logging
-from builtins import object  # pylint: disable=redefined-builtin
 from collections import defaultdict
 
 from camacq.const import BASE_EVENT
@@ -9,7 +8,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 # pylint: disable=too-few-public-methods
-class Event(object):
+class Event:
     """A base event.
 
     Parameters
@@ -36,7 +35,7 @@ class Event(object):
         return "<{}: {}>".format(type(self).__name__, self.data)
 
 
-class EventBus(object):
+class EventBus:
     """Representation of an eventbus.
 
     Parameters
