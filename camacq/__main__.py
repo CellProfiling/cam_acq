@@ -17,9 +17,8 @@ def check_dir_arg(path):
     # remove if not needed
     if os.path.isdir(path):
         return path
-    else:
-        raise argparse.ArgumentTypeError(
-            'String {} is not a path to a directory'.format(path))
+    raise argparse.ArgumentTypeError(
+        'String {} is not a path to a directory'.format(path))
 
 
 def check_log_level(loglevel):
@@ -31,8 +30,7 @@ def check_log_level(loglevel):
     if not isinstance(numeric_level, int):
         raise argparse.ArgumentTypeError(
             'String {} is not a valid log level'.format(loglevel))
-    else:
-        return numeric_level
+    return numeric_level
 
 
 def parse_command_line():
@@ -99,7 +97,7 @@ async def setup_and_start(config_file, cmd_args):
 
 
 def main():
-    """Main function."""
+    """Run main function."""
     # Parse command line arguments
     cmd_args = parse_command_line()
     config_dir = os.path.join(os.getcwd(), cmd_args[CONFIG_DIR])

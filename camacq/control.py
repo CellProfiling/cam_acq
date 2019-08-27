@@ -1,19 +1,15 @@
 """Control the microscope."""
 import asyncio
 import logging
-from builtins import object  # pylint: disable=redefined-builtin
 from collections import namedtuple
 
 from async_timeout import timeout as async_timeout
 import voluptuous as vol
-from future import standard_library
 
 from camacq.event import Event, EventBus
 from camacq.const import ACTION_TIMEOUT, CAMACQ_START_EVENT, CAMACQ_STOP_EVENT
 from camacq.helper import register_signals
 from camacq.sample import Sample
-
-standard_library.install_aliases()
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,7 +17,7 @@ _LOGGER = logging.getLogger(__name__)
 Action = namedtuple('Action', 'func, schema')
 
 
-class ActionsRegistry(object):
+class ActionsRegistry:
     """Manage all registered actions."""
 
     def __init__(self, center):
@@ -96,7 +92,7 @@ class ActionsRegistry(object):
             _LOGGER.error('Action timed out after %s seconds', ACTION_TIMEOUT)
 
 
-class Center(object):
+class Center:
     """Represent a control center for the microscope.
 
     Parameters

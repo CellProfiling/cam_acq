@@ -2,7 +2,6 @@
 # pylint: disable=too-many-lines
 import asyncio
 import logging
-from builtins import object  # pylint: disable=redefined-builtin
 from collections import OrderedDict
 
 import voluptuous as vol
@@ -107,7 +106,7 @@ async def setup_module(center, config):
         await asyncio.wait(tasks)
 
 
-class Image(object):
+class Image:
     """An image with path and position info.
 
     Parameters
@@ -174,7 +173,7 @@ class Image(object):
         return '<Image(path={0!r})>'.format(self.path)
 
 
-class Channel(object):
+class Channel:
     """A channel with attributes.
 
     Parameters
@@ -222,7 +221,7 @@ class Channel(object):
                 'Invalid gain value %s, falling back to %s', value, self._gain)
 
 
-class Field(object):
+class Field:
     """A field within a well.
 
     Parameters
@@ -271,7 +270,7 @@ class Field(object):
         return FIELD_NAME.format(int(self.x), int(self.y))
 
 
-class Well(object):
+class Well:
     """A well within a plate with fields and channels.
 
     Parameters
@@ -398,7 +397,7 @@ class Well(object):
         return field
 
 
-class Plate(object):
+class Plate:
     """A container for wells.
 
     Parameters
@@ -457,7 +456,7 @@ class Plate(object):
         return well
 
 
-class Sample(object):
+class Sample:
     """Representation of the state of the sample.
 
     The sample can have plates, wells, fields, channels and images.
