@@ -1,17 +1,17 @@
-async_timeout == 3.0.1
-colorlog >= 3.1.2
-future >= 0.16.0
-jinja2 >= 2.10
-leicacam == 0.3.0
-leicaexperiment >= 0.2.0
-matplotlib >= 2.2.2
-numpy >= 1.14.2
-pandas >= 0.22.0
-Pillow >= 5.0.0
-pip >= 9.0.3
-PyYAML >= 3.12
-ruamel.yaml < 0.15
-setuptools >= 39.0.1
-scipy >= 1.0.1
-tifffile == 0.14.0
-voluptuous == 0.11.1
+async_timeout==3.0.1
+colorlog==3.1.2
+future==0.16.0
+jinja2==2.10
+leicacam==0.3.0
+leicaexperiment==0.2.0
+matplotlib==2.2.2
+numpy==1.14.2
+pandas==0.22.0
+Pillow==5.0.0
+pip==9.0.3
+PyYAML==3.12
+ruamel.yaml<0.15
+setuptools==39.0.1
+scipy==1.0.1
+tifffile==0.14.0
+voluptuous==0.11.1
