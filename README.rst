@@ -301,6 +301,20 @@ Plugins have their own configuration section. This is an example of the gain plu
 
 Each plugin should at minimum register an action in the action registry to expose the plugin task as an action available in automations.
 
+Development
+-----------
+Install the packages needed for development.
+
+::
+
+  pip install -r requirements_dev.txt
+
+Use the Makefile to run common development tasks.
+
+::
+
+  make
+
 Credits
 -------
 A lot of the inspiration for the architecture of camacq comes from another open-source Python automation app: `Home Assistant`_. This is also the source for the automations interface in camacq.
