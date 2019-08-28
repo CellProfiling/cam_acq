@@ -10,7 +10,6 @@ GITHUB_URL = 'https://github.com/CellProfiling/cam_acq'
 REQUIRES = [
     'async_timeout',
     'colorlog',
-    'future',
     'jinja2',
     'leicacam[asyncio]',
     'leicaexperiment',

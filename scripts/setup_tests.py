@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 """Make sure fixtures are in place before running tests."""
-from __future__ import print_function
-
 import fnmatch
 import gzip
 import os

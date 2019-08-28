@@ -9,7 +9,6 @@ from itertools import groupby
 import matplotlib
 import pandas as pd
 import voluptuous as vol
-from future import standard_library
 from scipy.optimize import curve_fit
 
 from camacq.const import CHANNEL_ID, CONF_PLUGINS, WELL, WELL_NAME
@@ -21,8 +20,6 @@ from camacq.util import write_csv
 matplotlib.use('AGG')  # use noninteractive default backend
 # pylint: disable=wrong-import-order, wrong-import-position, ungrouped-imports
 import matplotlib.pyplot as plt  # noqa: E402
-
-standard_library.install_aliases()
 
 _LOGGER = logging.getLogger(__name__)
 BOX = 'box'
