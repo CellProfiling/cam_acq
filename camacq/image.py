@@ -4,6 +4,7 @@ from collections import defaultdict
 
 import numpy as np
 import tifffile
+import xmltodict
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,33 +24,12 @@ def read_image(path):
     """
     try:
         return tifffile.imread(path, key=0)
-    except IOError as exception:
+    except OSError as exception:
         _LOGGER.error('Bad path to image: %s', exception)
-        return np.array([])
+        return None
 
 
-def get_metadata(path):
-    """Read a tif image and return the meta data of the description.
-
-    Parameters
-    ----------
-    path : str
-        The path to the image.
-
-    Returns
-    -------
-    str
-        Return the meta data of the description.
-    """
-    try:
-        with tifffile.TiffFile(path) as tif:
-            return tif.ome_metadata
-    except IOError as exception:
-        _LOGGER.error('Bad path to image: %s', exception)
-        return {}
-
-
-def save_image(path, data, metadata=None):
+def save_image(path, data, description=None):
     """Save a tif image with image data and meta data.
 
     Parameters
@@ -58,10 +38,10 @@ def save_image(path, data, metadata=None):
         The path to the image.
     data : numpy array
         A numpy array with the image data.
-    metadata : dict
-        The meta data of the image as a JSON dict.
+    description : str
+        The description string of the image.
     """
-    tifffile.imsave(path, data, metadata=metadata)
+    tifffile.imsave(path, data, description=description)
 
 
 def make_proj(images):
@@ -121,7 +101,9 @@ class ImageData:
         """Set up instance."""
         self.path = path
         self._data = data
-        self._metadata = metadata or {}
+        self.description = None
+        if metadata is not None:
+            self.metadata = metadata
 
     @property
     def data(self):
@@ -144,14 +126,14 @@ class ImageData:
 
         :setter: Set the meta data of the image.
         """
-        if not self._metadata:
+        if self.description is None:
             self._load_image_data()
-        return self._metadata
+        return xmltodict.parse(self.description)
 
     @metadata.setter
     def metadata(self, value):
         """Set the metadata of the image."""
-        self._metadata = value
+        self.description = xmltodict.unparse(value)
 
     @property
     def histogram(self):
@@ -169,11 +151,9 @@ class ImageData:
         try:
             with tifffile.TiffFile(self.path) as tif:
                 self._data = tif.asarray(key=0)
-                self._metadata = tif.ome_metadata
-        except (IOError, ValueError) as exception:
+                self.description = tif.pages[0].description
+        except (OSError, ValueError) as exception:
             _LOGGER.error('Bad path %s to image: %s', self.path, exception)
-            self._data = np.array([])
-            self._metadata = {}
 
     def save(self, path=None, data=None, metadata=None):
         """Save image with image data and optional meta data.
@@ -190,10 +170,11 @@ class ImageData:
         if path is None:
             path = self.path
         if data is None:
-            data = self._data
+            data = self.data
         if metadata is None:
-            metadata = self._metadata
-        save_image(path, data, metadata)
+            metadata = self.metadata
+        description = xmltodict.unparse(metadata)
+        save_image(path, data, description)
 
     def __repr__(self):
         """Return the representation."""

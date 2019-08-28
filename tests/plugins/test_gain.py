@@ -1,5 +1,4 @@
 """Test gain calculation."""
-import os
 import pprint
 
 import pytest
@@ -10,22 +9,15 @@ from camacq.const import JOB_ID
 from camacq.image import make_proj
 from camacq.plugins.gain import calc_gain
 
+from tests.common import GAIN_DATA_DIR, WELL_NAME, WELL_PATH
+
 # All test coroutines will be treated as marked.
 pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
-
-GAIN_DATA_DIR = os.path.normpath(os.path.join(
-    os.path.dirname(__file__), '../fixtures/gain_data'))
-WELL_NAME = 'U01--V00'
-FULL_WELL_NAME = 'chamber--{}'.format(WELL_NAME)
-WELL_PATH = os.path.join(GAIN_DATA_DIR, 'slide', FULL_WELL_NAME)
-IMAGE_PATH = os.path.join(
-    WELL_PATH,
-    'field--X00--Y00/image--U01--V00--E02--X00--Y00--Z00--C00.ome.tif')
 
 
 async def test_gain(center):
     """Run gain calculation test."""
-    images = get_imgs(WELL_PATH, search=JOB_ID.format(2))
+    images = get_imgs(WELL_PATH.as_posix(), search=JOB_ID.format(2))
     config = {'plugins': {'gain': {'save_dir': GAIN_DATA_DIR, 'channels': [
         {'channel': 'green',
          'init_gain': [450, 495, 540, 585, 630, 675, 720, 765, 810, 855, 900]},
@@ -40,7 +32,7 @@ async def test_gain(center):
     events = [LeicaImageEvent({'path': path}) for path in images]
     images = {event.channel_id: event.path for event in events}
     projs = await center.add_executor_job(make_proj, images)
-    save_path = os.path.join(WELL_PATH, WELL_NAME)
+    save_path = WELL_PATH / WELL_NAME
     await calc_gain(
         center, config, 'slide', 1, 0, projs, plot=False, save_path=save_path)
     well = center.sample.get_well('slide', 1, 0)

@@ -19,7 +19,8 @@ REQUIRES = [
     'ruamel.yaml>=0.15',
     'scipy',
     'tifffile',
-    'voluptuous'
+    'voluptuous',
+    'xmltodict'
 ]
 
 
