@@ -84,6 +84,7 @@ CONFIG = {
     'license': 'GPLv3',
     'author_email': 'marhje52@kth.se',
     'version': VERSION,
+    'python_requires': '>=3.6',
     'install_requires': REQUIRES,
     'packages': find_packages(exclude=['contrib', 'docs', 'tests*']),
     'include_package_data': True,
