@@ -59,7 +59,7 @@ def _deep_conf_access(config, key_list):
 
 
 async def setup_all_modules(center, config, package_path, **kwargs):
-    """Helper to set up all modules of a package.
+    """Set up all modules of a package.
 
     Parameters
     ----------
