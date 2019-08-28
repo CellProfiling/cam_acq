@@ -16,7 +16,7 @@ REQUIRES = [
     'matplotlib',
     'numpy',
     'pandas',
-    'ruamel.yaml',
+    'ruamel.yaml>=0.15',
     'scipy',
     'tifffile',
     'voluptuous'
