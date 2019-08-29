@@ -34,9 +34,11 @@ extensions = [
     'sphinx.ext.napoleon',
 ]
 
-autodoc_default_flags = [
-    'members', 'inherited-members', 'show-inheritance',
-]
+autodoc_default_options = {
+    'members': None,
+    'inherited-members': True,
+    'show-inheritance': True
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
