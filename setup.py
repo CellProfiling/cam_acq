@@ -1,10 +1,10 @@
 """Set up file for camacq package."""
-import io
 from pathlib import Path
 
 from setuptools import find_packages, setup
 
-VERSION = (Path('camacq') / 'VERSION').read_text().strip()
+PROJECT_DIR = Path(__file__).parent.resolve()
+VERSION = (PROJECT_DIR / 'camacq' / 'VERSION').read_text().strip()
 
 GITHUB_URL = 'https://github.com/CellProfiling/cam_acq'
 REQUIRES = [
@@ -23,39 +23,10 @@ REQUIRES = [
     'xmltodict'
 ]
 
+README_FILE = PROJECT_DIR / 'README.md'
+LONG_DESCR = README_FILE.read_text(encoding='utf-8')
 
-def read(*filenames, **kwargs):
-    """Return joined content of *filenames.
-
-    Parameters
-    ----------
-    *filenames : list
-        Variable length filename list.
-    **kwargs
-        Arbitrary keyword arguments.
-    encoding : codec, optional
-        Encoding to use to open filename. See
-        https://docs.python.org/2/library/codecs.html#standard-encodings
-        for supported encodings.
-    sep : str, optional
-        Separator to use between joined content of filenames.
-
-    Returns
-    -------
-    string
-        Return joined content of *filenames.
-    """
-    encoding = kwargs.get('encoding', 'utf-8')
-    sep = kwargs.get('sep', '\n')
-    buf = []
-    for filename in filenames:
-        with io.open(filename, encoding=encoding) as file_open:
-            buf.append(file_open.read())
-    return sep.join(buf)
-
-
-LONG_DESCR = read('README.rst')
-DOWNLOAD_URL = '{}/archive/master.zip'.format(GITHUB_URL)
+DOWNLOAD_URL = f'{GITHUB_URL}/archive/master.zip'
 CLASSIFIERS = [
     # How mature is this project? Common values are
     #   3 - Alpha
@@ -79,6 +50,7 @@ CLASSIFIERS = [
 CONFIG = {
     'description': 'Control microscope through client server program.',
     'long_description': LONG_DESCR,
+    'long_description_content_type': 'text/markdown',
     'author': 'Martin Hjelmare',
     'url': GITHUB_URL,
     'download_url': DOWNLOAD_URL,
