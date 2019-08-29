@@ -12,6 +12,7 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
+import datetime
 import os
 import sys
 
@@ -42,10 +43,11 @@ source_suffix = '.rst'
 # The master toctree document.
 master_doc = 'index'
 
+now = datetime.datetime.now()
 # General information about the project.
-project = u'camacq'
-copyright = u'2015, Martin Hjelmare'
-author = u'Martin Hjelmare'
+project = 'camacq'
+copyright = f'{now.year}, Martin Hjelmare'
+author = 'Martin Hjelmare'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
