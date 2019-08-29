@@ -60,23 +60,23 @@ def mock_api(center):
 
 async def test_setup_automation(center):
     """Test setup of an automation."""
-    config = {
-        "automations": [
-            {
-                "name": "test_automation",
-                "trigger": [{"type": "event", "id": "camacq_start_event"}],
-                "action": [
-                    {
-                        "type": "sample",
-                        "id": "set_well",
-                        "data": {"plate_name": "test", "well_x": 1, "well_y": 1},
-                    }
-                ],
-            }
-        ],
-        "sample": {},
-    }
+    config = """
+        automations:
+        - name: test_automation
+          trigger:
+          - type: event
+            id: camacq_start_event
+          action:
+          - type: sample
+            id: set_well
+            data:
+              plate_name: test
+              well_x: 1
+              well_y: 1
+        sample: {}
+    """
 
+    config = await center.add_executor_job(YAML(typ="safe").load, config)
     await sample_mod.setup_module(center, config)
     assert "set_well" in center.actions.actions["sample"]
     await automations.setup_package(center, config)
@@ -100,33 +100,27 @@ async def test_setup_automation(center):
 async def test_channel_event(center, mock_api):
     """Test a trigger for channel event."""
 
-    config = {
-        "automations": [
-            {
-                "name": "set_channel_gain",
-                "trigger": [{"type": "event", "id": "channel_event"}],
-                "action": [
-                    {
-                        "type": "command",
-                        "id": "send",
-                        "data": {
-                            "command": (
-                                "/cmd:adjust /tar:pmt "
-                                "/num:{% if trigger.event.channel_name == 'green' %}1"
-                                "{% elif trigger.event.channel_name == 'blue' %}1 "
-                                "{% elif trigger.event.channel_name == 'yellow' %}2"
-                                "{% elif trigger.event.channel_name == 'red' %}2"
-                                "{% endif %} /exp:gain_job /prop:gain "
-                                "/value:{{ trigger.event.channel.gain }}"
-                            )
-                        },
-                    }
-                ],
-            }
-        ],
-        "sample": {},
-    }
+    config = """
+        automations:
+        - name: set_channel_gain
+          trigger:
+          - type: event
+            id: channel_event
+          action:
+          - type: command
+            id: send
+            data:
+              command: >
+                /cmd:adjust /tar:pmt /num:{% if trigger.event.channel_name == 'green'
+                %}1{% elif trigger.event.channel_name == 'blue'
+                %}1 {% elif trigger.event.channel_name == 'yellow'
+                %}2{% elif trigger.event.channel_name == 'red'
+                %}2{% endif %}
+                /exp:gain_job /prop:gain /value:{{ trigger.event.channel.gain }}
+        sample: {}
+    """
 
+    config = await center.add_executor_job(YAML(typ="safe").load, config)
     await sample_mod.setup_module(center, config)
     await automations.setup_package(center, config)
     automation = center.data["camacq.automations"]["set_channel_gain"]
@@ -145,31 +139,26 @@ async def test_channel_event(center, mock_api):
 
 async def test_condition(center, mock_api):
     """Test a condition for command event."""
+    config = """
+        automations:
+        - name: add_exp_job
+          trigger:
+          - type: event
+            id: command_event
+          condition:
+            type: AND
+            conditions:
+            - condition: "{% if 'test' in trigger.event.data %}true{% endif %}"
+            - condition: '{% if trigger.event.data.test == 1 %}true{% endif %}'
+          action:
+          - type: command
+            id: send
+            data:
+              command: success
+        sample: {}
+    """
 
-    config = {
-        "automations": [
-            {
-                "name": "add_exp_job",
-                "trigger": [{"type": "event", "id": "command_event"}],
-                "condition": {
-                    "type": "AND",
-                    "conditions": [
-                        {
-                            "condition": "{% if 'test' in trigger.event.data %}true{% endif %}"
-                        },
-                        {
-                            "condition": "{% if trigger.event.data.test == 1 %}true{% endif %}"
-                        },
-                    ],
-                },
-                "action": [
-                    {"type": "command", "id": "send", "data": {"command": "success"}}
-                ],
-            }
-        ],
-        "sample": {},
-    }
-
+    config = await center.add_executor_job(YAML(typ="safe").load, config)
     await sample_mod.setup_module(center, config)
     await automations.setup_package(center, config)
     automation = center.data["camacq.automations"]["add_exp_job"]
@@ -186,40 +175,29 @@ async def test_condition(center, mock_api):
 
 async def test_nested_condition(center, mock_api):
     """Test a nested condition for command event."""
-    config = {
-        "automations": [
-            {
-                "name": "add_exp_job",
-                "trigger": [{"type": "event", "id": "command_event"}],
-                "condition": {
-                    "type": "AND",
-                    "conditions": [
-                        {
-                            "condition": "{% if 'test' in trigger.event.data %}true{% endif %}"
-                        },
-                        {
-                            "type": "OR",
-                            "conditions": [
-                                {
-                                    "condition": "{% if trigger.event.data.test == 1 %}true"
-                                    "{% endif %}"
-                                },
-                                {
-                                    "condition": "{% if trigger.event.data.test == 2 %}true"
-                                    "{% endif %}"
-                                },
-                            ],
-                        },
-                    ],
-                },
-                "action": [
-                    {"type": "command", "id": "send", "data": {"command": "success"}}
-                ],
-            }
-        ],
-        "sample": {},
-    }
+    config = """
+        automations:
+          - name: add_exp_job
+            trigger:
+              - type: event
+                id: command_event
+            condition:
+              type: AND
+              conditions:
+                - condition: "{% if 'test' in trigger.event.data %}true{% endif %}"
+                - type: OR
+                  conditions:
+                    - condition: '{% if trigger.event.data.test == 1 %}true{% endif %}'
+                    - condition: '{% if trigger.event.data.test == 2 %}true{% endif %}'
+            action:
+              - type: command
+                id: send
+                data:
+                  command: success
+        sample: {}
+    """
 
+    config = await center.add_executor_job(YAML(typ="safe").load, config)
     await sample_mod.setup_module(center, config)
     await automations.setup_package(center, config)
     automation = center.data["camacq.automations"]["add_exp_job"]
@@ -259,42 +237,35 @@ async def test_nested_condition(center, mock_api):
 
 async def test_sample_access(center, mock_api):
     """Test accessing sample in template."""
-    config = {
-        "automations": [
-            {
-                "name": "set_img_ok",
-                "trigger": [{"type": "event", "id": "image_event"}],
-                "condition": {
-                    "type": "AND",
-                    "conditions": [
-                        {
-                            "condition": "{% if not sample.plates[trigger.event.plate_name].wells["
-                            "(trigger.event.well_x, trigger.event.well_y)].fields["
-                            "(trigger.event.field_x, trigger.event.field_y)].img_ok "
-                            "%}true{% endif %}"
-                        }
-                    ],
-                },
-                "action": [
-                    {
-                        "type": "sample",
-                        "id": "set_field",
-                        "data": {
-                            "plate_name": "00",
-                            "well_x": "{{ trigger.event.well_x }}",
-                            "well_y": "{{ trigger.event.well_y }}",
-                            "field_x": "{{ trigger.event.field_x }}",
-                            "field_y": "{{ trigger.event.field_y }}",
-                            "img_ok": True,
-                            "overwrite": True,
-                        },
-                    }
-                ],
-            }
-        ],
-        "sample": {},
-    }
+    config = """
+        automations:
+          - name: set_img_ok
+            trigger:
+              - type: event
+                id: image_event
+            condition:
+              type: AND
+              conditions:
+                - condition: >
+                    {% if not sample.plates[trigger.event.plate_name].wells[
+                      (trigger.event.well_x, trigger.event.well_y)].fields[
+                      (trigger.event.field_x, trigger.event.field_y)].img_ok
+                    %}true{% endif %}
+            action:
+              - type: sample
+                id: set_field
+                data:
+                  plate_name: '00'
+                  well_x: '{{ trigger.event.well_x }}'
+                  well_y: '{{ trigger.event.well_y }}'
+                  field_x: '{{ trigger.event.field_x }}'
+                  field_y: '{{ trigger.event.field_y }}'
+                  img_ok: true
+                  overwrite: true
+        sample: {}
+    """
 
+    config = await center.add_executor_job(YAML(typ="safe").load, config)
     await sample_mod.setup_module(center, config)
     await automations.setup_package(center, config)
     automation = center.data["camacq.automations"]["set_img_ok"]
