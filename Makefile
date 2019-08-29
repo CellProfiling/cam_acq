@@ -2,15 +2,20 @@
 .PHONY: help clean clean-pyc lint test test-all coverage docs docs-api
 
 help:
+	@echo "check-format - check code format with black code formatter"
 	@echo "clean - run all clean operations"
 	@echo "clean-pyc - remove Python file artifacts"
 	@echo "coverage - check code coverage with pytest-cov plugin"
 	@echo "docs - generate Sphinx HTML documentation"
 	@echo "docs-api - generate camacq rst file for Sphinx HTML documentation"
 	@echo "docs-live - rebuild the documentation when a change is detected"
+	@echo "format - format code with black code formatter"
 	@echo "lint - check style with flake8, pylint and pydocstyle"
 	@echo "test - run tests quickly with the default Python"
 	@echo "test-all - run tests on every Python version with tox"
+
+check-format:
+	black --check ./
 
 clean: clean-pyc
 
@@ -32,6 +37,9 @@ docs-api:
 docs-live:
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs livehtml
+
+format:
+	black ./
 
 lint:
 	tox -e lint
