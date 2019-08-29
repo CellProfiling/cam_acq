@@ -13,9 +13,9 @@ from camacq.const import PACKAGE
 
 _LOGGER = logging.getLogger(__name__)
 
-PACKAGE_MODULE = '{}.{}'
-BASE_ACTION_SCHEMA = vol.Schema({'action_id': str}, extra=vol.REMOVE_EXTRA)
-CORE_MODULES = ['sample']
+PACKAGE_MODULE = "{}.{}"
+BASE_ACTION_SCHEMA = vol.Schema({"action_id": str}, extra=vol.REMOVE_EXTRA)
+CORE_MODULES = ["sample"]
 
 
 def get_module(package, module_name):
@@ -30,21 +30,23 @@ def get_module(package, module_name):
     """
     module_path = PACKAGE_MODULE.format(package, module_name)
     matches = [
-        name for _, name, _
-        in pkgutil.walk_packages(
-            camacq.__path__, prefix='{}.'.format(camacq.__name__))
-        if module_path in name]
+        name
+        for _, name, _ in pkgutil.walk_packages(
+            camacq.__path__, prefix="{}.".format(camacq.__name__)
+        )
+        if module_path in name
+    ]
     if len(matches) > 1:
-        raise ValueError('Invalid module search result, more than one match')
+        raise ValueError("Invalid module search result, more than one match")
     module_path = matches[0]
     try:
         module = import_module(module_path)
-        _LOGGER.debug('Loaded %s from %s', module_name, module_path)
+        _LOGGER.debug("Loaded %s from %s", module_name, module_path)
 
         return module
 
     except ImportError:
-        _LOGGER.exception(('Loading %s failed'), module_path)
+        _LOGGER.exception(("Loading %s failed"), module_path)
 
 
 def _deep_conf_access(config, key_list):
@@ -77,26 +79,27 @@ async def setup_all_modules(center, config, package_path, **kwargs):
     tasks = []
     # yields, non recursively, modules under package_path
     for _, name, is_pkg in pkgutil.iter_modules(
-            imported_pkg.__path__, prefix='{}.'.format(imported_pkg.__name__)):
-        if 'main' in name:
+        imported_pkg.__path__, prefix="{}.".format(imported_pkg.__name__)
+    ):
+        if "main" in name:
             continue
         else:
             module = import_module(name)
-        _LOGGER.debug('Loaded %s', name)
-        keys = [
-            name for name in imported_pkg.__name__.split('.')
-            if name != PACKAGE]
+        _LOGGER.debug("Loaded %s", name)
+        keys = [name for name in imported_pkg.__name__.split(".") if name != PACKAGE]
         pkg_config = _deep_conf_access(config, keys)
-        module_name = module.__name__.split('.')[-1]
+        module_name = module.__name__.split(".")[-1]
         if module_name in pkg_config and module_name not in CORE_MODULES:
-            if is_pkg and hasattr(module, 'setup_package'):
-                _LOGGER.info('Setting up %s package', module.__name__)
-                tasks.append(center.create_task(
-                    module.setup_package(center, config, **kwargs)))
-            elif hasattr(module, 'setup_module'):
-                _LOGGER.info('Setting up %s module', module.__name__)
-                tasks.append(center.create_task(
-                    module.setup_module(center, config, **kwargs)))
+            if is_pkg and hasattr(module, "setup_package"):
+                _LOGGER.info("Setting up %s package", module.__name__)
+                tasks.append(
+                    center.create_task(module.setup_package(center, config, **kwargs))
+                )
+            elif hasattr(module, "setup_module"):
+                _LOGGER.info("Setting up %s module", module.__name__)
+                tasks.append(
+                    center.create_task(module.setup_module(center, config, **kwargs))
+                )
 
     if tasks:
         await asyncio.wait(tasks)
@@ -104,7 +107,7 @@ async def setup_all_modules(center, config, package_path, **kwargs):
 
 def register_signals(center):
     """Register signal handlers."""
-    if sys.platform != 'win32':
+    if sys.platform != "win32":
 
         def handle_signal(exit_code):
             """Handle a signal."""

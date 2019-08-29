@@ -16,7 +16,8 @@ def check_dir_arg(path):
     if os.path.isdir(path):
         return path
     raise argparse.ArgumentTypeError(
-        'String {} is not a path to a directory'.format(path))
+        "String {} is not a path to a directory".format(path)
+    )
 
 
 def check_log_level(loglevel):
@@ -27,31 +28,34 @@ def check_log_level(loglevel):
     numeric_level = getattr(logging, loglevel.upper(), None)
     if not isinstance(numeric_level, int):
         raise argparse.ArgumentTypeError(
-            'String {} is not a valid log level'.format(loglevel))
+            "String {} is not a valid log level".format(loglevel)
+        )
     return numeric_level
 
 
 def parse_command_line():
     """Parse the provided command line."""
     parser = argparse.ArgumentParser(
-        description='Control microscope through client-server program.')
+        description="Control microscope through client-server program."
+    )
     parser.add_argument(
-        '--log-level',
+        "--log-level",
         dest=LOG_LEVEL,
         type=check_log_level,
-        help='an option to specify lowest log level to log')
+        help="an option to specify lowest log level to log",
+    )
     parser.add_argument(
-        '-C',
-        '--config',
+        "-C",
+        "--config",
         dest=CONFIG_DIR,
         default=config_util.get_default_config_dir(),
-        help='the path to camacq configuration directory')
+        help="the path to camacq configuration directory",
+    )
     args = parser.parse_args()
     if args.config_dir:
         args.config_dir = os.path.normpath(args.config_dir)
     cmd_args_dict = vars(args)
-    cmd_args_dict = {
-        key: val for key, val in cmd_args_dict.items() if val}
+    cmd_args_dict = {key: val for key, val in cmd_args_dict.items() if val}
 
     return cmd_args_dict
 
@@ -61,15 +65,23 @@ def ensure_config_path(config_dir):
     # Test if configuration directory exists
     if not os.path.isdir(config_dir):
         if config_dir != config_util.get_default_config_dir():
-            print(('Fatal Error: Specified configuration directory does '
-                   'not exist {} ').format(config_dir))
+            print(
+                (
+                    "Fatal Error: Specified configuration directory does "
+                    "not exist {} "
+                ).format(config_dir)
+            )
             sys.exit(1)
 
         try:
             os.mkdir(config_dir)
         except OSError:
-            print(('Fatal Error: Unable to create default configuration '
-                   'directory {} ').format(config_dir))
+            print(
+                (
+                    "Fatal Error: Unable to create default configuration "
+                    "directory {} "
+                ).format(config_dir)
+            )
             sys.exit(1)
 
 
@@ -78,7 +90,7 @@ def ensure_config_file(config_dir):
     config_path = config_util.ensure_config_exists(config_dir)
 
     if config_path is None:
-        print('Error getting configuration path')
+        print("Error getting configuration path")
         sys.exit(1)
 
     return config_path
@@ -89,7 +101,7 @@ async def setup_and_start(config_file, cmd_args):
     try:
         center = await bootstrap.setup_file(config_file, cmd_args)
     except Exception as exc:  # pylint: disable=broad-except
-        print('An error occurred during setup:', exc)
+        print("An error occurred during setup:", exc)
         return 1
     return await center.start()
 
@@ -105,5 +117,5 @@ def main():
     return exit_code
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

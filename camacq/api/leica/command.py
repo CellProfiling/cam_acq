@@ -7,7 +7,7 @@ def start():
 
     Return a list with parts for the cam command.
     """
-    return [('cmd', 'startscan')]
+    return [("cmd", "startscan")]
 
 
 def stop():
@@ -15,7 +15,7 @@ def stop():
 
     Return a list with parts for the cam command.
     """
-    return [('cmd', 'stopscan')]
+    return [("cmd", "stopscan")]
 
 
 def del_com():
@@ -23,7 +23,7 @@ def del_com():
 
     Return a list with parts for the cam command.
     """
-    return [('cmd', 'deletelist')]
+    return [("cmd", "deletelist")]
 
 
 def camstart_com(afjob=None, afrange=None, afsteps=None):
@@ -32,14 +32,13 @@ def camstart_com(afjob=None, afrange=None, afsteps=None):
     Return a list with parts for the cam command.
     """
     if afjob is not None:
-        afjob = ('afj', str(afjob))
+        afjob = ("afj", str(afjob))
     if afrange is not None:
-        afrange = ('afr', str(afrange))
+        afrange = ("afr", str(afrange))
     if afsteps is not None:
-        afsteps = ('afs', str(afsteps))
+        afsteps = ("afs", str(afsteps))
 
-    template = [('cmd', 'startcamscan'), ('runtime', '36000'),
-                ('repeattime', '36000')]
+    template = [("cmd", "startcamscan"), ("runtime", "36000"), ("repeattime", "36000")]
 
     for cmd in [afjob, afrange, afsteps]:
         if cmd:
@@ -53,7 +52,7 @@ def camstop_com():
 
     Return a list with parts for the cam command.
     """
-    return [('cmd', 'stopcamscan')]
+    return [("cmd", "stopcamscan")]
 
 
 def gain_com(exp, num, value):
@@ -61,8 +60,14 @@ def gain_com(exp, num, value):
 
     Return a list with parts for the cam command.
     """
-    return [('cmd', 'adjust'), ('tar', 'pmt'), ('num', str(num)),
-            ('exp', str(exp)), ('prop', 'gain'), ('value', str(value))]
+    return [
+        ("cmd", "adjust"),
+        ("tar", "pmt"),
+        ("num", str(num)),
+        ("exp", str(exp)),
+        ("prop", "gain"),
+        ("value", str(value)),
+    ]
 
 
 def enable_com(wellu, wellv, fieldx, fieldy, enable):
@@ -75,9 +80,15 @@ def enable_com(wellu, wellv, fieldx, fieldy, enable):
     fieldx = str(fieldx + 1)
     fieldy = str(fieldy + 1)
 
-    return [('cmd', 'enable'), ('slide', '0'), ('wellx', wellx),
-            ('welly', welly), ('fieldx', fieldx), ('fieldy', fieldy),
-            ('value', str(enable).lower())]
+    return [
+        ("cmd", "enable"),
+        ("slide", "0"),
+        ("wellx", wellx),
+        ("welly", welly),
+        ("fieldx", fieldx),
+        ("fieldy", fieldy),
+        ("value", str(enable).lower()),
+    ]
 
 
 def cam_com(exp, wellu, wellv, fieldx, fieldy, dxcoord, dycoord):
@@ -92,7 +103,15 @@ def cam_com(exp, wellu, wellv, fieldx, fieldy, dxcoord, dycoord):
     fieldy = str(fieldy + 1)
 
     return [
-        ('cmd', 'add'), ('tar', 'camlist'), ('exp', exp), ('ext', 'af'),
-        ('slide', '0'), ('wellx', wellx), ('welly', welly),
-        ('fieldx', fieldx), ('fieldy', fieldy), ('dxpos', str(dxcoord)),
-        ('dypos', str(dycoord))]
+        ("cmd", "add"),
+        ("tar", "camlist"),
+        ("exp", exp),
+        ("ext", "af"),
+        ("slide", "0"),
+        ("wellx", wellx),
+        ("welly", welly),
+        ("fieldx", fieldx),
+        ("fieldy", fieldy),
+        ("dxpos", str(dxcoord)),
+        ("dypos", str(dycoord)),
+    ]

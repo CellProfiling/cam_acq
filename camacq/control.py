@@ -14,7 +14,7 @@ from camacq.sample import Sample
 _LOGGER = logging.getLogger(__name__)
 
 
-Action = namedtuple('Action', 'func, schema')
+Action = namedtuple("Action", "func, schema")
 
 
 class ActionsRegistry:
@@ -49,13 +49,12 @@ class ActionsRegistry:
         """
         if not asyncio.iscoroutinefunction(action_func):
             _LOGGER.error(
-                'Action handler function %s is not a coroutine function',
-                action_func)
+                "Action handler function %s is not a coroutine function", action_func
+            )
             return
         if action_type not in self._actions:
             self._actions[action_type] = {}
-        _LOGGER.info(
-            'Registering action %s.%s', action_type, action_id)
+        _LOGGER.info("Registering action %s.%s", action_type, action_id)
         self._actions[action_type][action_id] = Action(action_func, schema)
 
     async def call(self, action_type, action_id, **kwargs):
@@ -71,25 +70,26 @@ class ActionsRegistry:
             Arbitrary keyword arguments. These will be passed to the action
             function when an action is called.
         """
-        if (action_type not in self._actions or
-                action_id not in self._actions[action_type]):
+        if (
+            action_type not in self._actions
+            or action_id not in self._actions[action_type]
+        ):
             _LOGGER.error(
-                'No action registered for type %s or id %s',
-                action_type, action_id)
+                "No action registered for type %s or id %s", action_type, action_id
+            )
             return
         action = self._actions[action_type][action_id]
         try:
             kwargs = action.schema(kwargs)
         except vol.Invalid as exc:
-            _LOGGER.error('Invalid action call parameters %s: %s', kwargs, exc)
+            _LOGGER.error("Invalid action call parameters %s: %s", kwargs, exc)
             return
-        _LOGGER.info(
-            'Calling action %s.%s: %s', action_type, action_id, kwargs)
+        _LOGGER.info("Calling action %s.%s: %s", action_type, action_id, kwargs)
         try:
             async with async_timeout(ACTION_TIMEOUT):
                 await action.func(action_id=action_id, **kwargs)
         except asyncio.TimeoutError:
-            _LOGGER.error('Action timed out after %s seconds', ACTION_TIMEOUT)
+            _LOGGER.error("Action timed out after %s seconds", ACTION_TIMEOUT)
 
 
 class Center:
@@ -140,9 +140,9 @@ class Center:
         code : int
             Exit code to return when the app exits.
         """
-        _LOGGER.info('Stopping camacq')
+        _LOGGER.info("Stopping camacq")
         self._track_tasks = True
-        self.bus.notify(CamAcqStopEvent({'exit_code': code}))
+        self.bus.notify(CamAcqStopEvent({"exit_code": code}))
         self._exit_code = code
         await self.wait_for()
         if self._stopped is not None:
@@ -152,7 +152,7 @@ class Center:
 
     async def start(self):
         """Start the app."""
-        _LOGGER.info('Starting camacq')
+        _LOGGER.info("Starting camacq")
         self.bus.notify(CamAcqStartEvent())
         self._stopped = asyncio.Event()
         register_signals(self)
@@ -185,11 +185,10 @@ class Center:
 
     async def wait_for(self):
         """Wait for all pending tasks."""
-        _LOGGER.debug('Waiting for pending tasks')
+        _LOGGER.debug("Waiting for pending tasks")
         await asyncio.sleep(0)
         while self._pending_tasks:
-            pending = [task for task in self._pending_tasks
-                       if not task.done()]
+            pending = [task for task in self._pending_tasks if not task.done()]
             self._pending_tasks.clear()
             if pending:
                 await asyncio.wait(pending)
@@ -216,4 +215,4 @@ class CamAcqStopEvent(Event):
     @property
     def exit_code(self):
         """:int: Return the plate instance of the event."""
-        return self.data.get('exit_code')
+        return self.data.get("exit_code")

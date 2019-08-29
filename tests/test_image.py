@@ -10,11 +10,11 @@ from camacq import image
 from tests.common import IMAGE_PATH
 
 
-@pytest.fixture(name='save_path')
+@pytest.fixture(name="save_path")
 def save_path_fixture():
     """Return a path to temporary dir."""
     temp_dir = tempfile.gettempdir()
-    test_image_path = Path(temp_dir) / 'test.tif'
+    test_image_path = Path(temp_dir) / "test.tif"
     yield test_image_path.as_posix()
     if not test_image_path.is_file():
         return

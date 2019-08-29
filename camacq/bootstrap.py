@@ -54,7 +54,8 @@ async def setup_file(config_file, cmd_args):
     """
     center = Center()
     user_config = await center.add_executor_job(
-        config_util.load_config_file, config_file)
+        config_util.load_config_file, config_file
+    )
     user_config.update(cmd_args)  # merge config dict with command line args
     await setup_dict(center, user_config)
     return center

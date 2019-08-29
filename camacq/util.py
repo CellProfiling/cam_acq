@@ -68,7 +68,7 @@ def write_csv(path, csv_map, header):
         The items in header should correspond to the index key of the
         primary dict and all the keys of the secondary dict.
     """
-    with open(path, 'w') as file_handle:
+    with open(path, "w") as file_handle:
         writer = csv.DictWriter(file_handle, fieldnames=header)
         writer.writeheader()
         for index, cells in csv_map.items():

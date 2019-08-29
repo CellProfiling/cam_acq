@@ -1,6 +1,9 @@
 [MASTER]
 reports=no
 
+# Black needs to disable wrong-hanging-indent.
+
 disable=
   locally-disabled,
   unused-argument,
+  bad-continuation

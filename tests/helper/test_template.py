@@ -18,19 +18,19 @@ async def test_next_well(center):
             {{next_well_y('test_plate')}}
     """
 
-    data = await center.add_executor_job(YAML(typ='safe').load, data)
-    center.sample.set_plate('test_plate')
+    data = await center.add_executor_job(YAML(typ="safe").load, data)
+    center.sample.set_plate("test_plate")
     tmpl = make_template(center, data)
     render = render_template(tmpl, {})
-    assert render['data']['next_well_x'] == '0'
-    assert render['data']['next_well_y'] == '0'
+    assert render["data"]["next_well_x"] == "0"
+    assert render["data"]["next_well_y"] == "0"
 
-    center.sample.set_well('test_plate', 0, 0)
-    center.sample.set_field('test_plate', 0, 0, 0, 0, img_ok=True)
+    center.sample.set_well("test_plate", 0, 0)
+    center.sample.set_field("test_plate", 0, 0, 0, 0, img_ok=True)
 
     render = render_template(tmpl, {})
-    assert render['data']['next_well_x'] == '0'
-    assert render['data']['next_well_y'] == '1'
+    assert render["data"]["next_well_x"] == "0"
+    assert render["data"]["next_well_y"] == "1"
 
 
 async def test_next_well_no_plate(center):
@@ -43,8 +43,8 @@ async def test_next_well_no_plate(center):
             {{next_well_y('test_plate')}}
     """
 
-    data = await center.add_executor_job(YAML(typ='safe').load, data)
+    data = await center.add_executor_job(YAML(typ="safe").load, data)
     tmpl = make_template(center, data)
     render = render_template(tmpl, {})
-    assert render['data']['next_well_x'] == 'None'
-    assert render['data']['next_well_y'] == 'None'
+    assert render["data"]["next_well_x"] == "None"
+    assert render["data"]["next_well_y"] == "None"
