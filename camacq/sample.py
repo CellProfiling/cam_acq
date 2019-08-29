@@ -6,56 +6,64 @@ from collections import OrderedDict
 
 import voluptuous as vol
 
-from camacq.const import (CHANNEL_EVENT, FIELD_EVENT, FIELD_NAME, IMAGE_EVENT,
-                          IMAGE_REMOVED_EVENT, PLATE_EVENT, SAMPLE_EVENT,
-                          SAMPLE_IMAGE_EVENT, WELL_EVENT, WELL_NAME)
+from camacq.const import (
+    CHANNEL_EVENT,
+    FIELD_EVENT,
+    FIELD_NAME,
+    IMAGE_EVENT,
+    IMAGE_REMOVED_EVENT,
+    PLATE_EVENT,
+    SAMPLE_EVENT,
+    SAMPLE_IMAGE_EVENT,
+    WELL_EVENT,
+    WELL_NAME,
+)
 from camacq.event import Event
 from camacq.helper import BASE_ACTION_SCHEMA
 from camacq.util import read_csv
 
 _LOGGER = logging.getLogger(__name__)
 
-ACTION_SET_WELL = 'set_well'
-ACTION_SET_PLATE = 'set_plate'
-ACTION_SET_FIELD = 'set_field'
-ACTION_SET_CHANNEL = 'set_channel'
+ACTION_SET_WELL = "set_well"
+ACTION_SET_PLATE = "set_plate"
+ACTION_SET_FIELD = "set_field"
+ACTION_SET_CHANNEL = "set_channel"
 
-SET_PLATE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
-    vol.Required('plate_name'): vol.Coerce(str),
-    # pylint: disable=no-value-for-parameter
-    vol.Optional('overwrite', default=False): vol.Boolean(),
-})
+SET_PLATE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
+    {
+        vol.Required("plate_name"): vol.Coerce(str),
+        # pylint: disable=no-value-for-parameter
+        vol.Optional("overwrite", default=False): vol.Boolean(),
+    }
+)
 
-SET_WELL_ACTION_SCHEMA = SET_PLATE_ACTION_SCHEMA.extend({
-    vol.Required('well_x'): vol.Coerce(int),
-    vol.Required('well_y'): vol.Coerce(int),
-})
+SET_WELL_ACTION_SCHEMA = SET_PLATE_ACTION_SCHEMA.extend(
+    {vol.Required("well_x"): vol.Coerce(int), vol.Required("well_y"): vol.Coerce(int)}
+)
 
-SET_FIELD_ACTION_SCHEMA = SET_WELL_ACTION_SCHEMA.extend({
-    vol.Required('field_x'): vol.Coerce(int),
-    vol.Required('field_y'): vol.Coerce(int),
-    'dxpx': vol.Coerce(int),
-    'dypx': vol.Coerce(int),
-    # pylint: disable=no-value-for-parameter
-    vol.Optional('img_ok', default=False): vol.Boolean(),
-})
+SET_FIELD_ACTION_SCHEMA = SET_WELL_ACTION_SCHEMA.extend(
+    {
+        vol.Required("field_x"): vol.Coerce(int),
+        vol.Required("field_y"): vol.Coerce(int),
+        "dxpx": vol.Coerce(int),
+        "dypx": vol.Coerce(int),
+        # pylint: disable=no-value-for-parameter
+        vol.Optional("img_ok", default=False): vol.Boolean(),
+    }
+)
 
-SET_CHANNEL_ACTION_SCHEMA = SET_WELL_ACTION_SCHEMA.extend({
-    vol.Required('channel_name'): vol.Coerce(str),
-    'gain': vol.Coerce(int),
-})
+SET_CHANNEL_ACTION_SCHEMA = SET_WELL_ACTION_SCHEMA.extend(
+    {vol.Required("channel_name"): vol.Coerce(str), "gain": vol.Coerce(int)}
+)
 
 ACTION_TO_METHOD = {
-    ACTION_SET_WELL: {'method': 'set_well', 'schema': SET_WELL_ACTION_SCHEMA},
-    ACTION_SET_PLATE: {
-        'method': 'set_plate', 'schema': SET_PLATE_ACTION_SCHEMA},
-    ACTION_SET_FIELD: {
-        'method': 'set_field', 'schema': SET_FIELD_ACTION_SCHEMA},
-    ACTION_SET_CHANNEL: {
-        'method': 'set_channel', 'schema': SET_CHANNEL_ACTION_SCHEMA},
+    ACTION_SET_WELL: {"method": "set_well", "schema": SET_WELL_ACTION_SCHEMA},
+    ACTION_SET_PLATE: {"method": "set_plate", "schema": SET_PLATE_ACTION_SCHEMA},
+    ACTION_SET_FIELD: {"method": "set_field", "schema": SET_FIELD_ACTION_SCHEMA},
+    ACTION_SET_CHANNEL: {"method": "set_channel", "schema": SET_CHANNEL_ACTION_SCHEMA},
 }
 
-SAMPLE_STATE_FILE = 'state_file'
+SAMPLE_STATE_FILE = "state_file"
 
 
 async def setup_module(center, config):
@@ -68,6 +76,7 @@ async def setup_module(center, config):
     config : dict
         The config dict.
     """
+
     async def handle_action(**kwargs):
         """Handle action call to add a state to the sample.
 
@@ -77,15 +86,15 @@ async def setup_module(center, config):
             Arbitrary keyword arguments. These will be passed to a
             method when an action is called.
         """
-        action_id = kwargs.pop('action_id')
-        method = ACTION_TO_METHOD[action_id]['method']
+        action_id = kwargs.pop("action_id")
+        method = ACTION_TO_METHOD[action_id]["method"]
         getattr(center.sample, method)(**kwargs)
 
     for action_id, options in ACTION_TO_METHOD.items():
-        schema = options['schema']
-        center.actions.register('sample', action_id, handle_action, schema)
+        schema = options["schema"]
+        center.actions.register("sample", action_id, handle_action, schema)
 
-    conf = config['sample']
+    conf = config["sample"]
     state_file = conf.get(SAMPLE_STATE_FILE)
     if state_file is None:
         return
@@ -93,14 +102,15 @@ async def setup_module(center, config):
     tasks = []
     for data in state_data:
         for action_id, options in ACTION_TO_METHOD.items():
-            schema = options['schema']
+            schema = options["schema"]
             try:
                 schema(data)
             except vol.Invalid as exc:
-                _LOGGER.debug('Skipping action %s: %s', action_id, exc)
+                _LOGGER.debug("Skipping action %s: %s", action_id, exc)
                 continue
-            tasks.append(center.create_task(
-                center.actions.call('sample', action_id, **data)))
+            tasks.append(
+                center.create_task(center.actions.call("sample", action_id, **data))
+            )
 
     if tasks:
         await asyncio.wait(tasks)
@@ -152,12 +162,27 @@ class Image:
     # pylint: disable=too-many-instance-attributes
 
     __slots__ = (
-        'path', 'z_slice', 'channel_id', 'field_x', 'field_y', 'well_x',
-        'well_y', 'plate_name')
+        "path",
+        "z_slice",
+        "channel_id",
+        "field_x",
+        "field_y",
+        "well_x",
+        "well_y",
+        "plate_name",
+    )
 
     def __init__(
-            self, path=None, channel_id=None, z_slice=None, field_x=None,
-            field_y=None, well_x=None, well_y=None, plate_name=None):
+        self,
+        path=None,
+        channel_id=None,
+        z_slice=None,
+        field_x=None,
+        field_y=None,
+        well_x=None,
+        well_y=None,
+        plate_name=None,
+    ):
         """Set up instance."""
         self.path = path
         self.channel_id = channel_id
@@ -170,7 +195,7 @@ class Image:
 
     def __repr__(self):
         """Return the representation."""
-        return '<Image(path={0!r})>'.format(self.path)
+        return "<Image(path={0!r})>".format(self.path)
 
 
 class Channel:
@@ -190,7 +215,7 @@ class Channel:
 
     # pylint: disable=too-few-public-methods
 
-    __slots__ = ('name', '_gain', )
+    __slots__ = ("name", "_gain")
 
     def __init__(self, channel_name, **values):
         """Set up instance."""
@@ -218,7 +243,8 @@ class Channel:
             self._gain = int(value)
         except TypeError:
             _LOGGER.warning(
-                'Invalid gain value %s, falling back to %s', value, self._gain)
+                "Invalid gain value %s, falling back to %s", value, self._gain
+            )
 
 
 class Field:
@@ -240,7 +266,7 @@ class Field:
         True if field has acquired an ok image.
     """
 
-    __slots__ = ('_images', 'x', 'y', 'dx', 'dy', 'img_ok')
+    __slots__ = ("_images", "x", "y", "dx", "dy", "img_ok")
 
     def __init__(self, images, x, y, dx, dy, img_ok):
         """Set up instance."""
@@ -260,7 +286,8 @@ class Field:
     def images(self):
         """:dict: Return a dict with all images for the field."""
         return {
-            image.path: image for image in list(self._images.values())
+            image.path: image
+            for image in list(self._images.values())
             if image.field_x == self.x and image.field_y == self.y
         }
 
@@ -290,7 +317,7 @@ class Well:
         Number showing the y coordinate of the well, from 0.
     """
 
-    __slots__ = ('_images', 'x', 'y', '_channels', '_fields')
+    __slots__ = ("_images", "x", "y", "_channels", "_fields")
 
     def __init__(self, images, x, y):
         """Set up instance."""
@@ -304,7 +331,8 @@ class Well:
     def __repr__(self):
         """Return the representation."""
         return "<Well {}: channels: {}: fields: {}>".format(
-            self.name, self.channels, self.fields)
+            self.name, self.channels, self.fields
+        )
 
     @property
     def channels(self):
@@ -330,15 +358,15 @@ class Well:
     def images(self):
         """:dict: Return a dict with all images for the well."""
         return {
-            image.path: image for image in list(self._images.values())
+            image.path: image
+            for image in list(self._images.values())
             if image.well_x == self.x and image.well_y == self.y
         }
 
     @property
     def img_ok(self):
         """:bool: Return True if all fields are imaged ok."""
-        if self.fields and all(
-                field.img_ok for field in list(self.fields.values())):
+        if self.fields and all(field.img_ok for field in list(self.fields.values())):
             return True
         return False
 
@@ -427,7 +455,8 @@ class Plate:
     def images(self):
         """:dict: Return a dict with all images for the plate."""
         return {
-            image.path: image for image in list(self._images.values())
+            image.path: image
+            for image in list(self._images.values())
             if image.plate_name == self.name
         }
 
@@ -491,9 +520,15 @@ class Sample:
     async def _set_image_on_event(self, center, event):
         """Set sample image on an image event from a microscope API."""
         self.set_image(
-            event.path, channel_id=event.channel_id, z_slice=event.z_slice,
-            field_x=event.field_x, field_y=event.field_y, well_x=event.well_x,
-            well_y=event.well_y, plate_name=event.plate_name)
+            event.path,
+            channel_id=event.channel_id,
+            z_slice=event.z_slice,
+            field_x=event.field_x,
+            field_y=event.field_y,
+            well_x=event.well_x,
+            well_y=event.well_y,
+            plate_name=event.plate_name,
+        )
 
     def get_plate(self, plate_name):
         """Get plate via plate_name.
@@ -526,7 +561,7 @@ class Sample:
             return None
         plate = Plate(self._images, plate_name)
         self._plates[plate.name] = plate
-        self._bus.notify(PlateEvent({'sample': self, 'plate': plate}))
+        self._bus.notify(PlateEvent({"sample": self, "plate": plate}))
         return plate
 
     def get_well(self, plate_name, well_x, well_y):
@@ -577,7 +612,7 @@ class Sample:
         if not overwrite and (well_x, well_y) in plate.wells:
             return None
         well = plate.set_well(well_x, well_y)
-        event = WellEvent({'sample': self, 'plate': plate, 'well': well})
+        event = WellEvent({"sample": self, "plate": plate, "well": well})
         self._bus.notify(event)
         return well
 
@@ -607,8 +642,8 @@ class Sample:
         return channel
 
     def set_channel(
-            self, plate_name, well_x, well_y, channel_name, overwrite=False,
-            **values):
+        self, plate_name, well_x, well_y, channel_name, overwrite=False, **values
+    ):
         """Set attribute value in a channel in a well of a plate.
 
         Create a Well instance if well not already exists. Pick the
@@ -640,8 +675,9 @@ class Sample:
         if not overwrite and channel_name in well.channels:
             return None
         channel = well.set_channel(well_x, well_y, channel_name, **values)
-        event = ChannelEvent({
-            'sample': self, 'plate': plate, 'well': well, 'channel': channel})
+        event = ChannelEvent(
+            {"sample": self, "plate": plate, "well": well, "channel": channel}
+        )
         self._bus.notify(event)
         return channel
 
@@ -675,8 +711,17 @@ class Sample:
         return field
 
     def set_field(
-            self, plate_name, well_x, well_y, field_x, field_y, dxpx=0, dypx=0,
-            img_ok=False, overwrite=False):
+        self,
+        plate_name,
+        well_x,
+        well_y,
+        field_x,
+        field_y,
+        dxpx=0,
+        dypx=0,
+        img_ok=False,
+        overwrite=False,
+    ):
         """Set a field in a well of a plate.
 
         Pick the first plate if no plate is specified.
@@ -712,8 +757,9 @@ class Sample:
         if not overwrite and (field_x, field_y) in well.fields:
             return None
         field = well.set_field(field_x, field_y, dxpx, dypx, img_ok)
-        event = FieldEvent({
-            'sample': self, 'plate': plate, 'well': well, 'field': field})
+        event = FieldEvent(
+            {"sample": self, "plate": plate, "well": well, "field": field}
+        )
         self._bus.notify(event)
         return field
 
@@ -734,8 +780,16 @@ class Sample:
         return self._images.get(path)
 
     def set_image(
-            self, path, channel_id=None, z_slice=None, field_x=None,
-            field_y=None, well_x=None, well_y=None, plate_name=None):
+        self,
+        path,
+        channel_id=None,
+        z_slice=None,
+        field_x=None,
+        field_y=None,
+        well_x=None,
+        well_y=None,
+        plate_name=None,
+    ):
         """Add an image to the sample.
 
         Parameters
@@ -759,11 +813,11 @@ class Sample:
         """
         # pylint: disable=too-many-arguments, too-many-locals
         image = Image(
-            path, channel_id, z_slice, field_x, field_y, well_x, well_y,
-            plate_name)
+            path, channel_id, z_slice, field_x, field_y, well_x, well_y, plate_name
+        )
         self._images[image.path] = image
 
-        self._bus.notify(SampleImageEvent({'image': image}))
+        self._bus.notify(SampleImageEvent({"image": image}))
 
         if plate_name is not None:
             plate = self.get_plate(plate_name)
@@ -776,14 +830,20 @@ class Sample:
                 well = self.set_well(plate_name, well_x, well_y)
 
         if all(
-                name is not None
-                for name in (plate_name, well_x, well_y, field_x, field_y)):
-            field = self.get_field(
-                plate_name, well_x, well_y, field_x, field_y)
+            name is not None for name in (plate_name, well_x, well_y, field_x, field_y)
+        ):
+            field = self.get_field(plate_name, well_x, well_y, field_x, field_y)
             if not field:
                 self.set_field(
-                    plate_name, well_x, well_y, field_x, field_y, dxpx=0,
-                    dypx=0, img_ok=False)
+                    plate_name,
+                    well_x,
+                    well_y,
+                    field_x,
+                    field_y,
+                    dxpx=0,
+                    dypx=0,
+                    img_ok=False,
+                )
 
     def remove_image(self, path):
         """Remove an image from the sample.
@@ -795,7 +855,7 @@ class Sample:
         """
         image = self._images.pop(path, None)
         if image is not None:
-            self._bus.notify(ImageRemovedEvent({'image': image}))
+            self._bus.notify(ImageRemovedEvent({"image": image}))
 
 
 # pylint: disable=too-few-public-methods
@@ -809,7 +869,7 @@ class SampleEvent(Event):
     @property
     def sample(self):
         """:Sample instance: Return the sample instance of the event."""
-        return self.data.get('sample')
+        return self.data.get("sample")
 
     def __repr__(self):
         """Return the representation."""
@@ -826,7 +886,7 @@ class PlateEvent(SampleEvent):
     @property
     def plate(self):
         """:Plate instance: Return the plate instance of the event."""
-        return self.data.get('plate')
+        return self.data.get("plate")
 
     @property
     def plate_name(self):
@@ -848,7 +908,7 @@ class WellEvent(PlateEvent):
     @property
     def well(self):
         """:Well instance: Return the well of the event."""
-        return self.data.get('well')
+        return self.data.get("well")
 
     @property
     def well_x(self):
@@ -885,7 +945,7 @@ class ChannelEvent(WellEvent):
     @property
     def channel(self):
         """:Channel instance: Return the channel of the event."""
-        return self.data.get('channel')
+        return self.data.get("channel")
 
     @property
     def channel_name(self):
@@ -907,7 +967,7 @@ class FieldEvent(WellEvent):
     @property
     def field(self):
         """:Field instance: Return the field of the event."""
-        return self.data.get('field')
+        return self.data.get("field")
 
     @property
     def field_x(self):
@@ -954,7 +1014,7 @@ class SampleImageEvent(Event):
     @property
     def image(self):
         """:Image instance: Return the image instance of the event."""
-        return self.data.get('image')
+        return self.data.get("image")
 
     @property
     def path(self):

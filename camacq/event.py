@@ -22,7 +22,7 @@ class Event:
         Return the data of the event.
     """
 
-    __slots__ = ('data', )
+    __slots__ = ("data",)
 
     event_type = BASE_EVENT
 
@@ -78,8 +78,7 @@ class EventBus:
         callable
             Return a function to remove the registered handler.
         """
-        _LOGGER.debug(
-            'Registering event handler for event type %s', event_type)
+        _LOGGER.debug("Registering event handler for event type %s", event_type)
         self._register_handler(event_type, handler)
 
         def remove():
@@ -88,7 +87,7 @@ class EventBus:
             try:
                 handlers.remove(handler)
             except ValueError:
-                _LOGGER.warning('Handler %s already removed from bus', handler)
+                _LOGGER.warning("Handler %s already removed from bus", handler)
 
         return remove
 
@@ -100,14 +99,13 @@ class EventBus:
         event : Event instance
             An instance of Event or an instance of subclass of Event.
         """
-        _LOGGER.debug('Notifying event %s', event)
+        _LOGGER.debug("Notifying event %s", event)
         # Inspired by https://goo.gl/VEPG3n
         # copy to make sure the dict is not modified during iteration
         registry = dict(self._registry)
         for event_class in event.__class__.__mro__:
             # Handle base objects for both python 2 and 3.
-            if (event_class.__name__ == 'object' or
-                    event_class.__name__ == 'newobject'):
+            if event_class.__name__ == "object" or event_class.__name__ == "newobject":
                 continue
             for handler in registry.get(event_class.event_type, []):
                 self._center.create_task(handler(self._center, event))

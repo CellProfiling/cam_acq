@@ -7,9 +7,9 @@ from pkg_resources import resource_filename
 
 _LOGGER = logging.getLogger(__name__)
 
-CONFIG_DIR_NAME = '.camacq'
-YAML_CONFIG_FILE = 'config.yml'
-DEFAULT_CONFIG_TEMPLATE = 'data/config.yml'
+CONFIG_DIR_NAME = ".camacq"
+YAML_CONFIG_FILE = "config.yml"
+DEFAULT_CONFIG_TEMPLATE = "data/config.yml"
 
 
 def get_default_config_dir():
@@ -20,8 +20,7 @@ def get_default_config_dir():
     str
         Return the path to the configuration directory.
     """
-    data_dir = os.getenv('APPDATA') if os.name == 'nt' \
-        else os.path.expanduser('~')
+    data_dir = os.getenv("APPDATA") if os.name == "nt" else os.path.expanduser("~")
     return os.path.join(data_dir, CONFIG_DIR_NAME)
 
 
@@ -59,16 +58,16 @@ def load_config_file(path):
     """
     yaml = YAML()
     try:
-        with open(path, 'r') as yml_file:
+        with open(path, "r") as yml_file:
             cfg = yaml.load(yml_file)
     except YAMLError as exception:
-        _LOGGER.error(
-            'Error reading YAML configuration file %s', path)
+        _LOGGER.error("Error reading YAML configuration file %s", path)
         raise YAMLError(exception)  # or let it pass?
     if not isinstance(cfg, dict):
         _LOGGER.error(
-            'The configuration file %s does not contain a dictionary',
-            os.path.basename(path))
+            "The configuration file %s does not contain a dictionary",
+            os.path.basename(path),
+        )
         raise TypeError()  # or let it pass?
     return cfg
 
@@ -88,17 +87,15 @@ def create_default_config(config_dir):
         failed.
     """
     config_path = os.path.join(config_dir, YAML_CONFIG_FILE)
-    default_config_template = resource_filename(
-        __name__, DEFAULT_CONFIG_TEMPLATE)
+    default_config_template = resource_filename(__name__, DEFAULT_CONFIG_TEMPLATE)
     data = load_config_file(default_config_template)
     yaml = YAML()
 
     try:
-        with open(config_path, 'w') as config_file:
+        with open(config_path, "w") as config_file:
             yaml.dump(data, config_file)
     except OSError:
-        _LOGGER.error(
-            'Unable to create default configuration file %s', config_path)
+        _LOGGER.error("Unable to create default configuration file %s", config_path)
         return None
 
     return config_path
@@ -122,9 +119,7 @@ def ensure_config_exists(config_dir):
     config_path = find_config_file(config_dir)
 
     if config_path is None:
-        print(
-            'Unable to find configuration. Creating default one in',
-            config_dir)
+        print("Unable to find configuration. Creating default one in", config_dir)
         config_path = create_default_config(config_dir)
 
     return config_path

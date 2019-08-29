@@ -4,8 +4,12 @@ import json
 
 import voluptuous as vol
 
-from camacq.const import (COMMAND_EVENT, IMAGE_EVENT, START_COMMAND_EVENT,
-                          STOP_COMMAND_EVENT)
+from camacq.const import (
+    COMMAND_EVENT,
+    IMAGE_EVENT,
+    START_COMMAND_EVENT,
+    STOP_COMMAND_EVENT,
+)
 from camacq.event import Event
 from camacq.helper import BASE_ACTION_SCHEMA, setup_all_modules
 
@@ -16,37 +20,36 @@ def validate_commands(value):
         try:
             return json.loads(value)
         except ValueError:
-            raise vol.Invalid('Invalid commands: {}'.format(value))
+            raise vol.Invalid("Invalid commands: {}".format(value))
     else:
         schema = vol.Schema([vol.Coerce(str)])
         return schema(value)
 
 
-ACTION_SEND = 'send'
-ACTION_SEND_MANY = 'send_many'
-ACTION_START_IMAGING = 'start_imaging'
-ACTION_STOP_IMAGING = 'stop_imaging'
-CONF_API = 'api'
-DATA_API = 'api'
+ACTION_SEND = "send"
+ACTION_SEND_MANY = "send_many"
+ACTION_START_IMAGING = "start_imaging"
+ACTION_STOP_IMAGING = "stop_imaging"
+CONF_API = "api"
+DATA_API = "api"
 
-SEND_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
-    'command': vol.Coerce(str),
-})
+SEND_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({"command": vol.Coerce(str)})
 
-SEND_MANY_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({
-    'commands': validate_commands,
-})
+SEND_MANY_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({"commands": validate_commands})
 
 START_IMAGING_ACTION_SCHEMA = STOP_IMAGING_ACTION_SCHEMA = BASE_ACTION_SCHEMA
 
 ACTION_TO_METHOD = {
-    ACTION_SEND: {'method': 'send', 'schema': SEND_ACTION_SCHEMA},
-    ACTION_SEND_MANY: {
-        'method': 'send_many', 'schema': SEND_MANY_ACTION_SCHEMA},
+    ACTION_SEND: {"method": "send", "schema": SEND_ACTION_SCHEMA},
+    ACTION_SEND_MANY: {"method": "send_many", "schema": SEND_MANY_ACTION_SCHEMA},
     ACTION_START_IMAGING: {
-        'method': 'start_imaging', 'schema': START_IMAGING_ACTION_SCHEMA},
+        "method": "start_imaging",
+        "schema": START_IMAGING_ACTION_SCHEMA,
+    },
     ACTION_STOP_IMAGING: {
-        'method': 'stop_imaging', 'schema': STOP_IMAGING_ACTION_SCHEMA},
+        "method": "stop_imaging",
+        "schema": STOP_IMAGING_ACTION_SCHEMA,
+    },
 }
 
 
@@ -79,9 +82,9 @@ async def setup_package(center, config):
             Arbitrary keyword arguments. These will be passed to the
             api method when an action is called.
         """
-        action_id = kwargs.pop('action_id')
-        method = ACTION_TO_METHOD[action_id]['method']
-        api_name = kwargs.pop('api_name', None)
+        action_id = kwargs.pop("action_id")
+        method = ACTION_TO_METHOD[action_id]["method"]
+        api_name = kwargs.pop("api_name", None)
         if api_name:
             apis = [center.data[DATA_API][api_name]]
         else:
@@ -93,8 +96,8 @@ async def setup_package(center, config):
             await asyncio.wait(tasks)
 
     for action_id, options in ACTION_TO_METHOD.items():
-        schema = options['schema']
-        center.actions.register('command', action_id, handle_action, schema)
+        schema = options["schema"]
+        center.actions.register("command", action_id, handle_action, schema)
 
 
 class Api:
@@ -222,7 +225,15 @@ class ImageEvent(Event):
 
     def __repr__(self):
         """Return the representation."""
-        return ("<{}: plate_name {}: well_x {}: well_y {}: field_x {}: "
-                "field_y {}: channel_id {}>".format(
-                    type(self).__name__, self.plate_name, self.well_x,
-                    self.well_y, self.field_x, self.field_y, self.channel_id))
+        return (
+            "<{}: plate_name {}: well_x {}: well_y {}: field_x {}: "
+            "field_y {}: channel_id {}>".format(
+                type(self).__name__,
+                self.plate_name,
+                self.well_x,
+                self.well_y,
+                self.field_x,
+                self.field_y,
+                self.channel_id,
+            )
+        )
