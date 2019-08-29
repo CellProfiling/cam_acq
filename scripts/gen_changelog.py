@@ -5,6 +5,12 @@ from pathlib import Path
 
 from pygcgen.main import ChangelogGenerator
 
+GITHUB_PROJECT = 'cam_acq'
+GITHUB_USER = 'CellProfiling'
+HISTORY_FILE = 'HISTORY.md'
+# Change this to 0.4.0 after changelog is generated when releasing 0.4.0.
+TAG_SINCE = '0.3.1'
+
 
 def validate_version():
     """Validate version before release."""
@@ -33,8 +39,11 @@ def generate():
         return
     print('Generating changelog for version {}'.format(version))
     options = [
-        '--user', 'CellProfiling', '--project', 'cam_acq',
-        '-v', '--with-unreleased', '--future-release', version]
+        '--user', GITHUB_USER, '--project', GITHUB_PROJECT,
+        '-v', '--with-unreleased', '--future-release', version,
+        '--section', '**Breaking Changes:**', 'breaking change',
+        '--since-tag', TAG_SINCE, '--base', HISTORY_FILE,
+    ]
     generator = ChangelogGenerator(options)
     generator.run()
     os.chdir(old_dir)

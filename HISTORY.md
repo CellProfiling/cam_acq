@@ -1,5 +1,3 @@
-# Change Log
-
 ## [0.3.1](https://github.com/CellProfiling/cam_acq/tree/0.3.1) (2018-05-23)
 [Full Changelog](https://github.com/CellProfiling/cam_acq/compare/0.3...0.3.1)
 
