@@ -14,10 +14,15 @@ from tests.common import GAIN_DATA_DIR, WELL_NAME, WELL_PATH
 # All test coroutines will be treated as marked.
 pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
 
+SAVE_PATH = WELL_PATH / WELL_NAME
+PLATE_NAME = "slide"
+WELL_X, WELL_Y = 1, 0
+GAIN_IMAGE_JOB_ID = 2
+
 
 async def test_gain(center):
     """Run gain calculation test."""
-    images = get_imgs(WELL_PATH.as_posix(), search=JOB_ID.format(2))
+    images = get_imgs(WELL_PATH.as_posix(), search=JOB_ID.format(GAIN_IMAGE_JOB_ID))
     config = {
         "plugins": {
             "gain": {
@@ -59,17 +64,14 @@ async def test_gain(center):
     events = [LeicaImageEvent({"path": path}) for path in images]
     images = {event.channel_id: event.path for event in events}
     projs = await center.add_executor_job(make_proj, images)
-    save_path = WELL_PATH / WELL_NAME
-    plate_name = "slide"
-    well_x, well_y = 1, 0
     calculated = {}
 
     def handle_gain_event(center, event):
         """Handle gain event."""
         if (
-            event.plate_name != plate_name
-            or event.well_x != well_x
-            or event.well_y != well_y
+            event.plate_name != PLATE_NAME
+            or event.well_x != WELL_X
+            or event.well_y != WELL_Y
         ):
             return
         calculated[event.channel_name] = event.gain
@@ -79,12 +81,12 @@ async def test_gain(center):
     await calc_gain(
         center,
         config,
-        plate_name,
-        well_x,
-        well_y,
+        PLATE_NAME,
+        WELL_X,
+        WELL_Y,
         projs,
         plot=False,
-        save_path=save_path,
+        save_path=SAVE_PATH,
     )
     await center.wait_for()
 
