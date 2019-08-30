@@ -66,7 +66,7 @@ async def test_gain(center):
     projs = await center.add_executor_job(make_proj, images)
     calculated = {}
 
-    def handle_gain_event(center, event):
+    async def handle_gain_event(center, event):
         """Handle gain event."""
         if (
             event.plate_name != PLATE_NAME
