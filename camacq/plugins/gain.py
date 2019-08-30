@@ -31,7 +31,7 @@ CONF_CHANNELS = "channels"
 CONF_GAIN = "gain"
 CONF_INIT_GAIN = "init_gain"
 COUNT_CLOSE_TO_ZERO = 2
-GAIN_CALC_EVENT = 'gain_calc_event'
+GAIN_CALC_EVENT = "gain_calc_event"
 SAVED_GAINS = "saved_gains"
 
 ACTION_CALC_GAIN = "calc_gain"
@@ -115,9 +115,15 @@ async def calc_gain(
         )
 
     for channel_name, gain in gains.items():
-        event = GainCalcEvent({
-            'plate_name': plate_name, 'well_x': well_x, 'well_y': well_y,
-            'channel_name': channel_name, 'gain': gain})
+        event = GainCalcEvent(
+            {
+                "plate_name": plate_name,
+                "well_x": well_x,
+                "well_y": well_y,
+                "channel_name": channel_name,
+                "gain": gain,
+            }
+        )
         center.bus.notify(event)
 
 
@@ -262,27 +268,27 @@ class GainCalcEvent(Event):
     @property
     def channel_name(self):
         """:str: Return the channel name of the event."""
-        return self.data.get('channel_name')
+        return self.data.get("channel_name")
 
     @property
     def gain(self):
         """:str: Return the channel gain of the event."""
-        return self.data.get('gain')
+        return self.data.get("gain")
 
     @property
     def plate_name(self):
         """:str: Return the name of the plate."""
-        return self.data.get('plate_name')
+        return self.data.get("plate_name")
 
     @property
     def well_x(self):
         """:int: Return the well x coordinate of the event."""
-        return self.data.get('well_x')
+        return self.data.get("well_x")
 
     @property
     def well_y(self):
         """:int: Return the well y coordinate of the event."""
-        return self.data.get('well_y')
+        return self.data.get("well_y")
 
     def __repr__(self):
         """Return the representation."""
