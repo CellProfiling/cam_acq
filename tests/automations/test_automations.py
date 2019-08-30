@@ -73,7 +73,7 @@ async def test_setup_automation(center):
               plate_name: test
               well_x: 1
               well_y: 1
-        sample: {}
+        sample:
     """
 
     config = await center.add_executor_job(YAML(typ="safe").load, config)
@@ -117,7 +117,7 @@ async def test_channel_event(center, mock_api):
                 %}2{% elif trigger.event.channel_name == 'red'
                 %}2{% endif %}
                 /exp:gain_job /prop:gain /value:{{ trigger.event.channel.gain }}
-        sample: {}
+        sample:
     """
 
     config = await center.add_executor_job(YAML(typ="safe").load, config)
@@ -155,7 +155,7 @@ async def test_condition(center, mock_api):
             id: send
             data:
               command: success
-        sample: {}
+        sample:
     """
 
     config = await center.add_executor_job(YAML(typ="safe").load, config)
@@ -194,7 +194,7 @@ async def test_nested_condition(center, mock_api):
                 id: send
                 data:
                   command: success
-        sample: {}
+        sample:
     """
 
     config = await center.add_executor_job(YAML(typ="safe").load, config)
@@ -262,7 +262,7 @@ async def test_sample_access(center, mock_api):
                   field_y: '{{ trigger.event.field_y }}'
                   img_ok: true
                   overwrite: true
-        sample: {}
+        sample:
     """
 
     config = await center.add_executor_job(YAML(typ="safe").load, config)

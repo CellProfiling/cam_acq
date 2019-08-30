@@ -95,7 +95,7 @@ async def setup_module(center, config):
         center.actions.register("sample", action_id, handle_action, schema)
 
     conf = config["sample"]
-    state_file = conf.get(SAMPLE_STATE_FILE)
+    state_file = conf.get(SAMPLE_STATE_FILE) if conf else None
     if state_file is None:
         return
     state_data = await center.add_executor_job(read_csv, state_file)
