@@ -7,7 +7,7 @@ from camacq.api.leica import LeicaImageEvent
 from camacq.api.leica.helper import get_imgs
 from camacq.const import JOB_ID
 from camacq.image import make_proj
-from camacq.plugins.gain import calc_gain
+from camacq.plugins.gain import calc_gain, GAIN_CALC_EVENT
 
 from tests.common import GAIN_DATA_DIR, WELL_NAME, WELL_PATH
 
@@ -60,13 +60,34 @@ async def test_gain(center):
     images = {event.channel_id: event.path for event in events}
     projs = await center.add_executor_job(make_proj, images)
     save_path = WELL_PATH / WELL_NAME
+    plate_name = "slide"
+    well_x, well_y = 1, 0
+    calculated = {}
+
+    def handle_gain_event(center, event):
+        """Handle gain event."""
+        if (
+            event.plate_name != plate_name
+            or event.well_x != well_x
+            or event.well_y != well_y
+        ):
+            return
+        calculated[event.channel_name] = event.gain
+
+    center.bus.register(GAIN_CALC_EVENT, handle_gain_event)
+
     await calc_gain(
-        center, config, "slide", 1, 0, projs, plot=False, save_path=save_path
+        center,
+        config,
+        plate_name,
+        well_x,
+        well_y,
+        projs,
+        plot=False,
+        save_path=save_path,
     )
-    well = center.sample.get_well("slide", 1, 0)
-    calculated = {
-        channel_name: channel.gain for channel_name, channel in well.channels.items()
-    }
+    await center.wait_for()
+
     pprint.pprint(calculated)
     solution = {"blue": 480, "green": 740, "red": 805, "yellow": 805}
     assert calculated == pytest.approx(solution, abs=10)
