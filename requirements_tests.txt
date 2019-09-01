@@ -1,5 +1,5 @@
 asynctest==0.13.0
-click==6.7
+click==7.0
 # pin a minimum working lxml for tox
 lxml>=4.2.1
 pytest==5.1.1
