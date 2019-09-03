@@ -261,7 +261,6 @@ async def test_sample_access(center, mock_api):
                   field_x: '{{ trigger.event.field_x }}'
                   field_y: '{{ trigger.event.field_y }}'
                   img_ok: true
-                  overwrite: true
         sample:
     """
 
