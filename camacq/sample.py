@@ -30,9 +30,7 @@ ACTION_SET_FIELD = "set_field"
 ACTION_SET_CHANNEL = "set_channel"
 
 SET_PLATE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
-    {
-        vol.Required("plate_name"): vol.Coerce(str),
-    }
+    {vol.Required("plate_name"): vol.Coerce(str)}
 )
 
 SET_WELL_ACTION_SCHEMA = SET_PLATE_ACTION_SCHEMA.extend(
@@ -631,9 +629,7 @@ class Sample:
         channel = well.channels.get(channel_name)
         return channel
 
-    def set_channel(
-        self, plate_name, well_x, well_y, channel_name, **values
-    ):
+    def set_channel(self, plate_name, well_x, well_y, channel_name, **values):
         """Set attribute value in a channel in a well of a plate.
 
         Create a Well instance if well not already exists. Pick the
@@ -697,15 +693,7 @@ class Sample:
         return field
 
     def set_field(
-        self,
-        plate_name,
-        well_x,
-        well_y,
-        field_x,
-        field_y,
-        dxpx=0,
-        dypx=0,
-        img_ok=False,
+        self, plate_name, well_x, well_y, field_x, field_y, dxpx=0, dypx=0, img_ok=False
     ):
         """Set a field in a well of a plate.
 
