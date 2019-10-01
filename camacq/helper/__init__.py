@@ -83,8 +83,7 @@ async def setup_all_modules(center, config, package_path, **kwargs):
     ):
         if "main" in name:
             continue
-        else:
-            module = import_module(name)
+        module = import_module(name)
         _LOGGER.debug("Loaded %s", name)
         keys = [name for name in imported_pkg.__name__.split(".") if name != PACKAGE]
         pkg_config = _deep_conf_access(config, keys)
