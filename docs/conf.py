@@ -55,10 +55,10 @@ try:
     release = pkg_resources.get_distribution("camacq").version
 except pkg_resources.DistributionNotFound:
     print(
-        "To build the documentation, The distribution information of camacq"
-        "Has to be available.  Either install the package into your"
+        "To build the documentation, the distribution information of camacq "
+        "has to be available. Either install the package into your"
         'development environment or run "setup.py develop" to setup the'
-        "metadata.  A virtualenv is recommended!"
+        "metadata. A virtualenv is recommended!"
     )
     sys.exit(1)
 del pkg_resources
