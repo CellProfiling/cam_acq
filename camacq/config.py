@@ -2,8 +2,8 @@
 import logging
 import os
 
-from ruamel.yaml import YAML, YAMLError
 from pkg_resources import resource_filename
+from ruamel.yaml import YAML, YAMLError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,7 +20,8 @@ def get_default_config_dir():
     str
         Return the path to the configuration directory.
     """
-    data_dir = os.getenv("APPDATA") if os.name == "nt" else os.path.expanduser("~")
+    data_dir = os.getenv(
+        "APPDATA") if os.name == "nt" else os.path.expanduser("~")
     return os.path.join(data_dir, CONFIG_DIR_NAME)
 
 
@@ -87,7 +88,8 @@ def create_default_config(config_dir):
         failed.
     """
     config_path = os.path.join(config_dir, YAML_CONFIG_FILE)
-    default_config_template = resource_filename(__name__, DEFAULT_CONFIG_TEMPLATE)
+    default_config_template = resource_filename(
+        __name__, DEFAULT_CONFIG_TEMPLATE)
     data = load_config_file(default_config_template)
     yaml = YAML()
 
@@ -95,7 +97,8 @@ def create_default_config(config_dir):
         with open(config_path, "w") as config_file:
             yaml.dump(data, config_file)
     except OSError:
-        _LOGGER.error("Unable to create default configuration file %s", config_path)
+        _LOGGER.error(
+            "Unable to create default configuration file %s", config_path)
         return None
 
     return config_path
