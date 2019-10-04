@@ -7,17 +7,22 @@ from camacq.api.leica import LeicaImageEvent
 from camacq.api.leica.helper import get_imgs
 from camacq.const import JOB_ID
 from camacq.image import make_proj
-from camacq.plugins.gain import calc_gain
+from camacq.plugins.gain import calc_gain, GAIN_CALC_EVENT
 
 from tests.common import GAIN_DATA_DIR, WELL_NAME, WELL_PATH
 
 # All test coroutines will be treated as marked.
 pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
 
+SAVE_PATH = WELL_PATH / WELL_NAME
+PLATE_NAME = "slide"
+WELL_X, WELL_Y = 1, 0
+GAIN_IMAGE_JOB_ID = 2
+
 
 async def test_gain(center):
     """Run gain calculation test."""
-    images = get_imgs(WELL_PATH.as_posix(), search=JOB_ID.format(2))
+    images = get_imgs(WELL_PATH.as_posix(), search=JOB_ID.format(GAIN_IMAGE_JOB_ID))
     config = {
         "plugins": {
             "gain": {
@@ -59,14 +64,32 @@ async def test_gain(center):
     events = [LeicaImageEvent({"path": path}) for path in images]
     images = {event.channel_id: event.path for event in events}
     projs = await center.add_executor_job(make_proj, images)
-    save_path = WELL_PATH / WELL_NAME
+    calculated = {}
+
+    async def handle_gain_event(center, event):
+        """Handle gain event."""
+        if (
+            event.plate_name != PLATE_NAME
+            or event.well_x != WELL_X
+            or event.well_y != WELL_Y
+        ):
+            return
+        calculated[event.channel_name] = event.gain
+
+    center.bus.register(GAIN_CALC_EVENT, handle_gain_event)
+
     await calc_gain(
-        center, config, "slide", 1, 0, projs, plot=False, save_path=save_path
+        center,
+        config,
+        PLATE_NAME,
+        WELL_X,
+        WELL_Y,
+        projs,
+        plot=False,
+        save_path=SAVE_PATH,
     )
-    well = center.sample.get_well("slide", 1, 0)
-    calculated = {
-        channel_name: channel.gain for channel_name, channel in well.channels.items()
-    }
+    await center.wait_for()
+
     pprint.pprint(calculated)
     solution = {"blue": 480, "green": 740, "red": 805, "yellow": 805}
     assert calculated == pytest.approx(solution, abs=10)

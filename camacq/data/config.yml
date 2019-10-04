@@ -129,7 +129,7 @@ automations:
   - name: set_exp_gain
     trigger:
       - type: event
-        id: channel_event
+        id: gain_calc_event
     action:
       - type: command
         id: send
@@ -159,7 +159,7 @@ automations:
               {% else %}{{ [trigger.event.channel.gain + 25, 735] | min }}
               {% endif %}
             {% endif %}
-        # Reset channel to indicate that the channel is set at the microscope.
+        # Set channel to indicate that the channel is set at the microscope.
       - type: sample
         id: set_channel
         data:
@@ -167,7 +167,6 @@ automations:
           well_x: "{{ trigger.event.well_x }}"
           well_y: "{{ trigger.event.well_y }}"
           channel_name: "{{ trigger.event.channel_name }}"
-          overwrite: true
   - name: add_exp_job
     trigger:
       - type: event
@@ -178,11 +177,6 @@ automations:
       conditions:
         - condition: >
             {% if trigger.event.well.channels | length == 4 %}
-              true
-            {% endif %}
-        - condition: >
-            {% if trigger.event.well.channels.values() | rejectattr("gain") |
-                list | length == 4 %}
               true
             {% endif %}
     action:
@@ -244,7 +238,6 @@ automations:
           field_x: "{{ trigger.event.field_x }}"
           field_y: "{{ trigger.event.field_y }}"
           img_ok: true
-          overwrite: true
   - name: rename_image
     trigger:
       - type: event
@@ -283,11 +276,6 @@ automations:
     action:
       - type: command
         id: stop_imaging
-        # Set a plate the first time.
-      - type: sample
-        id: set_plate
-        data:
-          plate_name: '00'
       - type: sample
         id: set_field
         data:

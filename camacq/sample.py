@@ -30,11 +30,7 @@ ACTION_SET_FIELD = "set_field"
 ACTION_SET_CHANNEL = "set_channel"
 
 SET_PLATE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
-    {
-        vol.Required("plate_name"): vol.Coerce(str),
-        # pylint: disable=no-value-for-parameter
-        vol.Optional("overwrite", default=False): vol.Boolean(),
-    }
+    {vol.Required("plate_name"): vol.Coerce(str)}
 )
 
 SET_WELL_ACTION_SCHEMA = SET_PLATE_ACTION_SCHEMA.extend(
@@ -546,19 +542,15 @@ class Sample:
         plate = self._plates.get(plate_name)
         return plate
 
-    def set_plate(self, plate_name, overwrite=False):
+    def set_plate(self, plate_name):
         """Create a plate with name for the sample.
 
         Parameters
         ----------
         plate_name : str
             The name of the plate.
-        overwrite : bool
-            Allow the plate to be overwritten if it already exists.
 
         """
-        if not overwrite and plate_name in self._plates:
-            return None
         plate = Plate(self._images, plate_name)
         self._plates[plate.name] = plate
         self._bus.notify(PlateEvent({"sample": self, "plate": plate}))
@@ -587,7 +579,7 @@ class Sample:
         well = plate.wells.get((well_x, well_y))
         return well
 
-    def set_well(self, plate_name, well_x, well_y, overwrite=False):
+    def set_well(self, plate_name, well_x, well_y):
         """Set a well on a plate.
 
         Parameters
@@ -598,8 +590,6 @@ class Sample:
             x coordinate of the well.
         well_y : int
             y coordinate of the well.
-        overwrite : bool
-            Allow the well to be overwritten if it already exists.
 
         Returns
         -------
@@ -609,8 +599,6 @@ class Sample:
         plate = self.get_plate(plate_name)
         if not plate:
             plate = self.set_plate(plate_name)
-        if not overwrite and (well_x, well_y) in plate.wells:
-            return None
         well = plate.set_well(well_x, well_y)
         event = WellEvent({"sample": self, "plate": plate, "well": well})
         self._bus.notify(event)
@@ -641,9 +629,7 @@ class Sample:
         channel = well.channels.get(channel_name)
         return channel
 
-    def set_channel(
-        self, plate_name, well_x, well_y, channel_name, overwrite=False, **values
-    ):
+    def set_channel(self, plate_name, well_x, well_y, channel_name, **values):
         """Set attribute value in a channel in a well of a plate.
 
         Create a Well instance if well not already exists. Pick the
@@ -660,8 +646,6 @@ class Sample:
             y coordinate of the well.
         channel_name : str
             The name of the channel where to set attribute value.
-        overwrite : bool
-            Allow the channel to be overwritten if it already exists.
         values : dict
             The attributes and values of the channel to set.
         """
@@ -672,8 +656,6 @@ class Sample:
         well = self.get_well(plate_name, well_x, well_y)
         if not well:
             well = self.set_well(plate_name, well_x, well_y)
-        if not overwrite and channel_name in well.channels:
-            return None
         channel = well.set_channel(well_x, well_y, channel_name, **values)
         event = ChannelEvent(
             {"sample": self, "plate": plate, "well": well, "channel": channel}
@@ -711,16 +693,7 @@ class Sample:
         return field
 
     def set_field(
-        self,
-        plate_name,
-        well_x,
-        well_y,
-        field_x,
-        field_y,
-        dxpx=0,
-        dypx=0,
-        img_ok=False,
-        overwrite=False,
+        self, plate_name, well_x, well_y, field_x, field_y, dxpx=0, dypx=0, img_ok=False
     ):
         """Set a field in a well of a plate.
 
@@ -744,8 +717,6 @@ class Sample:
             Pixel y coordinate of region of interest within image.
         img_ok : bool
             True if field has acquired an ok image.
-        overwrite : bool
-            Allow the field to be overwritten if it already exists.
         """
         # pylint: disable=too-many-arguments
         plate = self.get_plate(plate_name)
@@ -754,8 +725,6 @@ class Sample:
         well = self.get_well(plate_name, well_x, well_y)
         if not well:
             well = self.set_well(plate_name, well_x, well_y)
-        if not overwrite and (field_x, field_y) in well.fields:
-            return None
         field = well.set_field(field_x, field_y, dxpx, dypx, img_ok)
         event = FieldEvent(
             {"sample": self, "plate": plate, "well": well, "field": field}
