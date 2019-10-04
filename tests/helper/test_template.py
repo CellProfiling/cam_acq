@@ -19,14 +19,14 @@ async def test_next_well(center):
     """
 
     data = await center.add_executor_job(YAML(typ="safe").load, data)
-    center.sample.set_plate("test_plate")
+    await center.sample.set_plate("test_plate")
     tmpl = make_template(center, data)
     render = render_template(tmpl, {})
     assert render["data"]["next_well_x"] == "0"
     assert render["data"]["next_well_y"] == "0"
 
-    center.sample.set_well("test_plate", 0, 0)
-    center.sample.set_field("test_plate", 0, 0, 0, 0, img_ok=True)
+    await center.sample.set_well("test_plate", 0, 0)
+    await center.sample.set_field("test_plate", 0, 0, 0, 0, img_ok=True)
 
     render = render_template(tmpl, {})
     assert render["data"]["next_well_x"] == "0"

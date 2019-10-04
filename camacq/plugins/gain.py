@@ -1,7 +1,6 @@
 """Handle default gain feedback plugin."""
 import logging
 import os
-from builtins import range  # pylint: disable=redefined-builtin
 from collections import defaultdict, namedtuple
 from functools import partial
 from itertools import groupby
@@ -124,7 +123,7 @@ async def calc_gain(
                 "gain": gain,
             }
         )
-        center.bus.notify(event)
+        await center.bus.notify(event)  # await in sequential order
 
 
 def _power_func(inp, alpha, beta):

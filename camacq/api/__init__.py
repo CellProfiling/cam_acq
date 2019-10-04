@@ -1,6 +1,7 @@
 """Microscope API specific modules."""
 import asyncio
 import json
+import logging
 
 import voluptuous as vol
 
@@ -12,6 +13,8 @@ from camacq.const import (
 )
 from camacq.event import Event
 from camacq.helper import BASE_ACTION_SCHEMA, setup_all_modules
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def validate_commands(value):
@@ -53,11 +56,11 @@ ACTION_TO_METHOD = {
 }
 
 
-def register_api(center, api_name, api):
+def register_api(center, api):
     """Register api."""
     if DATA_API not in center.data:
         center.data[DATA_API] = {}
-    center.data[DATA_API][api_name] = api
+    center.data[DATA_API][api.name] = api
 
 
 async def setup_package(center, config):
@@ -91,6 +94,7 @@ async def setup_package(center, config):
             apis = list(center.data[DATA_API].values())
         tasks = []
         for api in apis:
+            _LOGGER.debug("Handle API %s action %s: %s", api.name, action_id, kwargs)
             tasks.append(center.create_task(getattr(api, method)(**kwargs)))
         if tasks:
             await asyncio.wait(tasks)
@@ -102,6 +106,11 @@ async def setup_package(center, config):
 
 class Api:
     """Represent the microscope API."""
+
+    @property
+    def name(self):
+        """Return the name of the API."""
+        raise NotImplementedError()
 
     async def send(self, command):
         """Send a command to the microscope API.
@@ -185,43 +194,43 @@ class ImageEvent(Event):
 
     @property
     def path(self):
-        """:str: Return the absolute path to the image."""
-        return None
+        """:str: Return absolute path to the image."""
+        return self.data.get("path")
 
     @property
     def well_x(self):
         """:int: Return x coordinate of the well of the image."""
-        return None
+        return self.data.get("well_x")
 
     @property
     def well_y(self):
         """:int: Return y coordinate of the well of the image."""
-        return None
+        return self.data.get("well_y")
 
     @property
     def field_x(self):
         """:int: Return x coordinate of the well of the image."""
-        return None
+        return self.data.get("field_x")
 
     @property
     def field_y(self):
         """:int: Return y coordinate of the well of the image."""
-        return None
+        return self.data.get("field_y")
 
     @property
     def z_slice(self):
         """:int: Return z index of the image."""
-        return None
+        return self.data.get("z_slice")
 
     @property
     def channel_id(self):
         """:int: Return channel id of the image."""
-        return None
+        return self.data.get("channel_id")
 
     @property
     def plate_name(self):
         """:str: Return plate name of the image."""
-        return None
+        return self.data.get("plate_name")
 
     def __repr__(self):
         """Return the representation."""

@@ -143,12 +143,14 @@ class Automation:
     async def trigger(self, variables):
         """Run actions of this automation."""
         variables["sample"] = self._center.sample
+        _LOGGER.debug("Triggered %s", self)
         try:
             cond = self._cond_func(variables)
         except TemplateError as exc:
             _LOGGER.error("Failed to render condition for %s: %s", self.name, exc)
             return
         if cond:
+            _LOGGER.debug("Condition passed for %s", self.name)
             await self._action_sequence(variables)
 
 
@@ -161,23 +163,25 @@ class ActionSequence:
         """Set up instance."""
         self._center = center
         self.actions = list(actions)  # copy to list to make sure it's a list
-        self.waiting = None
 
     async def __call__(self, variables):
         """Start action sequence."""
-        self.waiting = deque(self.actions)
-        while self.waiting:
-            action = self.waiting.popleft()
+        waiting = deque(self.actions)
+        while waiting:
+            action = waiting.popleft()
 
             if action.action_type == "automations" and action.action_id == ACTION_DELAY:
                 rendered_kwargs = action.render(variables)
                 seconds = rendered_kwargs.get("seconds")
-                self.delay(float(seconds), variables)
+                self.delay(float(seconds), variables, waiting)
 
             else:
+                _LOGGER.debug(
+                    "Calling action %s.%s", action.action_type, action.action_id
+                )
                 await action(variables)
 
-    def delay(self, seconds, variables):
+    def delay(self, seconds, variables, waiting):
         """Delay action sequence.
 
         Parameters
@@ -187,9 +191,9 @@ class ActionSequence:
         variables : dict
             A dict of template variables.
         """
-        sequence = ActionSequence(self._center, self.waiting)
+        sequence = ActionSequence(self._center, waiting)
         callback = partial(self._center.create_task, sequence(variables))
-        self.waiting.clear()
+        waiting.clear()
         _LOGGER.info("Action delay for %s seconds", seconds)
         callback = self._center.loop.call_later(seconds, callback)
 
@@ -258,7 +262,7 @@ def _process_trigger(center, config_block, trigger):
         trigger_mod = get_module(__name__, trigger_type)
         if not trigger_mod:
             continue
-        _LOGGER.info("Setting up trigger %s", trigger_id)
+        _LOGGER.debug("Setting up trigger %s", trigger_id)
 
         remove = trigger_mod.handle_trigger(center, conf, trigger)
         if not remove:
@@ -283,7 +287,7 @@ def _process_automations(center, config):
     conf = config.get(CONF_AUTOMATION)
     for block in conf:
         name = block[CONF_NAME]
-        _LOGGER.info("Setting up automation %s", name)
+        _LOGGER.debug("Setting up automation %s", name)
         action_sequence = _get_actions(center, block.get(CONF_ACTION, []))
         if CONF_CONDITION in block:
             try:

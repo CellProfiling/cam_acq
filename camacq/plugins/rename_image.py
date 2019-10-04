@@ -50,8 +50,8 @@ async def setup_module(center, config):
         if not result:
             return
         image = center.sample.get_image(old_path)
-        center.sample.remove_image(old_path)
-        center.sample.set_image(
+        await center.sample.remove_image(old_path)
+        await center.sample.set_image(
             new_path,
             image.channel_id,
             image.field_x,

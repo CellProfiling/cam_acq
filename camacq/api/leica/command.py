@@ -1,5 +1,4 @@
 """Handle commands."""
-from builtins import str  # pylint: disable=redefined-builtin
 
 
 def start():

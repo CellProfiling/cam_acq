@@ -1,7 +1,6 @@
 """Helper functions for Leica api."""
 import ntpath
 import os
-from builtins import str  # pylint: disable=redefined-builtin
 
 from leicaexperiment import experiment
 
