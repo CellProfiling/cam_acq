@@ -8,6 +8,7 @@ from functools import partial
 
 import voluptuous as vol
 
+from camacq.exceptions import TemplateError
 from camacq.helper import BASE_ACTION_SCHEMA, get_module
 from camacq.helper.template import make_template, render_template
 from camacq.const import CAMACQ_STOP_EVENT, CONF_DATA, CONF_ID
@@ -87,7 +88,16 @@ class TemplateAction:
     def render(self, variables):
         """Render the template with the kwargs for the action."""
         variables = variables or {}
-        rendered = render_template(self.template, variables)
+        try:
+            rendered = render_template(self.template, variables)
+        except TemplateError as exc:
+            _LOGGER.error(
+                "Failed to render variables for %s.%s: %s",
+                self.action_type,
+                self.action_id,
+                exc,
+            )
+            raise
         return rendered
 
 
@@ -130,7 +140,12 @@ class Automation:
     async def trigger(self, variables):
         """Run actions of this automation."""
         variables["sample"] = self._center.sample
-        if self._cond_func(variables):
+        try:
+            cond = self._cond_func(variables)
+        except TemplateError as exc:
+            _LOGGER.error("Failed to render condition for %s: %s", self.name, exc)
+            return
+        if cond:
             await self._action_sequence(variables)
 
 

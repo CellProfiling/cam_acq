@@ -7,6 +7,7 @@ from async_timeout import timeout as async_timeout
 import voluptuous as vol
 
 from camacq.event import Event, EventBus
+from camacq.exceptions import CamAcqError
 from camacq.const import ACTION_TIMEOUT, CAMACQ_START_EVENT, CAMACQ_STOP_EVENT
 from camacq.helper import register_signals
 from camacq.sample import Sample
@@ -82,14 +83,30 @@ class ActionsRegistry:
         try:
             kwargs = action.schema(kwargs)
         except vol.Invalid as exc:
-            _LOGGER.error("Invalid action call parameters %s: %s", kwargs, exc)
+            _LOGGER.error(
+                "Invalid action call parameters %s: %s for action: %s.%s",
+                kwargs,
+                exc,
+                action_type,
+                action_id,
+            )
             return
         _LOGGER.info("Calling action %s.%s: %s", action_type, action_id, kwargs)
         try:
             async with async_timeout(ACTION_TIMEOUT):
                 await action.func(action_id=action_id, **kwargs)
         except asyncio.TimeoutError:
-            _LOGGER.error("Action timed out after %s seconds", ACTION_TIMEOUT)
+            _LOGGER.error(
+                "Action %s.%s. timed out after %s seconds",
+                action_type,
+                action_id,
+                ACTION_TIMEOUT,
+            )
+        except CamAcqError as exc:
+            _LOGGER.error(
+                "Failed to call action %s.%s: %s", action_type, action_id, exc
+            )
+            raise
 
 
 class Center:

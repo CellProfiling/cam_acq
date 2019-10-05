@@ -1,5 +1,8 @@
 """Handle templates."""
+import jinja2
 from jinja2.sandbox import ImmutableSandboxedEnvironment
+
+from camacq.exceptions import TemplateError
 
 TEMPLATE_ENV_DATA = "template_env"
 
@@ -42,7 +45,11 @@ def render_template(data, variables):
     if isinstance(data, list):
         return [render_template(val, variables) for val in data]
 
-    return data.render(variables)
+    try:
+        rendered = data.render(variables)
+    except jinja2.TemplateError as exc:
+        raise TemplateError(exc)
+    return rendered
 
 
 class TemplateFunctions:
