@@ -119,6 +119,7 @@ class Center:
     def __init__(self, loop=None):
         """Set up instance."""
         self.loop = loop or asyncio.get_event_loop()
+        self.loop.set_exception_handler(loop_exception_handler)
         self.bus = EventBus(self)
         self.sample = Sample(self.bus)
         self.actions = ActionsRegistry(self)
@@ -185,15 +186,25 @@ class Center:
 
     async def wait_for(self):
         """Wait for all pending tasks."""
-        _LOGGER.debug("Waiting for pending tasks")
         await asyncio.sleep(0)
         while self._pending_tasks:
             pending = [task for task in self._pending_tasks if not task.done()]
             self._pending_tasks.clear()
             if pending:
+                _LOGGER.debug("Waiting for pending tasks: %s", pending)
                 await asyncio.wait(pending)
             else:
                 await asyncio.sleep(0)
+
+
+def loop_exception_handler(loop, context):
+    """Handle exceptions inside the event loop."""
+    kwargs = {}
+    exc = context.get("exception")
+    if exc:
+        kwargs["exc_info"] = exc
+
+    _LOGGER.error("Error running job: %s", context["message"], **kwargs)
 
 
 # pylint: disable=too-few-public-methods
