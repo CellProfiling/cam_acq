@@ -8,7 +8,7 @@ from functools import partial
 
 import voluptuous as vol
 
-from camacq.exceptions import TemplateError
+from camacq.exceptions import AutomationError, TemplateError
 from camacq.helper import BASE_ACTION_SCHEMA, get_module
 from camacq.helper.template import make_template, render_template
 from camacq.const import CAMACQ_STOP_EVENT, CONF_DATA, CONF_ID
@@ -82,7 +82,10 @@ class TemplateAction:
 
     async def __call__(self, variables=None):
         """Execute action with optional template variables."""
-        rendered = self.render(variables)
+        try:
+            rendered = self.render(variables)
+        except TemplateError:
+            return
         await self._center.actions.call(self.action_type, self.action_id, **rendered)
 
     def render(self, variables):
@@ -242,7 +245,7 @@ def _process_condition(center, config_block):
         data = config_block[CONF_CONDITION]
         template = make_template(center, data)
         return partial(render_template, template)
-    raise ValueError("Invalid condition: {}".format(config_block))
+    raise AutomationError("Invalid condition: {}".format(config_block))
 
 
 def _process_trigger(center, config_block, trigger):
@@ -283,7 +286,10 @@ def _process_automations(center, config):
         _LOGGER.info("Setting up automation %s", name)
         action_sequence = _get_actions(center, block.get(CONF_ACTION, []))
         if CONF_CONDITION in block:
-            cond_func = _process_condition(center, block[CONF_CONDITION])
+            try:
+                cond_func = _process_condition(center, block[CONF_CONDITION])
+            except AutomationError:
+                continue
         else:
 
             def cond_func(variables):
