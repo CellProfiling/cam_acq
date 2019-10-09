@@ -2,8 +2,8 @@
 import logging
 import os
 
-from ruamel.yaml import YAML, YAMLError
 from pkg_resources import resource_filename
+from ruamel.yaml import YAML, YAMLError
 
 _LOGGER = logging.getLogger(__name__)
 
