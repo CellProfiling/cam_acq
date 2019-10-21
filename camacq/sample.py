@@ -386,6 +386,11 @@ class Well:
             The name of the channel where to set attribute value.
         values : dict
             The attributes and values to set.
+
+        Returns
+        -------
+        Channel instance
+            Return the Channel instance.
         """
         if channel_name not in self._channels:
             self._channels[channel_name] = Channel(channel_name)
@@ -550,6 +555,10 @@ class Sample:
         plate_name : str
             The name of the plate.
 
+        Returns
+        -------
+        Plate instance
+            Return the Plate instance.
         """
         plate = Plate(self._images, plate_name)
         self._plates[plate.name] = plate
@@ -648,6 +657,11 @@ class Sample:
             The name of the channel where to set attribute value.
         values : dict
             The attributes and values of the channel to set.
+
+        Returns
+        -------
+        Channel instance
+            Return the Channel instance.
         """
         # pylint: disable=too-many-arguments
         plate = self.get_plate(plate_name)
@@ -717,6 +731,11 @@ class Sample:
             Pixel y coordinate of region of interest within image.
         img_ok : bool
             True if field has acquired an ok image.
+
+        Returns
+        -------
+        Field instance
+            Return the Field instance.
         """
         # pylint: disable=too-many-arguments
         plate = self.get_plate(plate_name)
@@ -779,6 +798,11 @@ class Sample:
             The well y coordinate of the image.
         plate_name : str
             The name of the plate of the image.
+
+        Returns
+        -------
+        Image instance
+            Return the Image instance.
         """
         # pylint: disable=too-many-arguments, too-many-locals
         image = Image(
@@ -803,19 +827,20 @@ class Sample:
                     dypx=0,
                     img_ok=False,
                 )
-            return
+            return image
 
         if all(name is not None for name in (plate_name, well_x, well_y)):
             well = self.get_well(plate_name, well_x, well_y)
             if not well:
                 well = await self.set_well(plate_name, well_x, well_y)
-            return
+            return image
 
         if plate_name is None:
-            return
+            return image
         plate = self.get_plate(plate_name)
         if not plate:
             plate = await self.set_plate(plate_name)
+        return image
 
     async def remove_image(self, path):
         """Remove an image from the sample.
@@ -824,10 +849,16 @@ class Sample:
         ----------
         path : str
             The path to the image that should be removed.
+
+        Returns
+        -------
+        Image instance
+            Return the Image instance that was removed.
         """
         image = self._images.pop(path, None)
         if image is not None:
             await self._bus.notify(ImageRemovedEvent({"image": image}))
+        return image
 
 
 # pylint: disable=too-few-public-methods
