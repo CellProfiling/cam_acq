@@ -1,6 +1,5 @@
 """Hold events."""
 import logging
-from collections import defaultdict
 
 from camacq.const import BASE_EVENT
 
@@ -47,7 +46,7 @@ class EventBus:
     def __init__(self, center):
         """Set up instance."""
         self._center = center
-        self._registry = defaultdict(list)
+        self._registry = {}
 
     @property
     def event_types(self):
@@ -56,7 +55,8 @@ class EventBus:
 
     def _register_handler(self, event_type, handler):
         """Register handler to fire for events of type event_class."""
-        self._registry[event_type].append(handler)
+        handlers = self._registry.setdefault(event_type, [])
+        handlers.append(handler)
 
     def register(self, event_type, handler):
         """Register event handler and return a function to remove it.
@@ -91,7 +91,7 @@ class EventBus:
 
         return remove
 
-    def notify(self, event):
+    async def notify(self, event):
         """Notify handlers that an event has fired.
 
         Parameters
@@ -101,11 +101,10 @@ class EventBus:
         """
         _LOGGER.debug("Notifying event %s", event)
         # Inspired by https://goo.gl/VEPG3n
-        # copy to make sure the dict is not modified during iteration
-        registry = dict(self._registry)
+        registry = self._registry
         for event_class in event.__class__.__mro__:
-            # Handle base objects for both python 2 and 3.
-            if event_class.__name__ == "object" or event_class.__name__ == "newobject":
+            # Handle base objects for Python 3.
+            if event_class.__name__ == "object":
                 continue
             for handler in registry.get(event_class.event_type, []):
-                self._center.create_task(handler(self._center, event))
+                await handler(self._center, event)  # await in sequential order

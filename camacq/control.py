@@ -55,7 +55,7 @@ class ActionsRegistry:
             return
         if action_type not in self._actions:
             self._actions[action_type] = {}
-        _LOGGER.info("Registering action %s.%s", action_type, action_id)
+        _LOGGER.debug("Registering action %s.%s", action_type, action_id)
         self._actions[action_type][action_id] = Action(action_func, schema)
 
     async def call(self, action_type, action_id, **kwargs):
@@ -160,7 +160,7 @@ class Center:
         """
         _LOGGER.info("Stopping camacq")
         self._track_tasks = True
-        self.bus.notify(CamAcqStopEvent({"exit_code": code}))
+        await self.bus.notify(CamAcqStopEvent({"exit_code": code}))
         self._exit_code = code
         await self.wait_for()
         if self._stopped is not None:
@@ -171,7 +171,7 @@ class Center:
     async def start(self):
         """Start the app."""
         _LOGGER.info("Starting camacq")
-        self.bus.notify(CamAcqStartEvent())
+        await self.bus.notify(CamAcqStartEvent())
         self._stopped = asyncio.Event()
         register_signals(self)
         await self._stopped.wait()
@@ -205,10 +205,10 @@ class Center:
         """Wait for all pending tasks."""
         await asyncio.sleep(0)
         while self._pending_tasks:
+            _LOGGER.debug("Waiting for pending tasks")
             pending = [task for task in self._pending_tasks if not task.done()]
             self._pending_tasks.clear()
             if pending:
-                _LOGGER.debug("Waiting for pending tasks: %s", pending)
                 await asyncio.wait(pending)
             else:
                 await asyncio.sleep(0)

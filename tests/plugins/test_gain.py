@@ -1,5 +1,6 @@
 """Test gain calculation."""
 import pprint
+from functools import partial
 
 import pytest
 
@@ -7,8 +8,7 @@ from camacq.api.leica import LeicaImageEvent
 from camacq.api.leica.helper import get_imgs
 from camacq.const import JOB_ID
 from camacq.image import make_proj
-from camacq.plugins.gain import calc_gain, GAIN_CALC_EVENT
-
+from camacq.plugins.gain import GAIN_CALC_EVENT, calc_gain
 from tests.common import GAIN_DATA_DIR, WELL_NAME, WELL_PATH
 
 # All test coroutines will be treated as marked.
@@ -22,7 +22,10 @@ GAIN_IMAGE_JOB_ID = 2
 
 async def test_gain(center):
     """Run gain calculation test."""
-    images = get_imgs(WELL_PATH.as_posix(), search=JOB_ID.format(GAIN_IMAGE_JOB_ID))
+    get_images = partial(
+        get_imgs, WELL_PATH.as_posix(), search=JOB_ID.format(GAIN_IMAGE_JOB_ID)
+    )
+    images = await center.add_executor_job(get_images)
     config = {
         "plugins": {
             "gain": {

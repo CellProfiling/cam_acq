@@ -2,8 +2,12 @@
 # Copyright 2013-2017 The Home Assistant Authors
 # https://github.com/home-assistant/home-assistant/blob/master/LICENSE.md
 # This file was modified by The Camacq Authors.
+import logging
+
 from camacq.automations import CONF_TYPE
 from camacq.const import CONF_ID, CONF_TRIGGER
+
+_LOGGER = logging.getLogger(__name__)
 
 ATTR_EVENT = "event"
 CONF_EVENT_DATA = "data"
@@ -20,6 +24,7 @@ def handle_trigger(center, config, trigger_func):
         if not event_data or all(
             val == getattr(event, key, None) for key, val in event_data.items()
         ):
+            _LOGGER.debug("Trigger matched for event %s", event_type)
             # pass variables from trigger with event
             await trigger_func(
                 {CONF_TRIGGER: {CONF_TYPE: CONF_EVENT, ATTR_EVENT: event}}

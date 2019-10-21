@@ -4,7 +4,7 @@ logging:
   formatters:
     colored:
       (): colorlog.ColoredFormatter
-      format: '%(log_color)s%(asctime)s;%(levelname)-8s;%(name)-18s;%(message)s'
+      format: "%(log_color)s%(asctime)s;%(levelname)-8s;%(name)-18s;%(message)s"
       log_colors:
         DEBUG: cyan
         INFO: green
@@ -12,9 +12,9 @@ logging:
         ERROR: red
         CRITICAL: red
     simple:
-      format: '%(name)-18s: %(levelname)-8s %(message)s'
+      format: "%(name)-18s: %(levelname)-8s %(message)s"
     verbose:
-      format: '%(asctime)s;%(name)-18s;%(levelname)-8s;%(message)s'
+      format: "%(asctime)s;%(name)-18s;%(levelname)-8s;%(message)s"
   handlers:
     console:
       class: logging.StreamHandler
@@ -30,7 +30,7 @@ logging:
       class: logging.handlers.RotatingFileHandler
       maxBytes: 1048576
   loggers:
-    '':
+    "":
       level: DEBUG
       handlers:
         - console
@@ -46,7 +46,8 @@ plugins:
         init_gain: [550, 585, 620, 655, 690, 725, 760]
       - channel: red
         init_gain: [525, 560, 595, 630, 665, 700, 735]
-#    save_dir: path/to/save_dir
+  #    save_dir: path/to/save_dir
+  rename_image:
 
 api:
   leica:
@@ -58,6 +59,25 @@ api:
 #  state_file: '/path/to/sample/state/file.csv'
 
 automations:
+  - name: start_experiement
+    trigger:
+      - type: event
+        id: camacq_start_event
+    action:
+      # Set a plate the first time.
+      - type: sample
+        id: set_plate
+        data:
+          plate_name: "00"
+      - type: sample
+        id: set_well
+        data:
+          # Add next sample well for wells in sample if well is not done.
+          plate_name: "00"
+          well_x: >
+            {{ next_well_x('00') }}
+          well_y: >
+            {{ next_well_y('00') }}
   - name: image_next_well
     trigger:
       - type: event
@@ -70,22 +90,23 @@ automations:
       - type: command
         id: send
         data:
-          command: >
-            /cmd:deletelist
+          command: "/cmd:deletelist"
       - type: command
         id: send
         data:
           command: >
-            /cmd:add /tar:camlist /exp:gain_job /ext:af /slide:0
-            /wellx:{{ trigger.event.well.x }} /welly:{{ trigger.event.well.y }}
-            /fieldx:1 /fieldy:1 /dxpos:0 /dypos:0
+            /cmd:add /tar:camlist /exp:p10xgain /ext:af /slide:0
+            /wellx:{{ trigger.event.well.x + 1 }}
+            /welly:{{ trigger.event.well.y + 1 }} /fieldx:1 /fieldy:2 /dxpos:0
+            /dypos:0
       - type: command
         id: send
         data:
           command: >
-            /cmd:add /tar:camlist /exp:gain_job /ext:af /slide:0
-            /wellx:{{ trigger.event.well.x }} /welly:{{ trigger.event.well.y }}
-            /fieldx:2 /fieldy:2 /dxpos:0 /dypos:0
+            /cmd:add /tar:camlist /exp:p10xgain /ext:af /slide:0
+            /wellx:{{ trigger.event.well.x + 1 }}
+            /welly:{{ trigger.event.well.y + 1 }} /fieldx:2 /fieldy:2 /dxpos:0
+            /dypos:0
       # Turn off rename image and set_img_ok during gain job phase.
       - type: automations
         id: toggle
@@ -100,21 +121,20 @@ automations:
       - type: command
         id: send
         data:
-          command: >
-            /cmd:startcamscan
+          command: "/cmd:startcamscan"
   - name: analyze_gain
     trigger:
       - type: event
         id: image_event
         data:
-          field_x: 2
-          field_y: 2
+          field_x: 1
+          field_y: 1
           job_id: 2
           channel_id: 31
     action:
       - type: command
         id: stop_imaging
-      - type: plugin
+      - type: plugins.gain
         id: calc_gain
         data:
           plate_name: >
@@ -123,9 +143,9 @@ automations:
             {{ trigger.event.well_x }}
           well_y: >
             {{ trigger.event.well_y }}
-#          save_path: >
-#            path/to/imaging_dir/gains/{{ trigger.event.plate_name }}/{{
-#            trigger.event.well_name }}/{{ trigger.event.well_name }}
+  #          save_path: >
+  #            path/to/imaging_dir/gains/{{ trigger.event.plate_name }}/{{
+  #            trigger.event.well_name }}/{{ trigger.event.well_name }}
   - name: set_exp_gain
     trigger:
       - type: event
@@ -136,29 +156,24 @@ automations:
         data:
           command: >
             /cmd:adjust /tar:pmt
-            /num:{% if trigger.event.channel_name == 'green' %}1
-            {% elif trigger.event.channel_name == 'blue' %}1
-            {% elif trigger.event.channel_name == 'yellow' %}2
-            {% elif trigger.event.channel_name == 'red' %}2
-            {% endif %}
-            /exp:gain_job /prop:gain
-            /value:{% if trigger.event.channel_name == 'green' %}
-              {% if not trigger.event.channel.gain %}800
-              {% else %}{{ [trigger.event.channel.gain, 800] | min }}
-              {% endif %}
-            {% elif trigger.event.channel_name == 'blue' %}
-              {% if not trigger.event.channel.gain %}505
-              {% else %}{{ [trigger.event.channel.gain, 610] | min }}
-              {% endif %}
-            {% elif trigger.event.channel_name == 'yellow' %}
-              {% if not trigger.event.channel.gain %}655
-              {% else %}{{ [trigger.event.channel.gain, 760] | min }}
-              {% endif %}
-            {% elif trigger.event.channel_name == 'red' %}
-              {% if not trigger.event.channel.gain %}630
-              {% else %}{{ [trigger.event.channel.gain + 25, 735] | min }}
-              {% endif %}
-            {% endif %}
+            /num:{% if trigger.event.channel_name == 'green' %}1 /exp:gain_job_1
+            {% elif trigger.event.channel_name == 'blue' %}1 /exp:gain_job_2
+            {% elif trigger.event.channel_name == 'yellow' %}2 /exp:gain_job_2
+            {% elif trigger.event.channel_name == 'red' %}2 /exp:gain_job_3
+            {% endif %}/prop:gain /value:{%
+              if trigger.event.channel_name == 'green' %}{%
+                if not trigger.event.gain %}800{% else
+                %}{{ [trigger.event.gain, 800] | min }}{% endif %}{%
+              elif trigger.event.channel_name == 'blue' %}{%
+                if not trigger.event.gain %}505{% else
+                %}{{ [trigger.event.gain, 610] | min }}{% endif %}{%
+              elif trigger.event.channel_name == 'yellow' %}{%
+                if not trigger.event.gain %}655{% else
+                %}{{ [trigger.event.gain, 760] | min }}{% endif %}{%
+              elif trigger.event.channel_name == 'red' %}{%
+                if not trigger.event.gain %}630{% else
+                %}{{ [trigger.event.gain + 25, 735] | min }}{% endif %}{%
+              endif %}
         # Set channel to indicate that the channel is set at the microscope.
       - type: sample
         id: set_channel
@@ -167,6 +182,21 @@ automations:
           well_x: "{{ trigger.event.well_x }}"
           well_y: "{{ trigger.event.well_y }}"
           channel_name: "{{ trigger.event.channel_name }}"
+          gain: >
+            {%
+            if trigger.event.channel_name == 'green' %}{%
+              if not trigger.event.gain %}800{% else
+              %}{{ [trigger.event.gain, 800] | min }}{% endif %}{%
+            elif trigger.event.channel_name == 'blue' %}{%
+              if not trigger.event.gain %}505{% else
+              %}{{ [trigger.event.gain, 610] | min }}{% endif %}{%
+            elif trigger.event.channel_name == 'yellow' %}{%
+              if not trigger.event.gain %}655{% else
+              %}{{ [trigger.event.gain, 760] | min }}{% endif %}{%
+            elif trigger.event.channel_name == 'red' %}{%
+              if not trigger.event.gain %}630{% else
+              %}{{ [trigger.event.gain + 25, 735] | min }}{% endif %}{%
+            endif %}
   - name: add_exp_job
     trigger:
       - type: event
@@ -176,9 +206,8 @@ automations:
       type: AND
       conditions:
         - condition: >
-            {% if trigger.event.well.channels | length == 4 %}
-              true
-            {% endif %}
+            {% if trigger.event.well.channels | length == 4 and
+            trigger.event.channel_name == "red" %}true{% endif %}
     action:
       - type: command
         id: send
@@ -186,18 +215,30 @@ automations:
           command: >
             /cmd:deletelist
       - type: command
-        id: send
+        id: send_many
         data:
           # Add exp job for 2 x 3 fields.
-          command: >
-            {% for x_number in range(1, 3) %}
-              {% for y_number in range(1, 4) %}
-                /cmd:add /tar:camlist /exp:exp_job /ext:af /slide:0
-                /wellx:{{ trigger.event.well.x }}
-                /welly:{{ trigger.event.well.y }} /fieldx:{{ x_number }}
-                /fieldy:{{ y_number }} /dxpos:0 /dypos:0
-              {% endfor %}
-            {% endfor %}
+          commands: >
+            {% for x_number in range(1, 3) -%}
+              {% if loop.first %}
+                {% set outer_first = true %}
+              {% else %}
+                {% set outer_first = false %}
+              {% endif %}
+              {% if loop.last %}
+                {% set outer_last = true %}
+              {% else %}
+                {% set outer_last = false %}
+              {% endif %}
+              {% for y_number in range(1, 4) -%}
+                {%- if outer_first and loop.first %}[{% endif -%}
+                "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 /wellx:{{
+                trigger.event.well.x + 1 }} /welly:{{
+                trigger.event.well.y + 1 }} /fieldx:{{ x_number }} /fieldy:{{
+                y_number }} /dxpos:0 /dypos:0"
+                {%- if outer_last and loop.last %}]{% else %}, {% endif -%}
+              {%- endfor %}
+            {%- endfor %}
       # Turn on rename image and set_img_ok during experiment job phase.
       - type: automations
         id: toggle
@@ -232,7 +273,7 @@ automations:
       - type: sample
         id: set_field
         data:
-          plate_name: trigger.event.plate_name
+          plate_name: "{{ trigger.event.plate_name }}"
           well_x: "{{ trigger.event.well_x }}"
           well_y: "{{ trigger.event.well_y }}"
           field_x: "{{ trigger.event.field_x }}"
@@ -246,7 +287,10 @@ automations:
       type: AND
       conditions:
         - condition: >
-            {% if trigger.event.job_id in [2, 3, 4] %}true{% endif %}
+            {%
+            if trigger.event.job_id in [2, 3, 4]
+            and trigger.event.channel_id != 31 %}true{%
+            endif %}
     action:
       - type: plugins.rename_image
         id: rename_image
@@ -254,56 +298,33 @@ automations:
           old_path: >
             {{ trigger.event.path }}
           new_path: >
-            {% if trigger.event.job_id == 2 %}
-              {{ trigger.event.path }}
-            {% elif trigger.event.job_id == 3 and
-                trigger.event.channel_id == 0 %}
-              {{ trigger.event.path | replace('C00', 'C01') }}
-            {% elif trigger.event.job_id == 3 and
-                trigger.event.channel_id == 01 %}
-              {{ trigger.event.path | replace('C01', 'C02') }}
-            {% elif trigger.event.job_id == 4 %}
-              {{ trigger.event.path | replace('C00', 'C03') }}
-            {% endif %}
+            {%
+            if trigger.event.job_id == 2
+            %}{{ trigger.event.path }}{%
+            elif trigger.event.job_id == 3 and trigger.event.channel_id == 0
+            %}{{ trigger.event.path | replace('C00', 'C01') }}{%
+            elif trigger.event.job_id == 3 and trigger.event.channel_id == 01
+            %}{{ trigger.event.path | replace('C01', 'C02') }}{%
+            elif trigger.event.job_id == 4
+            %}{{ trigger.event.path | replace('C00', 'C03') }}{%
+            endif %}
   - name: add_next_well
     trigger:
       - type: event
-        id: camacq_start_event
-      - type: event
         id: well_event
         data:
+          field_x: 1
+          field_y: 2
           well_img_ok: true
     action:
       - type: command
         id: stop_imaging
       - type: sample
-        id: set_field
+        id: set_well
         data:
           # Add next sample well for wells in sample if well is not done.
-          plate_name: '00'
+          plate_name: "00"
           well_x: >
-            {% set not_done = sample.plates['00'].wells.values() |
-              rejectattr("img_ok") %}
-            {% set not_done_wells = {} %}
-            {% for well in not_done %}
-              {% set x=not_done_wells.__setitem__((well.x, well.y), well) %}
-            {% endfor %}
-            {% for well_id, well in not_done_wells | dictsort %}
-              {% if loop.first %}
-                {{ well.x }}
-              {% endif %}
-            {% endfor %}
+            {{ next_well_x('00') }}
           well_y: >
-            {% set not_done = sample.plates['00'].wells.values() |
-              rejectattr("img_ok") %}
-            {% set not_done_wells = {} %}
-            {% for well in not_done %}
-              {% set x=not_done_wells.__setitem__((well.x, well.y), well) %}
-            {% endfor %}
-            {% for well_id, well in not_done_wells | dictsort %}
-              {% if loop.first %}
-                {{ well.y }}
-              {% endif %}
-            {% endfor %}
-          field_x: 1
-          field_y: 1
+            {{ next_well_y('00') }}

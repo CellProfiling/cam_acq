@@ -53,7 +53,7 @@ async def setup_package(center, config):
         _LOGGER.error("Connecting to server %s failed: %s", host, exc)
         return
     api = LeicaApi(center, config, cam)
-    register_api(center, __name__, api)
+    register_api(center, api)
     # Start task that calls receive on the socket to the microscope
     task = center.create_task(api.start_listen())
 
@@ -72,6 +72,11 @@ class LeicaApi(Api):
         self.center = center
         self.client = client
         self.config = config
+
+    @property
+    def name(self):
+        """Return the name of the API."""
+        return __name__
 
     async def start_listen(self):
         """Receive from the microscope socket."""
@@ -94,6 +99,7 @@ class LeicaApi(Api):
         """
         # if reply check reply and call correct listener
         # parse reply and create Event
+        # await event notify in sequential order
         # reply must be an iterable
         if not isinstance(replies, list):
             replies = [replies]
@@ -114,13 +120,14 @@ class LeicaApi(Api):
                     )
                 )
                 for path in image_paths:
-                    self.center.bus.notify(LeicaImageEvent({"path": path}))
+                    # await in sequential order
+                    await self.center.bus.notify(LeicaImageEvent({"path": path}))
             elif SCAN_STARTED in list(reply.values()):
-                self.center.bus.notify(LeicaStartCommandEvent(reply))
+                await self.center.bus.notify(LeicaStartCommandEvent(reply))
             elif SCAN_FINISHED in list(reply.values()):
-                self.center.bus.notify(LeicaStopCommandEvent(reply))
+                await self.center.bus.notify(LeicaStopCommandEvent(reply))
             else:
-                self.center.bus.notify(LeicaCommandEvent(reply))
+                await self.center.bus.notify(LeicaCommandEvent(reply))
 
     async def send(self, command):
         """Send a command to the Leica API.

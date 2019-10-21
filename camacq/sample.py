@@ -84,7 +84,7 @@ async def setup_module(center, config):
         """
         action_id = kwargs.pop("action_id")
         method = ACTION_TO_METHOD[action_id]["method"]
-        getattr(center.sample, method)(**kwargs)
+        await getattr(center.sample, method)(**kwargs)
 
     for action_id, options in ACTION_TO_METHOD.items():
         schema = options["schema"]
@@ -515,7 +515,7 @@ class Sample:
 
     async def _set_image_on_event(self, center, event):
         """Set sample image on an image event from a microscope API."""
-        self.set_image(
+        await self.set_image(
             event.path,
             channel_id=event.channel_id,
             z_slice=event.z_slice,
@@ -542,7 +542,7 @@ class Sample:
         plate = self._plates.get(plate_name)
         return plate
 
-    def set_plate(self, plate_name):
+    async def set_plate(self, plate_name):
         """Create a plate with name for the sample.
 
         Parameters
@@ -553,7 +553,7 @@ class Sample:
         """
         plate = Plate(self._images, plate_name)
         self._plates[plate.name] = plate
-        self._bus.notify(PlateEvent({"sample": self, "plate": plate}))
+        await self._bus.notify(PlateEvent({"sample": self, "plate": plate}))
         return plate
 
     def get_well(self, plate_name, well_x, well_y):
@@ -579,7 +579,7 @@ class Sample:
         well = plate.wells.get((well_x, well_y))
         return well
 
-    def set_well(self, plate_name, well_x, well_y):
+    async def set_well(self, plate_name, well_x, well_y):
         """Set a well on a plate.
 
         Parameters
@@ -598,10 +598,10 @@ class Sample:
         """
         plate = self.get_plate(plate_name)
         if not plate:
-            plate = self.set_plate(plate_name)
+            plate = await self.set_plate(plate_name)
         well = plate.set_well(well_x, well_y)
         event = WellEvent({"sample": self, "plate": plate, "well": well})
-        self._bus.notify(event)
+        await self._bus.notify(event)
         return well
 
     def get_channel(self, plate_name, well_x, well_y, channel_name):
@@ -629,7 +629,7 @@ class Sample:
         channel = well.channels.get(channel_name)
         return channel
 
-    def set_channel(self, plate_name, well_x, well_y, channel_name, **values):
+    async def set_channel(self, plate_name, well_x, well_y, channel_name, **values):
         """Set attribute value in a channel in a well of a plate.
 
         Create a Well instance if well not already exists. Pick the
@@ -652,15 +652,15 @@ class Sample:
         # pylint: disable=too-many-arguments
         plate = self.get_plate(plate_name)
         if not plate:
-            plate = self.set_plate(plate_name)
+            plate = await self.set_plate(plate_name)
         well = self.get_well(plate_name, well_x, well_y)
         if not well:
-            well = self.set_well(plate_name, well_x, well_y)
+            well = await self.set_well(plate_name, well_x, well_y)
         channel = well.set_channel(well_x, well_y, channel_name, **values)
         event = ChannelEvent(
             {"sample": self, "plate": plate, "well": well, "channel": channel}
         )
-        self._bus.notify(event)
+        await self._bus.notify(event)
         return channel
 
     def get_field(self, plate_name, well_x, well_y, field_x, field_y):
@@ -692,7 +692,7 @@ class Sample:
         field = well.fields.get((field_x, field_y))
         return field
 
-    def set_field(
+    async def set_field(
         self, plate_name, well_x, well_y, field_x, field_y, dxpx=0, dypx=0, img_ok=False
     ):
         """Set a field in a well of a plate.
@@ -721,15 +721,15 @@ class Sample:
         # pylint: disable=too-many-arguments
         plate = self.get_plate(plate_name)
         if not plate:
-            plate = self.set_plate(plate_name)
+            plate = await self.set_plate(plate_name)
         well = self.get_well(plate_name, well_x, well_y)
         if not well:
-            well = self.set_well(plate_name, well_x, well_y)
+            well = await self.set_well(plate_name, well_x, well_y)
         field = well.set_field(field_x, field_y, dxpx, dypx, img_ok)
         event = FieldEvent(
             {"sample": self, "plate": plate, "well": well, "field": field}
         )
-        self._bus.notify(event)
+        await self._bus.notify(event)
         return field
 
     def get_image(self, path):
@@ -748,7 +748,7 @@ class Sample:
         """
         return self._images.get(path)
 
-    def set_image(
+    async def set_image(
         self,
         path,
         channel_id=None,
@@ -786,24 +786,14 @@ class Sample:
         )
         self._images[image.path] = image
 
-        self._bus.notify(SampleImageEvent({"image": image}))
-
-        if plate_name is not None:
-            plate = self.get_plate(plate_name)
-            if not plate:
-                plate = self.set_plate(plate_name)
-
-        if all(name is not None for name in (plate_name, well_x, well_y)):
-            well = self.get_well(plate_name, well_x, well_y)
-            if not well:
-                well = self.set_well(plate_name, well_x, well_y)
+        await self._bus.notify(SampleImageEvent({"image": image}))
 
         if all(
             name is not None for name in (plate_name, well_x, well_y, field_x, field_y)
         ):
             field = self.get_field(plate_name, well_x, well_y, field_x, field_y)
             if not field:
-                self.set_field(
+                await self.set_field(
                     plate_name,
                     well_x,
                     well_y,
@@ -813,8 +803,21 @@ class Sample:
                     dypx=0,
                     img_ok=False,
                 )
+            return
 
-    def remove_image(self, path):
+        if all(name is not None for name in (plate_name, well_x, well_y)):
+            well = self.get_well(plate_name, well_x, well_y)
+            if not well:
+                well = await self.set_well(plate_name, well_x, well_y)
+            return
+
+        if plate_name is None:
+            return
+        plate = self.get_plate(plate_name)
+        if not plate:
+            plate = await self.set_plate(plate_name)
+
+    async def remove_image(self, path):
         """Remove an image from the sample.
 
         Parameters
@@ -824,7 +827,7 @@ class Sample:
         """
         image = self._images.pop(path, None)
         if image is not None:
-            self._bus.notify(ImageRemovedEvent({"image": image}))
+            await self._bus.notify(ImageRemovedEvent({"image": image}))
 
 
 # pylint: disable=too-few-public-methods
