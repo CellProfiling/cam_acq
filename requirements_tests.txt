@@ -2,7 +2,7 @@ asynctest==0.13.0
 click==7.0
 # pin a minimum working lxml for tox
 lxml>=4.2.1
-pytest==5.2.0
+pytest==5.2.2
 pytest-asyncio==0.10.0
 pytest-cov==2.7.1
 pytest-mock==1.11.0
