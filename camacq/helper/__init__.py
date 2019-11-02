@@ -72,8 +72,8 @@ async def setup_all_modules(center, config, package_path, **kwargs):
     package_path : str
         The path to the package.
     **kwargs
-        Arbitrary keyword arguments. These will be passed to
-        setup_module and setup_module functions.
+        Arbitrary keyword arguments. These will be passed to the
+        setup_module functions.
     """
     imported_pkg = import_module(package_path)
     tasks = []
