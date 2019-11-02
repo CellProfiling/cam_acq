@@ -362,7 +362,7 @@ plugins.
 To install a custom plugin, create a Python package with a `setup.py` module that
 implements the entry_points interface with key `"camacq.plugins"`.
 
-```
+```py
 setup(
     ...
     entry_points={"camacq.plugins": "plugin_a = package_a.plugin_a"},
@@ -374,6 +374,14 @@ See the packaging [docs](https://packaging.python.org/guides/creating-and-discov
 
 `camacq` will
 automatically load installed modules or packages that implement this entry_point.
+
+Add a `setup_module` coroutine function in the module or package. This function
+will be awaited with `center` and `config` as arguments.
+
+```py
+async def setup_module(center, config):
+    """Set up the plugin package."""
+```
 
 Plugins have their own configuration section. This is an example of the
 gain plugin section in the configuration.
