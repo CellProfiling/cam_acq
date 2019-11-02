@@ -63,7 +63,7 @@ def register_api(center, api):
     center.data[DATA_API][api.name] = api
 
 
-async def setup_package(center, config):
+async def setup_module(center, config):
     """Set up the microscope API package.
 
     Parameters

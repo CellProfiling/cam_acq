@@ -3,10 +3,10 @@ import asyncio
 
 import pkg_resources
 
-from camacq.helper import setup_module
+from camacq.helper import setup_module as setup
 
 
-async def setup_package(center, config):
+async def setup_module(center, config):
     """Set up the plugins package.
 
     Parameters
@@ -19,7 +19,7 @@ async def setup_package(center, config):
     plugins = await center.add_executor_job(get_plugins)
     tasks = []
     for module in plugins.values():
-        task = setup_module(center, config, module)
+        task = setup(center, config, module)
         if task:
             tasks.append(task)
     if tasks:

@@ -12,7 +12,7 @@ pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
 @pytest.fixture
 def mock_leica_setup():
     """Mock setup package."""
-    with asynctest.patch("camacq.api.leica.setup_package") as mock_setup:
+    with asynctest.patch("camacq.api.leica.setup_module") as mock_setup:
         yield mock_setup
 
 

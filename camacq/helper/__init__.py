@@ -73,7 +73,7 @@ async def setup_all_modules(center, config, package_path, **kwargs):
         The path to the package.
     **kwargs
         Arbitrary keyword arguments. These will be passed to
-        setup_package and setup_module functions.
+        setup_module and setup_module functions.
     """
     imported_pkg = import_module(package_path)
     tasks = []
@@ -99,9 +99,6 @@ async def setup_all_modules(center, config, package_path, **kwargs):
 
 def setup_module(center, config, module, **kwargs):
     """Set up module or package."""
-    if hasattr(module, "setup_package"):
-        _LOGGER.info("Setting up %s package", module.__name__)
-        return center.create_task(module.setup_package(center, config, **kwargs))
     if hasattr(module, "setup_module"):
         _LOGGER.info("Setting up %s module", module.__name__)
         return center.create_task(module.setup_module(center, config, **kwargs))
