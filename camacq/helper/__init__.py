@@ -78,7 +78,7 @@ async def setup_all_modules(center, config, package_path, **kwargs):
     imported_pkg = import_module(package_path)
     tasks = []
     # yields, non recursively, modules under package_path
-    for _, name, is_pkg in pkgutil.iter_modules(
+    for _, name, _ in pkgutil.iter_modules(
         imported_pkg.__path__, prefix="{}.".format(imported_pkg.__name__)
     ):
         if "main" in name:
@@ -89,19 +89,23 @@ async def setup_all_modules(center, config, package_path, **kwargs):
         pkg_config = _deep_conf_access(config, keys)
         module_name = module.__name__.split(".")[-1]
         if module_name in pkg_config and module_name not in CORE_MODULES:
-            if is_pkg and hasattr(module, "setup_package"):
-                _LOGGER.info("Setting up %s package", module.__name__)
-                tasks.append(
-                    center.create_task(module.setup_package(center, config, **kwargs))
-                )
-            elif hasattr(module, "setup_module"):
-                _LOGGER.info("Setting up %s module", module.__name__)
-                tasks.append(
-                    center.create_task(module.setup_module(center, config, **kwargs))
-                )
+            task = setup_module(center, config, module, **kwargs)
+            if task:
+                tasks.append(task)
 
     if tasks:
         await asyncio.wait(tasks)
+
+
+def setup_module(center, config, module, **kwargs):
+    """Set up module or package."""
+    if hasattr(module, "setup_package"):
+        _LOGGER.info("Setting up %s package", module.__name__)
+        return center.create_task(module.setup_package(center, config, **kwargs))
+    if hasattr(module, "setup_module"):
+        _LOGGER.info("Setting up %s module", module.__name__)
+        return center.create_task(module.setup_module(center, config, **kwargs))
+    return None
 
 
 def register_signals(center):

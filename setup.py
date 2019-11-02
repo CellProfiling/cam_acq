@@ -58,7 +58,13 @@ CONFIG = {
     "install_requires": REQUIRES,
     "packages": find_packages(exclude=["contrib", "docs", "tests*"]),
     "include_package_data": True,
-    "entry_points": {"console_scripts": ["camacq = camacq.__main__:main"]},
+    "entry_points": {
+        "console_scripts": ["camacq = camacq.__main__:main"],
+        "camacq.plugins": [
+            "gain = camacq.plugins.gain",
+            "rename_image = camacq.plugins.rename_image",
+        ],
+    },
     "name": "camacq",
     "zip_safe": False,
     "classifiers": CLASSIFIERS,
