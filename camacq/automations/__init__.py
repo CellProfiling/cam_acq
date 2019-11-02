@@ -35,7 +35,7 @@ TOGGLE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
 )
 
 
-async def setup_package(center, config):
+async def setup_module(center, config):
     """Set up automations package.
 
     Parameters

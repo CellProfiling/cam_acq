@@ -18,7 +18,7 @@ from camacq.api.leica import (
     LeicaImageEvent,
     LeicaStartCommandEvent,
     LeicaStopCommandEvent,
-    setup_package,
+    setup_module as leica_setup,
 )
 
 # pylint: disable=redefined-outer-name, len-as-condition
@@ -37,10 +37,10 @@ def api(center):
         """Register a mock api package."""
         base_api.register_api(center, mock_api)
 
-    with asynctest.patch("camacq.api.leica.setup_package") as leica_setup:
+    with asynctest.patch("camacq.api.leica.setup_module") as leica_setup:
         leica_setup.side_effect = register_mock_api
         center.loop.run_until_complete(
-            base_api.setup_package(center, {"api": {"leica": {}}})
+            base_api.setup_module(center, {"api": {"leica": {}}})
         )
         yield mock_api
 
@@ -65,7 +65,7 @@ async def test_setup_bad_socket(center, caplog, api):
     """Test setup leica api package with bad host or port."""
     api.client.connect.side_effect = OSError()
     config = {"api": {"leica": {}}}
-    await setup_package(center, config)
+    await leica_setup(center, config)
     assert "Connecting to server localhost failed:" in caplog.text
 
 
@@ -193,7 +193,7 @@ async def test_start_listen(center, caplog):
             AsyncCAM(loop=center.loop)
         )
         mock_cam.receive.return_value = mock_receive()
-        await setup_package(center, config)
+        await leica_setup(center, config)
         await center.wait_for()
         await center.end(0)
 

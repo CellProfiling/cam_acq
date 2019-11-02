@@ -55,10 +55,10 @@ def mock_api(center):
         """Register a mock api package."""
         api.register_api(center, _mock_api)
 
-    with asynctest.patch("camacq.api.leica.setup_package") as leica_setup:
+    with asynctest.patch("camacq.api.leica.setup_module") as leica_setup:
         leica_setup.side_effect = register_mock_api
         center.loop.run_until_complete(
-            api.setup_package(center, {"api": {"leica": None}})
+            api.setup_module(center, {"api": {"leica": None}})
         )
         yield _mock_api
 
@@ -84,7 +84,7 @@ async def test_setup_automation(center):
     config = await center.add_executor_job(YAML(typ="safe").load, config)
     await sample_mod.setup_module(center, config)
     assert "set_well" in center.actions.actions["sample"]
-    await automations.setup_package(center, config)
+    await automations.setup_module(center, config)
     assert "toggle" in center.actions.actions["automations"]
     automation = center.data["camacq.automations"]["test_automation"]
     assert automation.enabled
@@ -127,7 +127,7 @@ async def test_channel_event(center, mock_api):
 
     config = await center.add_executor_job(YAML(typ="safe").load, config)
     await sample_mod.setup_module(center, config)
-    await automations.setup_package(center, config)
+    await automations.setup_module(center, config)
     automation = center.data["camacq.automations"]["set_channel_gain"]
     assert automation.enabled
 
@@ -165,7 +165,7 @@ async def test_condition(center, mock_api):
 
     config = await center.add_executor_job(YAML(typ="safe").load, config)
     await sample_mod.setup_module(center, config)
-    await automations.setup_package(center, config)
+    await automations.setup_module(center, config)
     automation = center.data["camacq.automations"]["add_exp_job"]
     assert automation.enabled
 
@@ -204,7 +204,7 @@ async def test_nested_condition(center, mock_api):
 
     config = await center.add_executor_job(YAML(typ="safe").load, config)
     await sample_mod.setup_module(center, config)
-    await automations.setup_package(center, config)
+    await automations.setup_module(center, config)
     automation = center.data["camacq.automations"]["add_exp_job"]
     assert automation.enabled
     assert "send" in center.actions.actions["command"]
@@ -271,7 +271,7 @@ async def test_sample_access(center, mock_api):
 
     config = await center.add_executor_job(YAML(typ="safe").load, config)
     await sample_mod.setup_module(center, config)
-    await automations.setup_package(center, config)
+    await automations.setup_module(center, config)
     automation = center.data["camacq.automations"]["set_img_ok"]
     assert automation.enabled
     await center.sample.set_plate("00")
@@ -312,7 +312,7 @@ async def test_delay_action(center, mock_api, caplog):
     """
     caplog.set_level(logging.INFO)
     config = await center.add_executor_job(YAML(typ="safe").load, config)
-    await automations.setup_package(center, config)
+    await automations.setup_module(center, config)
     automation = center.data["camacq.automations"]["test_delay"]
     assert automation.enabled
     event = CamAcqStartEvent({"test_data": "start"})
