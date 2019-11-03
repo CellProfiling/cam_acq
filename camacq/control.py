@@ -10,7 +10,7 @@ from camacq.event import Event, EventBus
 from camacq.exceptions import CamAcqError
 from camacq.const import ACTION_TIMEOUT, CAMACQ_START_EVENT, CAMACQ_STOP_EVENT
 from camacq.helper import register_signals
-from camacq.sample import Sample
+from camacq.plugins.sample import Sample
 
 _LOGGER = logging.getLogger(__name__)
 

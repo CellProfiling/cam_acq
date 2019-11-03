@@ -5,7 +5,7 @@ import pytest
 
 from ruamel.yaml import YAML
 
-from camacq import sample as sample_mod
+from camacq.plugins import sample as sample_mod
 from camacq.plugins import api, automations
 from camacq.control import CamAcqStartEvent
 

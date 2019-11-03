@@ -36,6 +36,7 @@ def get_module(package, module_name):
         )
         if module_path in name
     ]
+    print(matches)
     if len(matches) > 1:
         raise ValueError("Invalid module search result, more than one match")
     module_path = matches[0]

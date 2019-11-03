@@ -1,12 +1,11 @@
 """Configure and set up control center."""
-import asyncio
 import logging
 
 import camacq.config as config_util
 import camacq.log as log_util
-from camacq.const import PACKAGE
 from camacq.control import Center
-from camacq.helper import CORE_MODULES, get_module, setup_all_modules
+from camacq.helper import setup_one_module
+from camacq import plugins
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,16 +24,9 @@ async def setup_dict(center, config):
         Return the Center instance.
     """
     log_util.enable_log(config)
-    # Add core modules.
-    tasks = []
-    for module_name in CORE_MODULES:
-        if module_name not in config:
-            config[module_name] = {}
-        module = get_module(PACKAGE, module_name)
-        tasks.append(center.create_task(module.setup_module(center, config)))
-    if tasks:
-        await asyncio.wait(tasks)
-    await setup_all_modules(center, config, PACKAGE)
+    task = setup_one_module(center, config, plugins)
+    if task:
+        await task
 
 
 async def setup_file(config_file, cmd_args):
