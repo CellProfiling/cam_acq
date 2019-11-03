@@ -8,7 +8,8 @@ from leicacam.async_cam import AsyncCAM
 from leicacam.cam import bytes_as_dict, check_messages, tuples_as_bytes
 from leicaexperiment import attribute, attribute_as_str
 
-from camacq.api import (
+from camacq.const import CAMACQ_STOP_EVENT, CONF_HOST, CONF_PORT, IMAGING_DIR, JOB_ID
+from camacq.plugins.api import (
     CONF_API,
     Api,
     CommandEvent,
@@ -17,9 +18,9 @@ from camacq.api import (
     StopCommandEvent,
     register_api,
 )
-from camacq.api.leica.command import start, stop
-from camacq.api.leica.helper import find_image_path, get_field, get_imgs
-from camacq.const import CAMACQ_STOP_EVENT, CONF_HOST, CONF_PORT, IMAGING_DIR, JOB_ID
+
+from .command import start, stop
+from .helper import find_image_path, get_field, get_imgs
 
 _LOGGER = logging.getLogger(__name__)
 

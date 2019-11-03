@@ -7,7 +7,8 @@ import asynctest
 from ruamel.yaml import YAML
 
 from camacq import sample as sample_mod
-from camacq import api, automations
+from camacq import automations
+from camacq.plugins import api
 from camacq.control import CamAcqStartEvent
 
 # pylint: disable=redefined-outer-name
@@ -55,7 +56,7 @@ def mock_api(center):
         """Register a mock api package."""
         api.register_api(center, _mock_api)
 
-    with asynctest.patch("camacq.api.leica.setup_module") as leica_setup:
+    with asynctest.patch("camacq.plugins.leica.setup_module") as leica_setup:
         leica_setup.side_effect = register_mock_api
         center.loop.run_until_complete(
             api.setup_module(center, {"api": {"leica": None}})

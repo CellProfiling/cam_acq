@@ -8,8 +8,8 @@ import asynctest
 import pytest
 from leicacam.async_cam import AsyncCAM
 
-from camacq import api as base_api
-from camacq.api.leica import (
+from camacq.plugins import api as base_api
+from camacq.plugins.leica import (
     LEICA_COMMAND_EVENT,
     LEICA_START_COMMAND_EVENT,
     LEICA_STOP_COMMAND_EVENT,
@@ -37,7 +37,7 @@ def api(center):
         """Register a mock api package."""
         base_api.register_api(center, mock_api)
 
-    with asynctest.patch("camacq.api.leica.setup_module") as leica_setup:
+    with asynctest.patch("camacq.plugins.leica.setup_module") as leica_setup:
         leica_setup.side_effect = register_mock_api
         center.loop.run_until_complete(
             base_api.setup_module(center, {"api": {"leica": {}}})
@@ -48,7 +48,7 @@ def api(center):
 @pytest.fixture
 def get_imgs():
     """Mock leica helper get_imgs."""
-    with patch("camacq.api.leica.get_imgs") as mock_get_imgs:
+    with patch("camacq.plugins.leica.get_imgs") as mock_get_imgs:
         yield mock_get_imgs
 
 
@@ -188,7 +188,7 @@ async def test_start_listen(center, caplog):
     mock_handler = asynctest.CoroutineMock()
     center.bus.register(LEICA_COMMAND_EVENT, mock_handler)
 
-    with patch("camacq.api.leica.AsyncCAM") as mock_cam_class:
+    with patch("camacq.plugins.leica.AsyncCAM") as mock_cam_class:
         mock_cam_class.return_value = mock_cam = asynctest.Mock(
             AsyncCAM(loop=center.loop)
         )

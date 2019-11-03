@@ -8,9 +8,9 @@ import pytest
 from leicacam.async_cam import AsyncCAM
 
 from camacq import bootstrap
-from camacq import api as base_api
-from camacq.api import ImageEvent
-from camacq.api.leica import LeicaApi
+from camacq.plugins import api as base_api
+from camacq.plugins.api import ImageEvent
+from camacq.plugins.leica import LeicaApi
 from camacq.config import DEFAULT_CONFIG_TEMPLATE, load_config_file
 from camacq.control import CamAcqStartEvent
 
@@ -37,7 +37,7 @@ def api_fixture(center):
         """Register a mock api package."""
         base_api.register_api(center, mock_api)
 
-    with asynctest.patch("camacq.api.leica.setup_module") as leica_setup:
+    with asynctest.patch("camacq.plugins.leica.setup_module") as leica_setup:
         leica_setup.side_effect = register_mock_api
         yield mock_api
 
