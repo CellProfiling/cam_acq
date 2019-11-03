@@ -62,6 +62,7 @@ CONFIG = {
         "console_scripts": ["camacq = camacq.__main__:main"],
         "camacq.plugins": [
             "api = camacq.plugins.api",
+            "automations = camacq.plugins.automations",
             "gain = camacq.plugins.gain",
             "leica = camacq.plugins.leica",
             "rename_image = camacq.plugins.rename_image",

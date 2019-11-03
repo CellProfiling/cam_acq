@@ -4,8 +4,9 @@
 # This file was modified by The Camacq Authors.
 import logging
 
-from camacq.automations import CONF_TYPE
 from camacq.const import CONF_ID, CONF_TRIGGER
+
+from . import CONF_TYPE
 
 _LOGGER = logging.getLogger(__name__)
 

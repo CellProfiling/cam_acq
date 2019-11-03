@@ -26,6 +26,7 @@ ENABLED = "enabled"
 NAME = "name"
 ACTION_DELAY = "delay"
 ACTION_TOGGLE = "toggle"
+DATA_AUTOMATIONS = "automations"
 
 TOGGLE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
     {
@@ -52,7 +53,7 @@ async def setup_module(center, config):
         name = kwargs.get(NAME)
         if name is None:
             return
-        automation = center.data[__name__].get(name)
+        automation = center.data[DATA_AUTOMATIONS].get(name)
         if not automation:
             return
         enabled = kwargs.get(ENABLED, not automation.enabled)
@@ -302,8 +303,7 @@ def _process_automations(center, config):
 
         # use partial to get a function with args to call later
         attach_triggers = partial(_process_trigger, center, block.get(CONF_TRIGGER, []))
-        if __name__ not in center.data:
-            center.data[__name__] = {}
-        center.data[__name__][name] = Automation(
+        automations = center.data.setdefault(DATA_AUTOMATIONS, {})
+        automations[name] = Automation(
             center, name, attach_triggers, cond_func, action_sequence
         )

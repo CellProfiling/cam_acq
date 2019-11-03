@@ -12,6 +12,7 @@ Subpackages
 .. toctree::
 
    camacq.plugins.api
+   camacq.plugins.automations
    camacq.plugins.leica
 
 Submodules
