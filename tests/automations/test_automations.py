@@ -6,8 +6,7 @@ import pytest
 from ruamel.yaml import YAML
 
 from camacq import sample as sample_mod
-from camacq import automations
-from camacq.plugins import api
+from camacq.plugins import api, automations
 from camacq.control import CamAcqStartEvent
 
 # pylint: disable=redefined-outer-name
@@ -84,7 +83,7 @@ async def test_setup_automation(center):
     assert "set_well" in center.actions.actions["sample"]
     await automations.setup_module(center, config)
     assert "toggle" in center.actions.actions["automations"]
-    automation = center.data["camacq.automations"]["test_automation"]
+    automation = center.data["automations"]["test_automation"]
     assert automation.enabled
 
     assert not center.sample.plates
@@ -126,7 +125,7 @@ async def test_channel_event(center, mock_api):
     config = await center.add_executor_job(YAML(typ="safe").load, config)
     await sample_mod.setup_module(center, config)
     await automations.setup_module(center, config)
-    automation = center.data["camacq.automations"]["set_channel_gain"]
+    automation = center.data["automations"]["set_channel_gain"]
     assert automation.enabled
 
     await center.sample.set_channel("test", 1, 1, "yellow", gain=333)
@@ -164,7 +163,7 @@ async def test_condition(center, mock_api):
     config = await center.add_executor_job(YAML(typ="safe").load, config)
     await sample_mod.setup_module(center, config)
     await automations.setup_module(center, config)
-    automation = center.data["camacq.automations"]["add_exp_job"]
+    automation = center.data["automations"]["add_exp_job"]
     assert automation.enabled
 
     assert "send" in center.actions.actions["command"]
@@ -203,7 +202,7 @@ async def test_nested_condition(center, mock_api):
     config = await center.add_executor_job(YAML(typ="safe").load, config)
     await sample_mod.setup_module(center, config)
     await automations.setup_module(center, config)
-    automation = center.data["camacq.automations"]["add_exp_job"]
+    automation = center.data["automations"]["add_exp_job"]
     assert automation.enabled
     assert "send" in center.actions.actions["command"]
 
@@ -270,7 +269,7 @@ async def test_sample_access(center, mock_api):
     config = await center.add_executor_job(YAML(typ="safe").load, config)
     await sample_mod.setup_module(center, config)
     await automations.setup_module(center, config)
-    automation = center.data["camacq.automations"]["set_img_ok"]
+    automation = center.data["automations"]["set_img_ok"]
     assert automation.enabled
     await center.sample.set_plate("00")
     await center.sample.set_well("00", 0, 0)
@@ -316,7 +315,7 @@ async def test_delay_action(center, mock_api, caplog):
     caplog.set_level(logging.INFO)
     config = await center.add_executor_job(YAML(typ="safe").load, config)
     await automations.setup_module(center, config)
-    automation = center.data["camacq.automations"]["test_delay"]
+    automation = center.data["automations"]["test_delay"]
     assert automation.enabled
     event = CamAcqStartEvent({"test_data": "start"})
     await center.bus.notify(event)

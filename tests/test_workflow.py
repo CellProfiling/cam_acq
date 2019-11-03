@@ -84,9 +84,9 @@ async def test_workflow(center, caplog, api, calc_gain, rename_image):
     config = await center.add_executor_job(load_config_file, config_path)
     config.pop("logging")
     await bootstrap.setup_dict(center, config)
-    rename_image_auto = center.data["camacq.automations"]["rename_image"]
+    rename_image_auto = center.data["automations"]["rename_image"]
     assert rename_image_auto.enabled
-    set_img_ok_auto = center.data["camacq.automations"]["set_img_ok"]
+    set_img_ok_auto = center.data["automations"]["set_img_ok"]
     assert set_img_ok_auto.enabled
     assert not center.sample.plates
     assert api.start_imaging.call_count == 0
