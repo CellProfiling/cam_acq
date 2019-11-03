@@ -82,14 +82,6 @@ camacq.log module
    :undoc-members:
    :show-inheritance:
 
-camacq.sample module
---------------------
-
-.. automodule:: camacq.sample
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 camacq.util module
 ------------------
 

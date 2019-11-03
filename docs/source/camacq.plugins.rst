@@ -34,3 +34,11 @@ camacq.plugins.rename\_image module
    :undoc-members:
    :show-inheritance:
 
+camacq.plugins.sample module
+----------------------------
+
+.. automodule:: camacq.plugins.sample
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
