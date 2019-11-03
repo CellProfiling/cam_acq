@@ -12,7 +12,7 @@ from camacq.const import (
     STOP_COMMAND_EVENT,
 )
 from camacq.event import Event
-from camacq.helper import BASE_ACTION_SCHEMA, setup_all_modules
+from camacq.helper import BASE_ACTION_SCHEMA
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -58,9 +58,8 @@ ACTION_TO_METHOD = {
 
 def register_api(center, api):
     """Register api."""
-    if DATA_API not in center.data:
-        center.data[DATA_API] = {}
-    center.data[DATA_API][api.name] = api
+    api_store = center.data.setdefault(DATA_API, {})
+    api_store[api.name] = api
 
 
 async def setup_module(center, config):
@@ -73,8 +72,7 @@ async def setup_module(center, config):
     config : dict
         The config dict.
     """
-    center.data[DATA_API] = {}
-    await setup_all_modules(center, config, __name__)
+    api_store = center.data.setdefault(DATA_API, {})
 
     async def handle_action(**kwargs):
         """Handle action call to send a command to an api.
@@ -89,9 +87,9 @@ async def setup_module(center, config):
         method = ACTION_TO_METHOD[action_id]["method"]
         api_name = kwargs.pop("api_name", None)
         if api_name:
-            apis = [center.data[DATA_API][api_name]]
+            apis = [api_store[api_name]]
         else:
-            apis = list(center.data[DATA_API].values())
+            apis = list(api_store.values())
         tasks = []
         for api in apis:
             _LOGGER.debug("Handle API %s action %s: %s", api.name, action_id, kwargs)
