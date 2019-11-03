@@ -10,24 +10,31 @@ pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
 
 
 @pytest.fixture
-def mock_leica_setup():
-    """Mock setup package."""
-    with asynctest.patch("camacq.plugins.leica.setup_module") as mock_setup:
-        yield mock_setup
-
-
-@pytest.fixture
 def mock_gain_setup():
     """Mock setup module."""
     with asynctest.patch("camacq.plugins.gain.setup_module") as mock_setup:
         yield mock_setup
 
 
-async def test_setup_modules_module(center, mock_gain_setup):
-    """Test setup_all_modules camacq package."""
+async def test_setup_one_module(center, mock_gain_setup):
+    """Test set up one module."""
     config = {"plugins": {"gain": {}}}
-    await helper.setup_all_modules(center, config, "camacq")
+    gain_module = helper.get_module("camacq.plugins", "gain")
+    await helper.setup_one_module(center, config, gain_module)
     assert len(mock_gain_setup.mock_calls) == 1
     _, args, kwargs = mock_gain_setup.mock_calls[0]
     assert args == (center, config)
     assert kwargs == {}
+
+
+async def test_missing_setup(center):
+    """Test missing setup function."""
+    const_module = helper.get_module("camacq", "const")
+    task = helper.setup_one_module(center, {}, const_module)
+    assert task is None
+
+
+async def test_many_module_matches(center):
+    """Test many module matches."""
+    with pytest.raises(ValueError):
+        helper.get_module("camacq.plugins", "")

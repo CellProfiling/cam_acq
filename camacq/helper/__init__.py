@@ -1,5 +1,4 @@
 """Helper functions for camacq."""
-import asyncio
 import logging
 import pkgutil
 import signal
@@ -9,7 +8,6 @@ from importlib import import_module
 import voluptuous as vol
 
 import camacq
-from camacq.const import PACKAGE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,8 +34,8 @@ def get_module(package, module_name):
         )
         if module_path in name
     ]
-    if len(matches) > 1:
-        raise ValueError("Invalid module search result, more than one match")
+    if len(matches) != 1:
+        raise ValueError("Invalid module search result, not a single match")
     module_path = matches[0]
     try:
         module = import_module(module_path)
@@ -47,51 +45,6 @@ def get_module(package, module_name):
 
     except ImportError:
         _LOGGER.exception(("Loading %s failed"), module_path)
-
-
-def _deep_conf_access(config, key_list):
-    """Return value in nested dict using keys in key_list."""
-    val = config
-    for key in key_list:
-        _val = val.get(key)
-        if _val is None:
-            return val
-        val = _val
-    return val
-
-
-async def setup_all_modules(center, config, package_path):
-    """Set up all modules of a package.
-
-    Parameters
-    ----------
-    center : Center instance
-        The Center instance.
-    config : dict
-        The config dict.
-    package_path : str
-        The path to the package.
-    """
-    imported_pkg = import_module(package_path)
-    tasks = []
-    # yields, non recursively, modules under package_path
-    for _, name, _ in pkgutil.iter_modules(
-        imported_pkg.__path__, prefix="{}.".format(imported_pkg.__name__)
-    ):
-        if "main" in name:
-            continue
-        module = import_module(name)
-        _LOGGER.debug("Loaded %s", name)
-        keys = [name for name in imported_pkg.__name__.split(".") if name != PACKAGE]
-        pkg_config = _deep_conf_access(config, keys)
-        module_name = module.__name__.split(".")[-1]
-        if module_name in pkg_config and module_name not in CORE_MODULES:
-            task = setup_one_module(center, config, module)
-            if task:
-                tasks.append(task)
-
-    if tasks:
-        await asyncio.wait(tasks)
 
 
 def setup_one_module(center, config, module):

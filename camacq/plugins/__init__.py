@@ -3,7 +3,7 @@ import asyncio
 
 import pkg_resources
 
-from camacq.helper import setup_one_module
+from camacq.helper import CORE_MODULES, setup_one_module
 
 
 async def setup_module(center, config):
@@ -17,6 +17,22 @@ async def setup_module(center, config):
         The config dict.
     """
     plugins = await center.add_executor_job(get_plugins)
+
+    # Add core modules.
+    tasks = []
+    for module_name in CORE_MODULES:
+        if module_name not in config:
+            config[module_name] = {}
+        module = plugins.pop(module_name, None)
+        if not module:
+            continue
+        task = setup_one_module(center, config, module)
+        if not task:
+            continue
+        tasks.append(task)
+    if tasks:
+        await asyncio.wait(tasks)
+
     tasks = []
     for module in plugins.values():
         task = setup_one_module(center, config, module)

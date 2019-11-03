@@ -12,7 +12,7 @@ from scipy.optimize import curve_fit
 
 from camacq.const import CHANNEL_ID, CONF_PLUGINS, WELL, WELL_NAME
 from camacq.event import Event
-from camacq.sample import Channel
+from camacq.plugins.sample import Channel
 from camacq.helper import BASE_ACTION_SCHEMA
 from camacq.image import make_proj
 from camacq.util import write_csv
