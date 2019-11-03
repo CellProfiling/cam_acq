@@ -23,15 +23,6 @@ def mock_gain_setup():
         yield mock_setup
 
 
-async def test_setup_modules_package(center, mock_leica_setup):
-    """Test setup_all_modules."""
-    config = {"api": {"leica": {}}}
-    await helper.setup_all_modules(center, config, "camacq.plugins.api")
-    assert len(mock_leica_setup.mock_calls) == 1
-    _, args, _ = mock_leica_setup.mock_calls[0]
-    assert args == (center, config)
-
-
 async def test_setup_modules_module(center, mock_gain_setup):
     """Test setup_all_modules camacq package."""
     config = {"plugins": {"gain": {}}}
