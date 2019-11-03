@@ -5,8 +5,6 @@ import pkg_resources
 
 from camacq.helper import CORE_MODULES, setup_one_module
 
-print("PLUGINS PATH:", __name__)
-
 
 async def setup_module(center, config):
     """Set up the plugins package.
