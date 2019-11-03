@@ -11,7 +11,6 @@ Subpackages
 
 .. toctree::
 
-   camacq.automations
    camacq.data
    camacq.helper
    camacq.plugins
