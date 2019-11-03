@@ -66,6 +66,7 @@ CONFIG = {
             "gain = camacq.plugins.gain",
             "leica = camacq.plugins.leica",
             "rename_image = camacq.plugins.rename_image",
+            "sample = camacq.plugins.sample",
         ],
     },
     "name": "camacq",
