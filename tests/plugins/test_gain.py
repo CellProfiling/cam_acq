@@ -4,8 +4,8 @@ from functools import partial
 
 import pytest
 
-from camacq.api.leica import LeicaImageEvent
-from camacq.api.leica.helper import get_imgs
+from camacq.plugins.leica import LeicaImageEvent
+from camacq.plugins.leica.helper import get_imgs
 from camacq.const import JOB_ID
 from camacq.image import make_proj
 from camacq.plugins.gain import GAIN_CALC_EVENT, calc_gain

@@ -1,5 +1,5 @@
 """Tests for command."""
-from camacq.api.leica import command
+from camacq.plugins.leica import command
 
 
 def test_del():

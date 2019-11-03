@@ -3,11 +3,11 @@ import logging
 
 import pytest
 
-import asynctest
 from ruamel.yaml import YAML
 
 from camacq import sample as sample_mod
-from camacq import api, automations
+from camacq import automations
+from camacq.plugins import api
 from camacq.control import CamAcqStartEvent
 
 # pylint: disable=redefined-outer-name
@@ -25,7 +25,7 @@ class MockApi(api.Api):
     @property
     def name(self):
         """Return the name of the API."""
-        return "mock_api"
+        return "test_api"
 
     async def send(self, command):
         """Send a command to the microscope API.
@@ -50,17 +50,15 @@ class MockApi(api.Api):
 def mock_api(center):
     """Set up a mock api."""
     _mock_api = MockApi()
+    config = {"api": {"test_api": None}}
 
     def register_mock_api(center, config):
         """Register a mock api package."""
         api.register_api(center, _mock_api)
 
-    with asynctest.patch("camacq.api.leica.setup_module") as leica_setup:
-        leica_setup.side_effect = register_mock_api
-        center.loop.run_until_complete(
-            api.setup_module(center, {"api": {"leica": None}})
-        )
-        yield _mock_api
+    center.loop.run_until_complete(api.setup_module(center, config))
+    register_mock_api(center, _mock_api)
+    yield _mock_api
 
 
 async def test_setup_automation(center):
@@ -279,15 +277,20 @@ async def test_sample_access(center, mock_api):
     field = await center.sample.set_field("00", 0, 0, 1, 1, img_ok=False)
     assert not field.img_ok
 
-    await center.bus.notify(
-        api.leica.LeicaImageEvent(
-            data={
-                "path": "image--L0000--S00--U00--V00--J15--E04--O01"
-                "--X01--Y01--T0000--Z00--C00.ome.tif"
-            }
-        )
+    event = api.ImageEvent(
+        {
+            "path": "test_path",
+            "plate_name": "00",
+            "well_x": 0,
+            "well_y": 0,
+            "field_x": 1,
+            "field_y": 1,
+            "channel_id": 0,
+        }
     )
+    await center.bus.notify(event)
     await center.wait_for()
+
     field = center.sample.get_field("00", 0, 0, 1, 1)
     assert field.img_ok
 
