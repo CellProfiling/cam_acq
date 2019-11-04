@@ -10,7 +10,7 @@ from leicacam.async_cam import AsyncCAM
 from camacq import bootstrap
 from camacq.plugins import api as base_api
 from camacq.plugins.api import ImageEvent
-from camacq.plugins.leica import LeicaApi
+from camacq.plugins.leica import LeicaApi, sample as leica_sample_mod
 from camacq.config import DEFAULT_CONFIG_TEMPLATE, load_config_file
 from camacq.control import CamAcqStartEvent
 
@@ -33,9 +33,10 @@ def api_fixture(center):
     mock_api = asynctest.Mock(LeicaApi(center, config, client))
     mock_api.send_many = partial(base_api.Api.send_many, mock_api)
 
-    def register_mock_api(center, config):
+    async def register_mock_api(center, config):
         """Register a mock api package."""
         base_api.register_api(center, mock_api)
+        await leica_sample_mod.setup_module(center, config)
 
     with asynctest.patch("camacq.plugins.leica.setup_module") as leica_setup:
         leica_setup.side_effect = register_mock_api
@@ -72,7 +73,7 @@ async def test_workflow(center, caplog, api, rename_image):
     assert rename_image_auto.enabled
     set_img_ok_auto = center.data["automations"]["set_img_ok"]
     assert set_img_ok_auto.enabled
-    assert not center.sample.plates
+    assert not center.samples.leica.plates
     assert api.start_imaging.call_count == 0
     assert api.stop_imaging.call_count == 0
     assert center.actions.actions.get("rename_image", {}).get("rename_image")
@@ -81,7 +82,7 @@ async def test_workflow(center, caplog, api, rename_image):
     await center.bus.notify(event)
     await center.wait_for()
 
-    plate = center.sample.get_plate("00")
+    plate = center.samples.leica.get_plate("00")
     assert plate
     assert plate.wells
     assert plate.wells[0, 0].x == 0

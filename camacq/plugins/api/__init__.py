@@ -38,7 +38,9 @@ ACTION_STOP_IMAGING = "stop_imaging"
 CONF_API = "api"
 DATA_API = "api"
 
-SEND_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({"command": COMMAND_VALIDATOR})
+SEND_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
+    {"api_name": vol.Coerce(str), "command": COMMAND_VALIDATOR}
+)
 
 SEND_MANY_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({"commands": validate_commands})
 

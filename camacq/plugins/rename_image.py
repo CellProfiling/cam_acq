@@ -49,15 +49,17 @@ async def setup_module(center, config):
         result = await center.add_executor_job(rename_image, old_path, new_path)
         if not result:
             return
-        image = center.sample.get_image(old_path)
-        await center.sample.remove_image(old_path)
-        await center.sample.set_image(
+        image = center.samples.leica.get_image(old_path)
+        await center.samples.leica.remove_image(old_path)
+        await center.samples.leica.set_image(
             new_path,
-            image.channel_id,
-            image.field_x,
-            image.field_y,
-            image.well_x,
-            image.well_y,
+            channel_id=image.channel_id,
+            z_slice=image.z_slice,
+            field_x=image.field_x,
+            field_y=image.field_y,
+            well_x=image.well_x,
+            well_y=image.well_y,
+            plate_name=image.plate_name,
         )
 
     center.actions.register(

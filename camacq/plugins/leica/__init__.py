@@ -29,6 +29,7 @@ from camacq.plugins.api import (
 
 from .command import start, stop
 from .helper import find_image_path, get_field, get_imgs
+from .sample import setup_module as sample_setup_module
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -65,6 +66,7 @@ async def setup_module(center, config):
     config : dict
         The config dict.
     """
+    await sample_setup_module(center, config)
     conf = config[CONF_LEICA]
     host = conf[CONF_HOST]
     port = conf[CONF_PORT]

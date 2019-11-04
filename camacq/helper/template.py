@@ -62,7 +62,7 @@ class TemplateFunctions:
 
     def next_well_xy(self, plate_name, x_wells=12, y_wells=8):
         """Return the next not done well for the given plate x, y format."""
-        return next_well_xy(self._center.sample, plate_name, x_wells, y_wells)
+        return next_well_xy(self._center.samples.leica, plate_name, x_wells, y_wells)
 
     def next_well_x(self, plate_name, x_wells=12, y_wells=8):
         """Return the next well x coordinate for the plate x, y format."""

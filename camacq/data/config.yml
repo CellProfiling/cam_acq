@@ -48,11 +48,11 @@ automations:
     action:
       # Set a plate the first time.
       - type: sample
-        id: set_plate
+        id: set_sample
         data:
           plate_name: "00"
       - type: sample
-        id: set_well
+        id: set_sample
         data:
           # Add next sample well for wells in sample if well is not done.
           plate_name: "00"
@@ -67,7 +67,7 @@ automations:
     condition:
       type: AND
       conditions:
-        - condition: "{{ not trigger.event.well.images }}"
+        - condition: "{{ not trigger.event.well.images and trigger.event.well.channels | length == 0 }}"
     action:
       - type: command
         id: send
@@ -125,7 +125,7 @@ automations:
             /prop:gain /value:800
         # Set channel to indicate that the channel is set at the microscope.
       - type: sample
-        id: set_channel
+        id: set_sample
         data:
           plate_name: "{{ trigger.event.plate_name }}"
           well_x: "{{ trigger.event.well_x }}"
@@ -200,13 +200,13 @@ automations:
       type: AND
       conditions:
         - condition: >
-            {% if not sample.plates[trigger.event.plate_name].wells[
+            {% if not samples.leica.plates[trigger.event.plate_name].wells[
               (trigger.event.well_x, trigger.event.well_y)].fields[
               (trigger.event.field_x, trigger.event.field_y)].img_ok
               %}true{% endif %}
     action:
       - type: sample
-        id: set_field
+        id: set_sample
         data:
           plate_name: "{{ trigger.event.plate_name }}"
           well_x: "{{ trigger.event.well_x }}"
@@ -255,7 +255,7 @@ automations:
       - type: command
         id: stop_imaging
       - type: sample
-        id: set_well
+        id: set_sample
         data:
           # Add next sample well for wells in sample if well is not done.
           plate_name: "00"

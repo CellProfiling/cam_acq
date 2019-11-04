@@ -9,7 +9,7 @@ from camacq.event import Event, EventBus
 from camacq.exceptions import CamAcqError, MissingActionError, MissingActionTypeError
 from camacq.const import ACTION_TIMEOUT, CAMACQ_START_EVENT, CAMACQ_STOP_EVENT
 from camacq.helper import register_signals
-from camacq.plugins.sample import Sample
+from camacq.plugins.sample import Samples
 from camacq.util import dotdict
 
 _LOGGER = logging.getLogger(__name__)
@@ -44,8 +44,8 @@ class Center:
         self.loop = loop or asyncio.get_event_loop()
         self.loop.set_exception_handler(loop_exception_handler)
         self.bus = EventBus(self)
-        self.sample = Sample(self.bus)
         self.actions = ActionsRegistry(self)
+        self.samples = Samples(self)
         self.data = {}
         self._exit_code = 0
         self._stopped = None
