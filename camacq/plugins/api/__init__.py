@@ -110,7 +110,7 @@ class Api:
         """Return the name of the API."""
         raise NotImplementedError()
 
-    async def send(self, command):
+    async def send(self, command, **kwargs):
         """Send a command to the microscope API.
 
         Parameters
@@ -120,7 +120,7 @@ class Api:
         """
         raise NotImplementedError()
 
-    async def send_many(self, commands):
+    async def send_many(self, commands, **kwargs):
         """Send multiple commands to the microscope API.
 
         Parameters
@@ -130,7 +130,7 @@ class Api:
         """
         for cmd in commands:
             # It's important that each task is done before we start the next.
-            await self.send(cmd)
+            await self.send(cmd, **kwargs)
 
     async def start_imaging(self):
         """Send a command to the microscope to start the imaging."""
