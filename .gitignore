@@ -128,3 +128,9 @@ dmypy.json
 
 # pngs
 *.png
+
+# Visual Studio Code
+.vscode/*
+!.vscode/cSpell.json
+!.vscode/extensions.json
+!.vscode/tasks.json
