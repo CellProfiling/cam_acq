@@ -11,7 +11,7 @@ REQUIRES = [
     "async_timeout",
     "colorlog",
     "jinja2",
-    "leicacam[asyncio]",
+    "leicacam>=0.4.0",
     "leicaexperiment",
     "matplotlib",
     "numpy",
