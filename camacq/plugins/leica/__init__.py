@@ -61,6 +61,7 @@ async def setup_module(center, config):
     async def stop_listen(center, event):
         """Stop the task that listens to the client socket."""
         task.cancel()
+        api.client.close()
 
     center.bus.register(CAMACQ_STOP_EVENT, stop_listen)
 
@@ -88,8 +89,6 @@ class LeicaApi(Api):
         except asyncio.CancelledError:
             _LOGGER.debug("Stopped listening for messages from CAM")
 
-    # TODO: Check what events are reported by CAM server. pylint: disable=fixme
-    # Make sure that all images get reported eventually.
     async def receive(self, replies):
         """Receive replies from CAM server and fire an event per reply.
 
@@ -130,7 +129,7 @@ class LeicaApi(Api):
             else:
                 await self.center.bus.notify(LeicaCommandEvent(reply))
 
-    async def send(self, command):
+    async def send(self, command, **kwargs):
         """Send a command to the Leica API.
 
         Parameters
@@ -138,6 +137,8 @@ class LeicaApi(Api):
         command : list of tuples or string
             The command to send.
         """
+        block = kwargs.get("block", True)
+
         if isinstance(command, str):
             command = bytes_as_dict(command.encode())
             command = list(command.items())
@@ -149,51 +150,45 @@ class LeicaApi(Api):
             if check_messages([event.data], cmd, value=value):
                 if not cmd_sent.done():
                     cmd_sent.set_result(True)
-                remove()
 
         remove = self.center.bus.register(LEICA_COMMAND_EVENT, receive_reply)
+        cmd_sent.add_done_callback(lambda x: remove())
+
         await self.client.send(command)
-        await cmd_sent
+
+        if not block:
+            return cmd_sent
+        return await cmd_sent
 
     async def start_imaging(self):
         """Send a command to the microscope to start the imaging."""
-        cmd_sent = self.center.loop.create_future()
-
-        async def receive_reply(center, event):
-            """Indicate that reply has been received."""
-            if not cmd_sent.done():
-                cmd_sent.set_result(True)
-            remove()
-
-        remove = self.center.bus.register(LEICA_START_COMMAND_EVENT, receive_reply)
-
-        await self.send(start())
-        _LOGGER.info("Waiting for %s message for 10 seconds", SCAN_STARTED)
-        try:
-            async with async_timeout(10.0):
-                await cmd_sent
-        except asyncio.TimeoutError:
-            _LOGGER.info("No start event received, continuing anyway")
+        await self._start_stop_imaging(start(), LEICA_START_COMMAND_EVENT, SCAN_STARTED)
 
     async def stop_imaging(self):
         """Send a command to the microscope to stop the imaging."""
+        await self._start_stop_imaging(stop(), LEICA_STOP_COMMAND_EVENT, SCAN_FINISHED)
+
+    async def _start_stop_imaging(self, cmd, event, ack_cmd):
+        """Send a command to the microscope to start or stop the imaging."""
         cmd_sent = self.center.loop.create_future()
 
         async def receive_reply(center, event):
             """Indicate that reply has been received."""
             if not cmd_sent.done():
                 cmd_sent.set_result(True)
-            remove()
 
-        remove = self.center.bus.register(LEICA_STOP_COMMAND_EVENT, receive_reply)
+        remove = self.center.bus.register(event, receive_reply)
+        cmd_sent.add_done_callback(lambda x: remove())
 
-        await self.send(stop())
-        _LOGGER.info("Waiting for %s message for 10 seconds", SCAN_FINISHED)
+        trigger_cmd_sent = await self.send(cmd, block=False)
+        _LOGGER.info("Waiting for %s message for 10 seconds", ack_cmd)
         try:
             async with async_timeout(10.0):
-                await cmd_sent
+                await asyncio.wait([cmd_sent, trigger_cmd_sent])
         except asyncio.TimeoutError:
-            _LOGGER.info("No stop event received, continuing anyway")
+            _LOGGER.info("No acknowledgement event received, continuing anyway")
+            cmd_sent.set_result(True)
+            trigger_cmd_sent.set_result(True)
 
 
 # pylint: disable=too-few-public-methods
