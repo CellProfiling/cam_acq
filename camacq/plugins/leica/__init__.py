@@ -10,7 +10,6 @@ from leicaexperiment import attribute, attribute_as_str
 
 from camacq.const import CAMACQ_STOP_EVENT, CONF_HOST, CONF_PORT, IMAGING_DIR, JOB_ID
 from camacq.plugins.api import (
-    CONF_API,
     Api,
     CommandEvent,
     ImageEvent,
