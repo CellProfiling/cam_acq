@@ -89,8 +89,6 @@ class LeicaApi(Api):
         except asyncio.CancelledError:
             _LOGGER.debug("Stopped listening for messages from CAM")
 
-    # TODO: Check what events are reported by CAM server. pylint: disable=fixme
-    # Make sure that all images get reported eventually.
     async def receive(self, replies):
         """Receive replies from CAM server and fire an event per reply.
 
