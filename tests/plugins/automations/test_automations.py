@@ -26,7 +26,7 @@ class MockApi(api.Api):
         """Return the name of the API."""
         return "test_api"
 
-    async def send(self, command):
+    async def send(self, command, **kwargs):
         """Send a command to the microscope API.
 
         Parameters
