@@ -46,11 +46,10 @@ file. See below for an example of how to configure the leica api and a
 simple automation, in the configuration yaml file.
 
 ```yaml
-api:
-  leica:
-    host: localhost
-    port: 8895
-    imaging_dir: '/imaging_dir'
+leica:
+  host: localhost
+  port: 8895
+  imaging_dir: '/imaging_dir'
 
 automations:
   - name: start
@@ -75,11 +74,10 @@ separate Python library, that instantiates a client object which camacq
 can use.
 
 ```yaml
-api:
-  leica:
-    host: localhost
-    port: 8895
-    imaging_dir: '/imaging_dir'
+leica:
+  host: localhost
+  port: 8895
+  imaging_dir: '/imaging_dir'
 ```
 
 ## Automations
@@ -383,22 +381,21 @@ async def setup_module(center, config):
     """Set up the plugin package."""
 ```
 
-Plugins have their own configuration section. This is an example of the
-gain plugin section in the configuration.
+Each plugins must have its own configuration section at the root of the config.
+This is an example of the gain plugin section in the configuration.
 
 ```yaml
-plugins:
-  gain:
-    channels:
-      - channel: green
-        init_gain: [450, 495, 540, 585, 630, 675, 720, 765, 810, 855, 900]
-      - channel: blue
-        init_gain: [400, 435, 470, 505, 540, 575, 610]
-      - channel: yellow
-        init_gain: [550, 585, 620, 655, 690, 725, 760]
-      - channel: red
-        init_gain: [525, 560, 595, 630, 665, 700, 735]
-    save_dir: '/save_dir'
+gain:
+  channels:
+    - channel: green
+      init_gain: [450, 495, 540, 585, 630, 675, 720, 765, 810, 855, 900]
+    - channel: blue
+      init_gain: [400, 435, 470, 505, 540, 575, 610]
+    - channel: yellow
+      init_gain: [550, 585, 620, 655, 690, 725, 760]
+    - channel: red
+      init_gain: [525, 560, 595, 630, 665, 700, 735]
+  save_dir: '/save_dir'
 ```
 
 Each plugin should at minimum register an action in the action registry

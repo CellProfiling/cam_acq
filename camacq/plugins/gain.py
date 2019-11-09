@@ -87,7 +87,7 @@ async def calc_gain(
 ):
     """Calculate gain values for the well."""
     # pylint: disable=too-many-arguments, too-many-locals
-    gain_conf = config[CONF_PLUGINS][CONF_GAIN]
+    gain_conf = config[CONF_GAIN]
     if CONF_CHANNELS not in gain_conf:
         _LOGGER.error(
             "Missing config section %s in %s:%s", CONF_CHANNELS, CONF_PLUGINS, CONF_GAIN

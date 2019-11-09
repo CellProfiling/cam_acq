@@ -34,7 +34,9 @@ async def setup_module(center, config):
         await asyncio.wait(tasks)
 
     tasks = []
-    for module in plugins.values():
+    for name, module in plugins.items():
+        if name not in config:
+            continue
         task = setup_one_module(center, config, module)
         if task:
             tasks.append(task)

@@ -27,40 +27,32 @@ async def test_gain(center):
     )
     images = await center.add_executor_job(get_images)
     config = {
-        "plugins": {
-            "gain": {
-                "save_dir": GAIN_DATA_DIR,
-                "channels": [
-                    {
-                        "channel": "green",
-                        "init_gain": [
-                            450,
-                            495,
-                            540,
-                            585,
-                            630,
-                            675,
-                            720,
-                            765,
-                            810,
-                            855,
-                            900,
-                        ],
-                    },
-                    {
-                        "channel": "blue",
-                        "init_gain": [400, 435, 470, 505, 540, 575, 610],
-                    },
-                    {
-                        "channel": "yellow",
-                        "init_gain": [550, 585, 620, 655, 690, 725, 760],
-                    },
-                    {
-                        "channel": "red",
-                        "init_gain": [525, 560, 595, 630, 665, 700, 735],
-                    },
-                ],
-            }
+        "gain": {
+            "save_dir": GAIN_DATA_DIR,
+            "channels": [
+                {
+                    "channel": "green",
+                    "init_gain": [
+                        450,
+                        495,
+                        540,
+                        585,
+                        630,
+                        675,
+                        720,
+                        765,
+                        810,
+                        855,
+                        900,
+                    ],
+                },
+                {"channel": "blue", "init_gain": [400, 435, 470, 505, 540, 575, 610],},
+                {
+                    "channel": "yellow",
+                    "init_gain": [550, 585, 620, 655, 690, 725, 760],
+                },
+                {"channel": "red", "init_gain": [525, 560, 595, 630, 665, 700, 735],},
+            ],
         }
     }
     pprint.pprint(config)
