@@ -44,7 +44,7 @@ async def setup_module(center, config):
     config : dict
         The config dict.
     """
-    conf = config[CONF_API][CONF_LEICA]
+    conf = config[CONF_LEICA]
     host = conf.get(CONF_HOST, "localhost")
     port = conf.get(CONF_PORT, 8895)
     cam = AsyncCAM(host, port, loop=center.loop)
@@ -53,7 +53,7 @@ async def setup_module(center, config):
     except OSError as exc:
         _LOGGER.error("Connecting to server %s failed: %s", host, exc)
         return
-    api = LeicaApi(center, config, cam)
+    api = LeicaApi(center, conf, cam)
     register_api(center, api)
     # Start task that calls receive on the socket to the microscope
     task = center.create_task(api.start_listen())
@@ -107,8 +107,7 @@ class LeicaApi(Api):
             if not reply or not isinstance(reply, dict):
                 continue
             if REL_IMAGE_PATH in reply:
-                conf = self.config[CONF_API][CONF_LEICA]
-                imaging_dir = conf.get(IMAGING_DIR, "")
+                imaging_dir = self.config.get(IMAGING_DIR, "")
                 rel_path = reply[REL_IMAGE_PATH]
                 image_path = find_image_path(rel_path, imaging_dir)
                 field_path = await self.center.add_executor_job(get_field, image_path)

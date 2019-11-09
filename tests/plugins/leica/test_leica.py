@@ -29,9 +29,9 @@ pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
 @pytest.fixture
 def api(center):
     """Return a leica api instance."""
-    config = {"api": {"leica": {}}}
+    config = {"leica": {}}
     client = asynctest.Mock(AsyncCAM(loop=center.loop))
-    mock_api = LeicaApi(center, config, client)
+    mock_api = LeicaApi(center, {}, client)
 
     def register_mock_api(center, config):
         """Register a mock api package."""
@@ -39,9 +39,7 @@ def api(center):
 
     with asynctest.patch("camacq.plugins.leica.setup_module") as leica_setup:
         leica_setup.side_effect = register_mock_api
-        center.loop.run_until_complete(
-            base_api.setup_module(center, {"api": {"leica": {}}})
-        )
+        center.loop.run_until_complete(base_api.setup_module(center, config))
         yield mock_api
 
 
@@ -64,7 +62,7 @@ def mock_socket():
 async def test_setup_bad_socket(center, caplog, api):
     """Test setup leica api package with bad host or port."""
     api.client.connect.side_effect = OSError()
-    config = {"api": {"leica": {}}}
+    config = {"leica": {}}
     await leica_setup(center, config)
     assert "Connecting to server localhost failed:" in caplog.text
 
@@ -152,8 +150,8 @@ async def test_receive(api, get_imgs):
     ]
     field_path = "subfolder/exp1/CAM1/slide--S00/chamber--U00--V00/field--X01--Y01"
     root_path = "/root"
-    config = {"api": {"leica": {"imaging_dir": root_path}}}
-    api.config = config
+    leica_config = {"imaging_dir": root_path}
+    api.config = leica_config
     image_path = os.path.join(root_path, image_path)
     get_imgs.return_value = [image_path]
     mock_handler = asynctest.CoroutineMock()
@@ -177,7 +175,7 @@ async def test_receive(api, get_imgs):
 
 async def test_start_listen(center, caplog):
     """Test start listen for incoming messages."""
-    config = {"api": {"leica": {}}}
+    config = {"leica": {}}
     cmd_tuples = [("cmd", "deletelist")]
 
     async def mock_receive():
