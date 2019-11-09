@@ -4,6 +4,7 @@
 help:
 	@echo "check-format - check code format with black code formatter"
 	@echo "clean - run all clean operations"
+	@echo "clean-build - remove build artifacts"
 	@echo "clean-pyc - remove Python file artifacts"
 	@echo "coverage - check code coverage with pytest-cov plugin"
 	@echo "docs - generate Sphinx HTML documentation"
@@ -11,13 +12,20 @@ help:
 	@echo "docs-live - rebuild the documentation when a change is detected"
 	@echo "format - format code with black code formatter"
 	@echo "lint - check style with flake8, pylint and pydocstyle"
+	@echo "release - package and upload a release to PyPI"
+	@echo "test-release - package and upload a release to test PyPI"
 	@echo "test - run tests quickly with the default Python"
 	@echo "test-all - run tests on every Python version with tox"
 
 check-format:
 	black --check ./
 
-clean: clean-pyc
+clean: clean-build clean-pyc
+
+clean-build:
+	rm -fr build/
+	rm -fr dist/
+	rm -fr *.egg-info
 
 clean-pyc:
 	find . -name '*.pyc' -exec rm -f {} +
@@ -43,6 +51,14 @@ format:
 
 lint:
 	tox -e lint
+
+release: clean
+	python setup.py sdist bdist_wheel
+	twine upload dist/*
+
+test-release: clean
+	python setup.py sdist bdist_wheel
+	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
 test:
 	pytest -v tests/
