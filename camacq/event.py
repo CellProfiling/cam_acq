@@ -111,7 +111,7 @@ class EventBus:
 
 
 def match_event(event, **event_data):
-    """Return True if event attributes matches event_data."""
+    """Return True if event attributes match event_data."""
     if not event_data or all(
         val == getattr(event, key, None) for key, val in event_data.items()
     ):
