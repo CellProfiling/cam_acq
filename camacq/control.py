@@ -219,12 +219,13 @@ class Action:
         self.func = func
         self.schema = schema
 
-    async def __call__(self, **kwargs):
+    async def __call__(self, silent=False, **kwargs):
         """Call action."""
         try:
             kwargs = self.schema(kwargs)
         except vol.Invalid as exc:
-            _LOGGER.error(
+            _LOGGER.log(
+                logging.DEBUG if silent else logging.ERROR,
                 "Invalid action call parameters %s: %s for action: %s.%s",
                 kwargs,
                 exc,
@@ -232,8 +233,12 @@ class Action:
                 self.action_id,
             )
             return
-        _LOGGER.info(
-            "Calling action %s.%s: %s", self.action_type, self.action_id, kwargs
+        _LOGGER.log(
+            logging.DEBUG if silent else logging.INFO,
+            "Calling action %s.%s: %s",
+            self.action_type,
+            self.action_id,
+            kwargs,
         )
         try:
             async with async_timeout(ACTION_TIMEOUT):
