@@ -210,6 +210,8 @@ class ActionType(dotdict):
 class Action:
     """Represent an action."""
 
+    # pylint: disable=too-few-public-methods
+
     def __init__(self, action_type, action_id, func, schema):
         """Set up the instance."""
         self.action_type = action_type
