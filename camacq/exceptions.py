@@ -9,6 +9,22 @@ class AutomationError(CamAcqError):
     """Represent an automation error."""
 
 
+class MissingActionTypeError(CamAcqError):
+    """Represent a missing action type error."""
+
+    def __init__(self, action_type):
+        """Set up the error."""
+        super().__init__(f"No such action type registered: {action_type}")
+
+
+class MissingActionError(CamAcqError):
+    """Represent a missing action error."""
+
+    def __init__(self, action_id):
+        """Set up the error."""
+        super().__init__(f"No such action id registered: {action_id}")
+
+
 class TemplateError(CamAcqError):
     """Represent a template error."""
 

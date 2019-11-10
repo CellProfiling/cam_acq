@@ -1,112 +1,18 @@
 """Control the microscope."""
 import asyncio
 import logging
-from collections import namedtuple
 
 from async_timeout import timeout as async_timeout
 import voluptuous as vol
 
 from camacq.event import Event, EventBus
-from camacq.exceptions import CamAcqError
+from camacq.exceptions import CamAcqError, MissingActionError, MissingActionTypeError
 from camacq.const import ACTION_TIMEOUT, CAMACQ_START_EVENT, CAMACQ_STOP_EVENT
 from camacq.helper import register_signals
 from camacq.plugins.sample import Sample
+from camacq.util import dotdict
 
 _LOGGER = logging.getLogger(__name__)
-
-
-Action = namedtuple("Action", "func, schema")
-
-
-class ActionsRegistry:
-    """Manage all registered actions."""
-
-    def __init__(self, center):
-        """Set up instance."""
-        self._actions = {}
-        self._center = center
-
-    @property
-    def actions(self):
-        """:dict: Return dict of dicts with all registered actions."""
-        return self._actions
-
-    def register(self, action_type, action_id, action_func, schema):
-        """Register an action.
-
-        Register actions per module.
-
-        Parameters
-        ----------
-        action_type : str
-            The name of the action_type to register the action under.
-        action_id : str
-            The id of the action to register.
-        action_func : callable
-            The function that should be called for the action.
-        action_func : voluptuous schema
-            The voluptuous schema that should validate the parameters
-            of the action call.
-        """
-        if not asyncio.iscoroutinefunction(action_func):
-            _LOGGER.error(
-                "Action handler function %s is not a coroutine function", action_func
-            )
-            return
-        if action_type not in self._actions:
-            self._actions[action_type] = {}
-        _LOGGER.debug("Registering action %s.%s", action_type, action_id)
-        self._actions[action_type][action_id] = Action(action_func, schema)
-
-    async def call(self, action_type, action_id, **kwargs):
-        """Call an action with optional kwargs.
-
-        Parameters
-        ----------
-        action_type : str
-            The name of the module where the action is registered.
-        action_id : str
-            The id of the action to call.
-        **kwargs
-            Arbitrary keyword arguments. These will be passed to the action
-            function when an action is called.
-        """
-        if (
-            action_type not in self._actions
-            or action_id not in self._actions[action_type]
-        ):
-            _LOGGER.error(
-                "No action registered for type %s or id %s", action_type, action_id
-            )
-            return
-        action = self._actions[action_type][action_id]
-        try:
-            kwargs = action.schema(kwargs)
-        except vol.Invalid as exc:
-            _LOGGER.error(
-                "Invalid action call parameters %s: %s for action: %s.%s",
-                kwargs,
-                exc,
-                action_type,
-                action_id,
-            )
-            return
-        _LOGGER.info("Calling action %s.%s: %s", action_type, action_id, kwargs)
-        try:
-            async with async_timeout(ACTION_TIMEOUT):
-                await action.func(action_id=action_id, **kwargs)
-        except asyncio.TimeoutError:
-            _LOGGER.error(
-                "Action %s.%s. timed out after %s seconds",
-                action_type,
-                action_id,
-                ACTION_TIMEOUT,
-            )
-        except CamAcqError as exc:
-            _LOGGER.error(
-                "Failed to call action %s.%s: %s", action_type, action_id, exc
-            )
-            raise
 
 
 class Center:
@@ -212,6 +118,143 @@ class Center:
                 await asyncio.wait(pending)
             else:
                 await asyncio.sleep(0)
+
+
+class ActionsRegistry:
+    """Manage all registered actions."""
+
+    def __init__(self, center):
+        """Set up instance."""
+        self._actions = {}
+        self._center = center
+
+    def __getattr__(self, action_type):
+        """Return registered actions for an action type."""
+        try:
+            return self._actions[action_type]
+        except KeyError as exc:
+            raise MissingActionTypeError(action_type) from exc
+
+    @property
+    def actions(self):
+        """:dict: Return dict of ActionTypes with all registered actions."""
+        return self._actions
+
+    def register(self, action_type, action_id, action_func, schema):
+        """Register an action.
+
+        Register actions per module.
+
+        Parameters
+        ----------
+        action_type : str
+            The name of the action_type to register the action under.
+        action_id : str
+            The id of the action to register.
+        action_func : callable
+            The function that should be called for the action.
+        action_func : voluptuous schema
+            The voluptuous schema that should validate the parameters
+            of the action call.
+        """
+        if not asyncio.iscoroutinefunction(action_func):
+            _LOGGER.error(
+                "Action handler function %s is not a coroutine function", action_func
+            )
+            return
+        if action_type not in self._actions:
+            self._actions[action_type] = ActionType()
+        _LOGGER.debug("Registering action %s.%s", action_type, action_id)
+        self._actions[action_type][action_id] = Action(
+            action_type, action_id, action_func, schema
+        )
+
+    async def call(self, action_type, action_id, **kwargs):
+        """Call an action with optional kwargs.
+
+        Parameters
+        ----------
+        action_type : str
+            The name of the module where the action is registered.
+        action_id : str
+            The id of the action to call.
+        **kwargs
+            Arbitrary keyword arguments. These will be passed to the action
+            function when an action is called.
+        """
+        if (
+            action_type not in self._actions
+            or action_id not in self._actions[action_type]
+        ):
+            _LOGGER.error(
+                "No action registered for type %s or id %s", action_type, action_id
+            )
+            return
+
+        action = self._actions[action_type][action_id]
+
+        await action(**kwargs)
+
+
+class ActionType(dotdict):
+    """Represent an action type."""
+
+    def __getattr__(self, action_id):
+        """Return registered action for an action id."""
+        try:
+            return self[action_id]
+        except KeyError as exc:
+            raise MissingActionError(action_id) from exc
+
+
+class Action:
+    """Represent an action."""
+
+    # pylint: disable=too-few-public-methods
+
+    def __init__(self, action_type, action_id, func, schema):
+        """Set up the instance."""
+        self.action_type = action_type
+        self.action_id = action_id
+        self.func = func
+        self.schema = schema
+
+    async def __call__(self, silent=False, **kwargs):
+        """Call action."""
+        try:
+            kwargs = self.schema(kwargs)
+        except vol.Invalid as exc:
+            _LOGGER.log(
+                logging.DEBUG if silent else logging.ERROR,
+                "Invalid action call parameters %s: %s for action: %s.%s",
+                kwargs,
+                exc,
+                self.action_type,
+                self.action_id,
+            )
+            return
+        _LOGGER.log(
+            logging.DEBUG if silent else logging.INFO,
+            "Calling action %s.%s: %s",
+            self.action_type,
+            self.action_id,
+            kwargs,
+        )
+        try:
+            async with async_timeout(ACTION_TIMEOUT):
+                await self.func(action_id=self.action_id, **kwargs)
+        except asyncio.TimeoutError:
+            _LOGGER.error(
+                "Action %s.%s. timed out after %s seconds",
+                self.action_type,
+                self.action_id,
+                ACTION_TIMEOUT,
+            )
+        except CamAcqError as exc:
+            _LOGGER.error(
+                "Failed to call action %s.%s: %s", self.action_type, self.action_id, exc
+            )
+            raise
 
 
 def loop_exception_handler(loop, context):
