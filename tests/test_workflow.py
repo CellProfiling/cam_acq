@@ -92,8 +92,8 @@ async def test_workflow(center, caplog, api, calc_gain, rename_image):
     assert api.start_imaging.call_count == 0
     assert api.stop_imaging.call_count == 0
     assert calc_gain.call_count == 0
-    assert center.actions.actions.get("plugins.gain", {}).get("calc_gain")
-    assert center.actions.actions.get("plugins.rename_image", {}).get("rename_image")
+    assert center.actions.actions.get("gain", {}).get("calc_gain")
+    assert center.actions.actions.get("rename_image", {}).get("rename_image")
 
     event = CamAcqStartEvent()
     await center.bus.notify(event)
