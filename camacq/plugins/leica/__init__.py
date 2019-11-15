@@ -84,7 +84,7 @@ class LeicaApi(Api):
         try:
             while True:
                 reply = await self.client.receive()
-                await self.receive(reply)
+                self.center.create_task(self.receive(reply))
         except asyncio.CancelledError:
             _LOGGER.debug("Stopped listening for messages from CAM")
 
