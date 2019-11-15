@@ -16,6 +16,8 @@ from camacq.helper import BASE_ACTION_SCHEMA
 
 _LOGGER = logging.getLogger(__name__)
 
+COMMAND_VALIDATOR = vol.Any([(str, str)], vol.Coerce(str))
+
 
 def validate_commands(value):
     """Validate a template string via JSON."""
@@ -25,7 +27,7 @@ def validate_commands(value):
         except ValueError:
             raise vol.Invalid("Invalid commands: {}".format(value))
     else:
-        schema = vol.Schema([vol.Coerce(str)])
+        schema = vol.Schema([COMMAND_VALIDATOR])
         return schema(value)
 
 
@@ -36,7 +38,7 @@ ACTION_STOP_IMAGING = "stop_imaging"
 CONF_API = "api"
 DATA_API = "api"
 
-SEND_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({"command": vol.Coerce(str)})
+SEND_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({"command": COMMAND_VALIDATOR})
 
 SEND_MANY_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({"commands": validate_commands})
 
