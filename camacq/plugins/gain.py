@@ -78,7 +78,7 @@ async def setup_module(center, config):
         )
 
     center.actions.register(
-        "plugins.gain", ACTION_CALC_GAIN, handle_calc_gain, CALC_GAIN_ACTION_SCHEMA
+        "gain", ACTION_CALC_GAIN, handle_calc_gain, CALC_GAIN_ACTION_SCHEMA
     )
 
 
