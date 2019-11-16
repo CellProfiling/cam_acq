@@ -9,7 +9,7 @@ from functools import partial
 import voluptuous as vol
 
 from camacq.exceptions import AutomationError, TemplateError
-from camacq.helper import BASE_ACTION_SCHEMA, get_module
+from camacq.helper import BASE_ACTION_SCHEMA, get_module, has_at_least_one_key
 from camacq.helper.template import make_template, render_template
 from camacq.const import CAMACQ_STOP_EVENT, CONF_DATA, CONF_ID
 
@@ -33,6 +33,44 @@ TOGGLE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
         NAME: vol.Coerce(str),
         ENABLED: vol.Boolean(),  # pylint: disable=no-value-for-parameter
     }
+)
+
+TRIGGER_ACTION_SCHEMA = vol.Schema(
+    [
+        {
+            vol.Required(CONF_TYPE): vol.Coerce(str),
+            vol.Required(CONF_ID): vol.Coerce(str),
+            vol.Optional(CONF_DATA): {vol.Coerce(str): vol.Any(bool, int, str)},
+        }
+    ],
+)
+
+CONDITION_SCHEMA = vol.All(
+    has_at_least_one_key(CONF_TYPE, CONF_CONDITION),
+    {
+        # pylint: disable=no-value-for-parameter
+        vol.Inclusive(CONF_TYPE, "condition"): vol.All(
+            vol.Upper, vol.In(["AND", "OR"])
+        ),
+        vol.Inclusive(CONF_CONDITIONS, "condition"): [
+            # pylint: disable=unnecessary-lambda
+            lambda value: CONDITION_SCHEMA(value)
+        ],
+        vol.Exclusive(CONF_CONDITION, "condition"): vol.Coerce(str),
+    },
+)
+
+CONFIG_SCHEMA = vol.Schema(
+    [
+        {
+            vol.Required(CONF_NAME): vol.Coerce(str),
+            vol.Required(CONF_TRIGGER): TRIGGER_ACTION_SCHEMA,
+            vol.Required(CONF_ACTION): TRIGGER_ACTION_SCHEMA,
+            vol.Optional(
+                CONF_CONDITION, default={CONF_CONDITION: "true"}
+            ): CONDITION_SCHEMA,
+        }
+    ]
 )
 
 

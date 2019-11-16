@@ -17,6 +17,7 @@ from camacq.const import (
     CONF_PORT,
     JOB_ID,
 )
+from camacq.helper import ensure_dict
 from camacq.plugins.api import (
     Api,
     CommandEvent,
@@ -41,13 +42,16 @@ SCAN_FINISHED = "scanfinished"
 SCAN_STARTED = "scanstart"
 START_STOP_DELAY = 2.0
 
-# pylint: disable=no-value-for-parameter
 CONFIG_SCHEMA = vol.Schema(
-    {
-        vol.Optional(CONF_HOST, default="localhost"): vol.Coerce(str),
-        vol.Optional(CONF_PORT, default=8895): vol.Coerce(int),
-        vol.Optional(CONF_IMAGING_DIR, default=tempfile.gettempdir()): vol.IsDir(),
-    }
+    vol.All(
+        ensure_dict,
+        {
+            vol.Optional(CONF_HOST, default="localhost"): vol.Coerce(str),
+            vol.Optional(CONF_PORT, default=8895): vol.Coerce(int),
+            # pylint: disable=no-value-for-parameter
+            vol.Optional(CONF_IMAGING_DIR, default=tempfile.gettempdir()): vol.IsDir(),
+        },
+    )
 )
 
 

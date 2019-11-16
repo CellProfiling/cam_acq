@@ -48,7 +48,6 @@ CALC_GAIN_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
     }
 )
 
-# pylint: disable=no-value-for-parameter
 CONFIG_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_CHANNELS): [
@@ -57,6 +56,7 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Required(CONF_INIT_GAIN): [vol.Coerce(int)],
             }
         ],
+        # pylint: disable=no-value-for-parameter
         vol.Optional(CONF_SAVE_DIR, default=tempfile.gettempdir()): vol.IsDir(),
     }
 )
