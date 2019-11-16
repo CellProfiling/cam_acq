@@ -2,12 +2,12 @@
 import asyncio
 import os
 from collections import OrderedDict
-from unittest.mock import MagicMock, patch
 
 import asynctest
 import pytest
 from leicacam.async_cam import AsyncCAM
 
+from camacq import plugins
 from camacq.plugins import api as base_api
 from camacq.plugins.leica import (
     LEICA_COMMAND_EVENT,
@@ -18,7 +18,6 @@ from camacq.plugins.leica import (
     LeicaImageEvent,
     LeicaStartCommandEvent,
     LeicaStopCommandEvent,
-    setup_module as leica_setup,
 )
 
 # pylint: disable=redefined-outer-name, len-as-condition
@@ -29,9 +28,10 @@ pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
 @pytest.fixture
 def api(center):
     """Return a leica api instance."""
-    config = {"leica": {}}
+    leica_conf = {"host": "localhost", "port": 8895, "imaging_dir": "/tmp"}
+    config = {"leica": leica_conf}
     client = asynctest.Mock(AsyncCAM(loop=center.loop))
-    mock_api = LeicaApi(center, {}, client)
+    mock_api = LeicaApi(center, leica_conf, client)
 
     def register_mock_api(center, config):
         """Register a mock api package."""
@@ -48,24 +48,17 @@ def api(center):
 @pytest.fixture
 def get_imgs():
     """Mock leica helper get_imgs."""
-    with patch("camacq.plugins.leica.get_imgs") as mock_get_imgs:
+    with asynctest.patch("camacq.plugins.leica.get_imgs") as mock_get_imgs:
         yield mock_get_imgs
 
 
-@pytest.fixture
-def mock_socket():
-    """Mock a socket."""
-    with patch("socket.socket") as mock_socket_class:
-        _mock_socket = MagicMock()
-        mock_socket_class.return_value = _mock_socket
-        yield _mock_socket
-
-
-async def test_setup_bad_socket(center, caplog, api):
+async def test_setup_bad_socket(center, caplog):
     """Test setup leica api package with bad host or port."""
-    api.client.connect.side_effect = OSError()
     config = {"leica": {}}
-    await leica_setup(center, config)
+    with asynctest.patch(
+        "camacq.plugins.leica.AsyncCAM.connect", side_effect=OSError()
+    ):
+        await plugins.setup_module(center, config)
     assert "Connecting to server localhost failed:" in caplog.text
 
 
@@ -188,12 +181,12 @@ async def test_start_listen(center, caplog):
     mock_handler = asynctest.CoroutineMock()
     center.bus.register(LEICA_COMMAND_EVENT, mock_handler)
 
-    with patch("camacq.plugins.leica.AsyncCAM") as mock_cam_class:
+    with asynctest.patch("camacq.plugins.leica.AsyncCAM") as mock_cam_class:
         mock_cam_class.return_value = mock_cam = asynctest.Mock(
             AsyncCAM(loop=center.loop)
         )
         mock_cam.receive.return_value = mock_receive()
-        await leica_setup(center, config)
+        await plugins.setup_module(center, config)
         await center.wait_for()
         await center.end(0)
 

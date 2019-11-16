@@ -1,14 +1,22 @@
 """Leica microscope API specific modules."""
 import asyncio
 import logging
+import tempfile
 from functools import partial
 
+import voluptuous as vol
 from async_timeout import timeout as async_timeout
 from leicacam.async_cam import AsyncCAM
 from leicacam.cam import bytes_as_dict, check_messages, tuples_as_bytes
 from leicaexperiment import attribute, attribute_as_str
 
-from camacq.const import CAMACQ_STOP_EVENT, CONF_HOST, CONF_PORT, IMAGING_DIR, JOB_ID
+from camacq.const import (
+    CAMACQ_STOP_EVENT,
+    CONF_HOST,
+    CONF_IMAGING_DIR,
+    CONF_PORT,
+    JOB_ID,
+)
 from camacq.plugins.api import (
     Api,
     CommandEvent,
@@ -33,6 +41,15 @@ SCAN_FINISHED = "scanfinished"
 SCAN_STARTED = "scanstart"
 START_STOP_DELAY = 2.0
 
+# pylint: disable=no-value-for-parameter
+CONFIG_SCHEMA = vol.Schema(
+    {
+        vol.Optional(CONF_HOST, default="localhost"): vol.Coerce(str),
+        vol.Optional(CONF_PORT, default=8895): vol.Coerce(int),
+        vol.Optional(CONF_IMAGING_DIR, default=tempfile.gettempdir()): vol.IsDir(),
+    }
+)
+
 
 async def setup_module(center, config):
     """Set up Leica api package.
@@ -45,8 +62,8 @@ async def setup_module(center, config):
         The config dict.
     """
     conf = config[CONF_LEICA]
-    host = conf.get(CONF_HOST, "localhost")
-    port = conf.get(CONF_PORT, 8895)
+    host = conf[CONF_HOST]
+    port = conf[CONF_PORT]
     cam = AsyncCAM(host, port, loop=center.loop)
     try:
         await cam.connect()
@@ -107,7 +124,7 @@ class LeicaApi(Api):
             if not reply or not isinstance(reply, dict):
                 continue
             if REL_IMAGE_PATH in reply:
-                imaging_dir = self.config.get(IMAGING_DIR, "")
+                imaging_dir = self.config[CONF_IMAGING_DIR]
                 rel_path = reply[REL_IMAGE_PATH]
                 image_path = find_image_path(rel_path, imaging_dir)
                 field_path = await self.center.add_executor_job(get_field, image_path)
