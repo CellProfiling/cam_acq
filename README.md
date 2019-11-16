@@ -31,7 +31,7 @@ camacq
 camacq uses a yaml configuration file, config.yml, for configuring
 almost all settings in the app. The configuration file is found in the
 configuration directory. The default configuration directory is located
-in the home directory and called `.camacq`{.sourceCode}.
+in the home directory and called `.camacq`.
 
 The location of the configuration directory can be overridden when
 starting camacq.
@@ -141,28 +141,28 @@ trigger:
 ```
 
 This section now holds a sequence of two trigger items, where each has a
-type and an id. The second item also has a `data`{.sourceCode} key. The
-`type`{.sourceCode} key tells camacq what type of trigger it should
-configure. Currently only triggers of type `event`{.sourceCode} are
+type and an id. The second item also has a `data` key. The
+`type` key tells camacq what type of trigger it should
+configure. Currently only triggers of type `event` are
 available. See the [documentation](http://cam-acq.readthedocs.io) for
-all available event ids. The `id`{.sourceCode} key sets the trigger id
+all available event ids. The `id` key sets the trigger id
 which will be the first part of the matching criteria for the trigger.
-The second part is optional and is the value of the `data`{.sourceCode}
+The second part is optional and is the value of the `data`
 key. This key can hold key-value pairs with event data that should match
 the attributes of the event for the trigger to trigger. So for the
-second item we want the event to have id `well_event`{.sourceCode} and
-to have an attribute called `well_img_ok`{.sourceCode} which should
-return `True`{.sourceCode}, for the event to trigger our trigger.
+second item we want the event to have id `well_event` and
+to have an attribute called `well_img_ok` which should
+return `True`, for the event to trigger our trigger.
 
 ### Action
 
 Looking at the action section of our example automation, we see that it
 also has two items. And exactly as for the triggers, each action has a
-`type`{.sourceCode} and an `id`{.sourceCode}, and can optionally specify
-a `data`{.sourceCode} key. Actions can have different types, eg
-`sample`{.sourceCode} or `command`{.sourceCode}. You will find all of
+`type` and an `id`, and can optionally specify
+a `data` key. Actions can have different types, eg
+`sample` or `command`. You will find all of
 the action types in the [documentation](http://cam-acq.readthedocs.io).
-For an action, the `data`{.sourceCode} key sets the keyword arguments
+For an action, the `data` key sets the keyword arguments
 that should be provided to the action handler function that executes the
 action.
 
@@ -197,10 +197,10 @@ pieces of automation configuration code to control the microscope.
 Besides having all the standard Jinja2 features, we also have the
 trigger event and the full sample state data available as variables when
 the template is rendered. Eg if a well event triggered the automation we
-can use `trigger.event.well`{.sourceCode} inside the template and have
+can use `trigger.event.well` inside the template and have
 access to all the attributes of the well that triggered the event.
 Useful sample attributes are also directly available on the
-`trigger.event`{.sourceCode} eg `trigger.event.well_x`{.sourceCode}.
+`trigger.event` eg `trigger.event.well_x`.
 
 ```yaml
 well_y: >
@@ -212,7 +212,7 @@ well_y: >
 ```
 
 If we need access to some sample state that isn't part of the trigger,
-we can use `sample`{.sourceCode} directly in the template. Via this
+we can use `sample` directly in the template. Via this
 variable the whole sample state data is accessible from inside a
 template. See below for the sample attribute structure. Note that only
 condition and action values in key-value pairs support rendering a
@@ -259,7 +259,7 @@ condition:
 ```
 
 Currently each condition must be a template that renders to the string
-`true`{.sourceCode} if the condition criteria is met.
+`true` if the condition criteria is met.
 
 ## Sample
 
