@@ -54,7 +54,6 @@ def get_imgs():
 
 async def test_setup_bad_socket(center, caplog):
     """Test setup leica api package with bad host or port."""
-    # api.client.connect.side_effect = OSError()
     config = {"leica": {}}
     with asynctest.patch(
         "camacq.plugins.leica.AsyncCAM.connect", side_effect=OSError()
