@@ -27,11 +27,11 @@ async def test_setup_one_module(center, mock_gain_setup):
     assert kwargs == {}
 
 
-async def test_missing_setup(center):
+async def test_missing_setup(center, caplog):
     """Test missing setup function."""
     const_module = helper.get_module("camacq", "const")
-    task = helper.setup_one_module(center, {}, const_module)
-    assert task is None
+    await helper.setup_one_module(center, {}, const_module)
+    assert "Missing setup_module function in module const" in caplog.text
 
 
 async def test_many_module_matches(center):

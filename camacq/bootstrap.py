@@ -24,9 +24,7 @@ async def setup_dict(center, config):
         Return the Center instance.
     """
     log_util.enable_log(config)
-    task = setup_one_module(center, config, plugins)
-    if task:
-        await task
+    await setup_one_module(center, config, plugins)
 
 
 async def setup_file(config_file, cmd_args):
