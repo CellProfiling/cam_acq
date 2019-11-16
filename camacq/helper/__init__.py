@@ -70,6 +70,7 @@ async def setup_one_module(center, config, module):
         except vol.Invalid as exc:
             _LOGGER.error("Incorrect configuration for module %s: %s", module_name, exc)
             return
+        config[module_name] = module_conf
     await module.setup_module(center, config)
 
 
