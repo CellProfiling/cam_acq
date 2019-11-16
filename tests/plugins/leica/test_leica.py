@@ -37,7 +37,9 @@ def api(center):
         """Register a mock api package."""
         base_api.register_api(center, mock_api)
 
-    with asynctest.patch("camacq.plugins.leica.setup_module") as leica_setup:
+    with asynctest.patch(
+        "camacq.plugins.leica.setup_module"
+    ) as leica_setup, asynctest.patch("camacq.plugins.leica.START_STOP_DELAY", 0.0):
         leica_setup.side_effect = register_mock_api
         center.loop.run_until_complete(base_api.setup_module(center, config))
         yield mock_api

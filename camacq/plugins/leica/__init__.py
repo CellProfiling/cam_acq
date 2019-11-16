@@ -31,6 +31,7 @@ LEICA_IMAGE_EVENT = "leica_image_event"
 REL_IMAGE_PATH = "relpath"
 SCAN_FINISHED = "scanfinished"
 SCAN_STARTED = "scanstart"
+START_STOP_DELAY = 2.0
 
 
 async def setup_module(center, config):
@@ -161,10 +162,15 @@ class LeicaApi(Api):
     async def start_imaging(self):
         """Send a command to the microscope to start the imaging."""
         await self._start_stop_imaging(start(), LEICA_START_COMMAND_EVENT, SCAN_STARTED)
+        # A delay is needed after starting.
+        await asyncio.sleep(START_STOP_DELAY)
 
     async def stop_imaging(self):
         """Send a command to the microscope to stop the imaging."""
+        # A delay is needed before and after stopping.
+        await asyncio.sleep(START_STOP_DELAY)
         await self._start_stop_imaging(stop(), LEICA_STOP_COMMAND_EVENT, SCAN_FINISHED)
+        await asyncio.sleep(START_STOP_DELAY)
 
     async def _start_stop_imaging(self, cmd, event, ack_cmd):
         """Send a command to the microscope to start or stop the imaging."""
