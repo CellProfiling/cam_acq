@@ -1,6 +1,5 @@
 """Handle sample state."""
 # pylint: disable=too-many-lines
-import asyncio
 import logging
 from collections import OrderedDict
 
@@ -20,7 +19,6 @@ from camacq.const import (
 )
 from camacq.event import Event
 from camacq.helper import BASE_ACTION_SCHEMA
-from camacq.util import read_csv
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,8 +57,6 @@ ACTION_TO_METHOD = {
     ACTION_SET_CHANNEL: {"method": "set_channel", "schema": SET_CHANNEL_ACTION_SCHEMA},
 }
 
-SAMPLE_STATE_FILE = "state_file"
-
 
 async def setup_module(center, config):
     """Set up sample module.
@@ -89,27 +85,6 @@ async def setup_module(center, config):
     for action_id, options in ACTION_TO_METHOD.items():
         schema = options["schema"]
         center.actions.register("sample", action_id, handle_action, schema)
-
-    conf = config["sample"]
-    state_file = conf.get(SAMPLE_STATE_FILE) if conf else None
-    if state_file is None:
-        return
-    state_data = await center.add_executor_job(read_csv, state_file)
-    tasks = []
-    for data in state_data:
-        for action_id, options in ACTION_TO_METHOD.items():
-            schema = options["schema"]
-            try:
-                schema(data)
-            except vol.Invalid as exc:
-                _LOGGER.debug("Skipping action %s: %s", action_id, exc)
-                continue
-            tasks.append(
-                center.create_task(center.actions.call("sample", action_id, **data))
-            )
-
-    if tasks:
-        await asyncio.wait(tasks)
 
 
 class Image:

@@ -318,36 +318,6 @@ sample:
                   channel_id: [channel_id]
 ```
 
-To allow the user to set up the sample state before starting an
-experiment, camacq can load the sample state from a file. In the sample
-configuration section there is an option to specify a path to a csv
-file.
-
-```yaml
-sample:
-  state_file: '/sample_state.csv'
-```
-
-Each row in the csv file should represent a state of a sample container,
-ie plate, well, field or channel. The csv file should also have a
-header. See below.
-
-```
-plate_name,well_x,well_y,channel_name,gain
-00,1,1,blue,600
-```
-
-This example will set create a plate '00', a well (1, 1), a blue channel
-and set the gain of the blue channel to 600.
-
-```
-plate_name,well_x,well_y,field_x,field_y
-00,1,1,1,1
-```
-
-This example will create a plate '00' a well (1, 1) and a field (1, 1)
-in the sample state.
-
 ## Plugins
 
 To extend the functionality of camacq and to make it possible to do
