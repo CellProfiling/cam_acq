@@ -3,7 +3,9 @@ import asyncio
 
 import pkg_resources
 
-from camacq.helper import CORE_MODULES, setup_one_module
+from camacq.helper import setup_one_module
+
+CORE_MODULES = ["api", "sample"]
 
 
 async def setup_module(center, config):

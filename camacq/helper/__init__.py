@@ -13,7 +13,6 @@ _LOGGER = logging.getLogger(__name__)
 
 PACKAGE_MODULE = "{}.{}"
 BASE_ACTION_SCHEMA = vol.Schema({"action_id": str}, extra=vol.REMOVE_EXTRA)
-CORE_MODULES = ["api", "sample"]
 
 
 def get_module(package, module_name):
