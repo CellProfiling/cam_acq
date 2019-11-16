@@ -5,10 +5,6 @@ class CamAcqError(Exception):
     """Represent the base camacq exception."""
 
 
-class AutomationError(CamAcqError):
-    """Represent an automation error."""
-
-
 class MissingActionTypeError(CamAcqError):
     """Represent a missing action type error."""
 
