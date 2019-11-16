@@ -13,6 +13,8 @@ pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
 class MockModule:
     """Represent a mock module."""
 
+    # pylint: disable=too-few-public-methods
+
     def __init__(self, module_name, setup_module=None, config_schema=None):
         """Initialize the mock module."""
         # pylint: disable=invalid-name
