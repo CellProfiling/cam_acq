@@ -16,7 +16,7 @@ class MockModule:
     # pylint: disable=too-few-public-methods
 
     def __init__(self, module_name, setup_module=None, config_schema=None):
-        """Initialize the mock module."""
+        """Set up the mock module."""
         # pylint: disable=invalid-name
         self.__name__ = f"camacq.plugins.{module_name}"
         self.__file__ = f"camacq.plugins/{module_name}"
