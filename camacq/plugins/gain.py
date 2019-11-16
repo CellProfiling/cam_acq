@@ -1,6 +1,7 @@
 """Handle default gain feedback plugin."""
 import logging
 import os
+import tempfile
 from collections import defaultdict, namedtuple
 from functools import partial
 from itertools import groupby
@@ -10,7 +11,7 @@ import pandas as pd
 import voluptuous as vol
 from scipy.optimize import curve_fit
 
-from camacq.const import CHANNEL_ID, CONF_PLUGINS, WELL, WELL_NAME
+from camacq.const import CHANNEL_ID, WELL, WELL_NAME
 from camacq.event import Event
 from camacq.plugins.sample import Channel
 from camacq.helper import BASE_ACTION_SCHEMA
@@ -29,6 +30,7 @@ CONF_CHANNEL = "channel"
 CONF_CHANNELS = "channels"
 CONF_GAIN = "gain"
 CONF_INIT_GAIN = "init_gain"
+CONF_SAVE_DIR = "save_dir"
 COUNT_CLOSE_TO_ZERO = 2
 GAIN_CALC_EVENT = "gain_calc_event"
 SAVED_GAINS = "saved_gains"
@@ -43,6 +45,19 @@ CALC_GAIN_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
         # pylint: disable=no-value-for-parameter
         vol.Optional("make_plots", default=False): vol.Boolean(),
         vol.Optional("save_path", default=""): vol.Coerce(str),
+    }
+)
+
+# pylint: disable=no-value-for-parameter
+CONFIG_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_CHANNELS): [
+            {
+                vol.Required(CONF_CHANNEL): vol.Coerce(str),
+                vol.Required(CONF_INIT_GAIN): [vol.Coerce(int)],
+            }
+        ],
+        vol.Optional(CONF_SAVE_DIR, default=tempfile.gettempdir()): vol.IsDir(),
     }
 )
 
@@ -88,11 +103,6 @@ async def calc_gain(
     """Calculate gain values for the well."""
     # pylint: disable=too-many-arguments, too-many-locals
     gain_conf = config[CONF_GAIN]
-    if CONF_CHANNELS not in gain_conf:
-        _LOGGER.error(
-            "Missing config section %s in %s:%s", CONF_CHANNELS, CONF_PLUGINS, CONF_GAIN
-        )
-        return
     init_gain = [
         Channel(channel[CONF_CHANNEL], gain=gain)
         for channel in gain_conf[CONF_CHANNELS]
@@ -108,7 +118,7 @@ async def calc_gain(
     center.data[SAVED_GAINS].update({WELL_NAME.format(well_x, well_y): gains})
     _LOGGER.debug("All calculated gains: %s", center.data[SAVED_GAINS])
     if plot:
-        save_dir = gain_conf.get("save_dir", "/temp")
+        save_dir = gain_conf[CONF_SAVE_DIR]
         await center.add_executor_job(
             save_gain, save_dir, center.data[SAVED_GAINS], [WELL] + list(gains)
         )

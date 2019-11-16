@@ -13,7 +13,6 @@ _LOGGER = logging.getLogger(__name__)
 
 PACKAGE_MODULE = "{}.{}"
 BASE_ACTION_SCHEMA = vol.Schema({"action_id": str}, extra=vol.REMOVE_EXTRA)
-CORE_MODULES = ["api", "sample"]
 
 
 def get_module(package, module_name):
@@ -47,7 +46,7 @@ def get_module(package, module_name):
         _LOGGER.exception(("Loading %s failed"), module_path)
 
 
-def setup_one_module(center, config, module):
+async def setup_one_module(center, config, module):
     """Set up one module or package.
 
     Returns
@@ -55,10 +54,23 @@ def setup_one_module(center, config, module):
     asyncio.Task
         Return a task to set up the module or None.
     """
-    if hasattr(module, "setup_module"):
-        _LOGGER.info("Setting up %s module", module.__name__)
-        return center.create_task(module.setup_module(center, config))
-    return None
+    module_name = module.__name__.split(".")[-1]
+    if not hasattr(module, "setup_module"):
+        _LOGGER.warning("Missing setup_module function in module %s", module_name)
+        return
+    _LOGGER.info("Setting up module %s", module_name)
+    if hasattr(module, "CONFIG_SCHEMA"):
+        _LOGGER.debug("Validating config for module %s", module_name)
+        module_conf = config[module_name]
+        try:
+            module_conf = await center.add_executor_job(
+                module.CONFIG_SCHEMA, module_conf
+            )
+        except vol.Invalid as exc:
+            _LOGGER.error("Incorrect configuration for module %s: %s", module_name, exc)
+            return
+        config[module_name] = module_conf
+    await module.setup_module(center, config)
 
 
 def register_signals(center):
