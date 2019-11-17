@@ -40,9 +40,7 @@ TRIGGER_ACTION_SCHEMA = vol.Schema(
         {
             vol.Required(CONF_TYPE): vol.Coerce(str),
             vol.Required(CONF_ID): vol.Coerce(str),
-            vol.Optional(CONF_DATA, default={}): {
-                vol.Coerce(str): vol.Any(bool, int, float, str)
-            },
+            vol.Optional(CONF_DATA, default={}): dict,
         }
     ],
 )
