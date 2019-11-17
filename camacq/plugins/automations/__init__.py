@@ -8,14 +8,14 @@ from functools import partial
 
 import voluptuous as vol
 
-from camacq.exceptions import AutomationError, TemplateError
-from camacq.helper import BASE_ACTION_SCHEMA, get_module
+from camacq.exceptions import TemplateError
+from camacq.helper import BASE_ACTION_SCHEMA, get_module, has_at_least_one_key
 from camacq.helper.template import make_template, render_template
 from camacq.const import CAMACQ_STOP_EVENT, CONF_DATA, CONF_ID
 
 _LOGGER = logging.getLogger(__name__)
 
-CONF_AUTOMATION = "automations"
+CONF_AUTOMATIONS = "automations"
 CONF_ACTION = "action"
 CONF_CONDITION = "condition"
 CONF_CONDITIONS = "conditions"
@@ -30,9 +30,47 @@ DATA_AUTOMATIONS = "automations"
 
 TOGGLE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
     {
-        NAME: vol.Coerce(str),
+        vol.Required(NAME): vol.Coerce(str),
         ENABLED: vol.Boolean(),  # pylint: disable=no-value-for-parameter
     }
+)
+
+TRIGGER_ACTION_SCHEMA = vol.Schema(
+    [
+        {
+            vol.Required(CONF_TYPE): vol.Coerce(str),
+            vol.Required(CONF_ID): vol.Coerce(str),
+            vol.Optional(CONF_DATA, default={}): dict,
+        }
+    ],
+)
+
+CONDITION_SCHEMA = vol.All(
+    has_at_least_one_key(CONF_TYPE, CONF_CONDITION),
+    {
+        # pylint: disable=no-value-for-parameter
+        vol.Inclusive(CONF_TYPE, "condition"): vol.All(
+            vol.Upper, vol.In(["AND", "OR"])
+        ),
+        vol.Inclusive(CONF_CONDITIONS, "condition"): [
+            # pylint: disable=unnecessary-lambda
+            lambda value: CONDITION_SCHEMA(value)
+        ],
+        vol.Exclusive(CONF_CONDITION, "condition"): vol.Coerce(str),
+    },
+)
+
+CONFIG_SCHEMA = vol.Schema(
+    [
+        {
+            vol.Required(CONF_NAME): vol.Coerce(str),
+            vol.Required(CONF_TRIGGER): TRIGGER_ACTION_SCHEMA,
+            vol.Required(CONF_ACTION): TRIGGER_ACTION_SCHEMA,
+            vol.Optional(
+                CONF_CONDITION, default={CONF_CONDITION: "true"}
+            ): CONDITION_SCHEMA,
+        }
+    ]
 )
 
 
@@ -50,11 +88,10 @@ async def setup_module(center, config):
 
     async def handle_action(**kwargs):
         """Enable or disable an automation."""
-        name = kwargs.get(NAME)
-        if name is None:
-            return
+        name = kwargs[NAME]
         automation = center.data[DATA_AUTOMATIONS].get(name)
         if not automation:
+            _LOGGER.error("Missing automation %s", name)
             return
         enabled = kwargs.get(ENABLED, not automation.enabled)
         if enabled:
@@ -76,9 +113,9 @@ class TemplateAction:
     def __init__(self, center, action_conf):
         """Set up instance."""
         self._center = center
-        self.action_id = action_conf.get(CONF_ID)
-        self.action_type = action_conf.get(CONF_TYPE)
-        action_data = action_conf.get(CONF_DATA, {})
+        self.action_id = action_conf[CONF_ID]
+        self.action_type = action_conf[CONF_TYPE]
+        action_data = action_conf[CONF_DATA]
         self.template = make_template(center, action_data)
 
     async def __call__(self, variables=None):
@@ -231,7 +268,7 @@ def make_checker(condition_type, checks):
             return all(template_check(check(variables)) for check in checks)
         if condition_type.lower() == "or":
             return any(template_check(check(variables)) for check in checks)
-        return None
+        return False
 
     return check_condition
 
@@ -246,11 +283,10 @@ def _process_condition(center, config_block):
             check = _process_condition(center, cond)
             checks.append(check)
         return make_checker(condition_type, checks)
-    if CONF_CONDITION in config_block:
-        data = config_block[CONF_CONDITION]
-        template = make_template(center, data)
-        return partial(render_template, template)
-    raise AutomationError("Invalid condition: {}".format(config_block))
+
+    data = config_block[CONF_CONDITION]
+    template = make_template(center, data)
+    return partial(render_template, template)
 
 
 def _process_trigger(center, config_block, trigger):
@@ -258,8 +294,8 @@ def _process_trigger(center, config_block, trigger):
     remove_funcs = []
 
     for conf in config_block:
-        trigger_id = conf.get(CONF_ID)
-        trigger_type = conf.get(CONF_TYPE)
+        trigger_id = conf[CONF_ID]
+        trigger_type = conf[CONF_TYPE]
         trigger_mod = get_module(__name__, trigger_type)
         if not trigger_mod:
             continue
@@ -285,24 +321,14 @@ def _process_trigger(center, config_block, trigger):
 
 def _process_automations(center, config):
     """Process automations from config."""
-    conf = config.get(CONF_AUTOMATION)
+    conf = config[CONF_AUTOMATIONS]
     for block in conf:
         name = block[CONF_NAME]
         _LOGGER.debug("Setting up automation %s", name)
-        action_sequence = _get_actions(center, block.get(CONF_ACTION, []))
-        if CONF_CONDITION in block:
-            try:
-                cond_func = _process_condition(center, block[CONF_CONDITION])
-            except AutomationError:
-                continue
-        else:
-
-            def cond_func(variables):
-                """Return always True when condition is not used."""
-                return True
-
+        action_sequence = _get_actions(center, block[CONF_ACTION])
+        cond_func = _process_condition(center, block[CONF_CONDITION])
         # use partial to get a function with args to call later
-        attach_triggers = partial(_process_trigger, center, block.get(CONF_TRIGGER, []))
+        attach_triggers = partial(_process_trigger, center, block[CONF_TRIGGER])
         automations = center.data.setdefault(DATA_AUTOMATIONS, {})
         automations[name] = Automation(
             center, name, attach_triggers, cond_func, action_sequence

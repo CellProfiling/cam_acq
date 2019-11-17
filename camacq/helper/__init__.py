@@ -66,11 +66,37 @@ async def setup_one_module(center, config, module):
             module_conf = await center.add_executor_job(
                 module.CONFIG_SCHEMA, module_conf
             )
-        except vol.Invalid as exc:
-            _LOGGER.error("Incorrect configuration for module %s: %s", module_name, exc)
+        except vol.Invalid:
+            _LOGGER.exception("Incorrect configuration for module %s:", module_name)
             return
         config[module_name] = module_conf
     await module.setup_module(center, config)
+
+
+# Adapted from:
+# https://github.com/alecthomas/voluptuous/issues/115#issuecomment-144464666
+def has_at_least_one_key(*keys):
+    """Validate that at least one key exists."""
+
+    def validate(obj):
+        """Test keys exist in dict."""
+        if not isinstance(obj, dict):
+            raise vol.Invalid("expected a dictionary")
+
+        for key in obj:
+            if key in keys:
+                return obj
+        all_keys = ", ".join(keys)
+        raise vol.Invalid(f"must contain at least one of {all_keys}")
+
+    return validate
+
+
+def ensure_dict(value):
+    """Convert None to empty dict."""
+    if value is None:
+        return {}
+    return value
 
 
 def register_signals(center):
