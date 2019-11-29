@@ -33,7 +33,7 @@ def check_log_level(loglevel):
     return numeric_level
 
 
-def parse_command_line():
+def parse_command_line(args=None):
     """Parse the provided command line."""
     parser = argparse.ArgumentParser(
         description="Control microscope through client-server program."
@@ -51,7 +51,7 @@ def parse_command_line():
         default=config_util.get_default_config_dir(),
         help="the path to camacq configuration directory",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(args=args)
     if args.config_dir:
         args.config_dir = os.path.normpath(args.config_dir)
     cmd_args_dict = vars(args)
@@ -106,10 +106,10 @@ async def setup_and_start(config_file, cmd_args):
     return await center.start()
 
 
-def main():
+def main(args=None):
     """Run main function."""
     # Parse command line arguments
-    cmd_args = parse_command_line()
+    cmd_args = parse_command_line(args=args)
     config_dir = os.path.join(os.getcwd(), cmd_args[CONFIG_DIR])
     ensure_config_path(config_dir)
     config_file = ensure_config_file(config_dir)
