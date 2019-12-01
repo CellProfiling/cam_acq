@@ -78,7 +78,7 @@ async def test_setup_automation(center):
         sample:
     """
 
-    config = await center.add_executor_job(YAML(typ="safe").load, config)
+    config = YAML(typ="safe").load(config)
     await plugins.setup_module(center, config)
     assert "set_well" in center.actions.actions["sample"]
     assert "toggle" in center.actions.actions["automations"]
@@ -121,7 +121,7 @@ async def test_channel_event(center, mock_api):
         sample:
     """
 
-    config = await center.add_executor_job(YAML(typ="safe").load, config)
+    config = YAML(typ="safe").load(config)
     await plugins.setup_module(center, config)
     automation = center.data["automations"]["set_channel_gain"]
     assert automation.enabled
@@ -158,7 +158,7 @@ async def test_condition(center, mock_api):
         sample:
     """
 
-    config = await center.add_executor_job(YAML(typ="safe").load, config)
+    config = YAML(typ="safe").load(config)
     await plugins.setup_module(center, config)
     automation = center.data["automations"]["add_exp_job"]
     assert automation.enabled
@@ -196,7 +196,7 @@ async def test_nested_condition(center, mock_api):
         sample:
     """
 
-    config = await center.add_executor_job(YAML(typ="safe").load, config)
+    config = YAML(typ="safe").load(config)
     await plugins.setup_module(center, config)
     automation = center.data["automations"]["add_exp_job"]
     assert automation.enabled
@@ -262,7 +262,7 @@ async def test_sample_access(center, mock_api):
         sample:
     """
 
-    config = await center.add_executor_job(YAML(typ="safe").load, config)
+    config = YAML(typ="safe").load(config)
     await plugins.setup_module(center, config)
     automation = center.data["automations"]["set_img_ok"]
     assert automation.enabled
@@ -308,7 +308,7 @@ async def test_delay_action(center, mock_api, caplog):
                 id: stop_imaging
     """
     caplog.set_level(logging.INFO)
-    config = await center.add_executor_job(YAML(typ="safe").load, config)
+    config = YAML(typ="safe").load(config)
     await plugins.setup_module(center, config)
     automation = center.data["automations"]["test_delay"]
     assert automation.enabled
