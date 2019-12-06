@@ -212,8 +212,6 @@ class LeicaApi(Api):
                 await asyncio.wait([cmd_sent, trigger_cmd_sent])
         except asyncio.TimeoutError:
             _LOGGER.info("No acknowledgement event received, continuing anyway")
-            cmd_sent.set_result(True)
-            trigger_cmd_sent.set_result(True)
 
 
 # pylint: disable=too-few-public-methods
