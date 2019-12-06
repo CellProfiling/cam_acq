@@ -256,7 +256,7 @@ def _calc_gain(projs, init_gain, plot=True, save_path=""):
                 coeffs,
                 "box-gain",
             )
-        gains[channel] = _power_func(255, *coeffs)
+        gains[channel] = round(_power_func(255, *coeffs))
 
     return gains
 
