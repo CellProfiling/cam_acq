@@ -95,6 +95,7 @@ class LeicaApi(Api):
         self.center = center
         self.client = client
         self.config = config
+        self._last_image_path = None
 
     @property
     def name(self):
@@ -130,6 +131,11 @@ class LeicaApi(Api):
             if REL_IMAGE_PATH in reply:
                 imaging_dir = self.config[CONF_IMAGING_DIR]
                 rel_path = reply[REL_IMAGE_PATH]
+                if rel_path == self._last_image_path:
+                    # guard against duplicate image events from the microscope
+                    _LOGGER.debug("Duplicate image reply received: %s", rel_path)
+                    continue
+                self._last_image_path = rel_path
                 image_path = find_image_path(rel_path, imaging_dir)
                 field_path = await self.center.add_executor_job(get_field, image_path)
                 image_paths = await self.center.add_executor_job(
