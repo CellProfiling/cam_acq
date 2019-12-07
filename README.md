@@ -4,10 +4,9 @@ Python project to control microscope through client-server program.
 
 ## Install
 
--   Install the camacq package. Python version 3.6 and 3.7 are
-    supported.
+- Install the camacq package. Python version 3.6+ are supported.
 
-    ```
+    ```sh
     # Check python version.
     python --version
     # Clone the repo.
@@ -22,7 +21,7 @@ Python project to control microscope through client-server program.
 
 ## Run
 
-```
+```sh
 camacq
 ```
 
@@ -36,7 +35,7 @@ in the home directory and called `.camacq`.
 The location of the configuration directory can be overridden when
 starting camacq.
 
-```
+```sh
 camacq --config /my_custom_config_dir
 ```
 
@@ -267,7 +266,7 @@ The sample state should represent the sample with plate, wells, fields,
 images etc. See below for the full sample state attribute structure in
 camacq. This is available as a variable in templates in automations.
 
-```
+```yaml
 sample:
   plates:
     [plate_name]:
@@ -375,13 +374,13 @@ to expose the plugin task as an action available in automations.
 
 Install the packages needed for development.
 
-```
+```sh
 pip install -r requirements_dev.txt
 ```
 
 Use the Makefile to run common development tasks.
 
-```
+```sh
 make
 ```
 
