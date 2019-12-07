@@ -346,7 +346,7 @@ async def setup_module(center, config):
     """Set up the plugin package."""
 ```
 
-Each plugins must have its own configuration section at the root of the config.
+Each plugin must have its own configuration section at the root of the config.
 This is an example of the gain plugin section in the configuration.
 
 ```yaml
@@ -362,9 +362,6 @@ gain:
       init_gain: [525, 560, 595, 630, 665, 700, 735]
   save_dir: '/save_dir'
 ```
-
-Each plugin should at minimum register an action in the action registry
-to expose the plugin task as an action available in automations.
 
 ## Development
 
