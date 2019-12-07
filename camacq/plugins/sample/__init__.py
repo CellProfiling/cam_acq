@@ -51,10 +51,13 @@ SET_CHANNEL_ACTION_SCHEMA = SET_WELL_ACTION_SCHEMA.extend(
 )
 
 ACTION_TO_METHOD = {
-    ACTION_SET_WELL: {"method": "set_well", "schema": SET_WELL_ACTION_SCHEMA},
-    ACTION_SET_PLATE: {"method": "set_plate", "schema": SET_PLATE_ACTION_SCHEMA},
-    ACTION_SET_FIELD: {"method": "set_field", "schema": SET_FIELD_ACTION_SCHEMA},
-    ACTION_SET_CHANNEL: {"method": "set_channel", "schema": SET_CHANNEL_ACTION_SCHEMA},
+    ACTION_SET_PLATE: {"method": ACTION_SET_PLATE, "schema": SET_PLATE_ACTION_SCHEMA},
+    ACTION_SET_WELL: {"method": ACTION_SET_WELL, "schema": SET_WELL_ACTION_SCHEMA},
+    ACTION_SET_FIELD: {"method": ACTION_SET_FIELD, "schema": SET_FIELD_ACTION_SCHEMA},
+    ACTION_SET_CHANNEL: {
+        "method": ACTION_SET_CHANNEL,
+        "schema": SET_CHANNEL_ACTION_SCHEMA,
+    },
 }
 
 
