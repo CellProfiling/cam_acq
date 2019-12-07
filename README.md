@@ -9,12 +9,8 @@ Python project to control microscope through client-server program.
     ```sh
     # Check python version.
     python --version
-    # Clone the repo.
-    git clone https://github.com/CellProfiling/cam_acq.git
-    # Enter directory.
-    cd cam_acq
     # Install package.
-    pip install .
+    pip install camacq
     # Test that program is callable and show help.
     camacq -h
     ```
