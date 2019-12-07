@@ -1,0 +1,4 @@
+plate_name,well_x,well_y,channel_name,gain
+00,1,1,blue,600
+00,1,1,green,800
+00,1,2,blue,620

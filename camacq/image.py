@@ -4,102 +4,113 @@ from collections import defaultdict
 
 import numpy as np
 import tifffile
-from matrixscreener import experiment
+import xmltodict
 
 _LOGGER = logging.getLogger(__name__)
 
 
 def read_image(path):
-    """Read a tif image and return the data."""
+    """Read a tif image and return the data.
+
+    Parameters
+    ----------
+    path : str
+        The path to the image.
+
+    Returns
+    -------
+    numpy array
+        Return a numpy array with image data.
+    """
     try:
         return tifffile.imread(path, key=0)
-    except IOError as exception:
-        _LOGGER.error('Bad path to image! %s', exception)
-        return np.array([])
+    except OSError as exception:
+        _LOGGER.error("Bad path to image: %s", exception)
+        return None
 
 
-def get_metadata(path):
-    """Read a tif image and return the meta data of the description."""
-    try:
-        with tifffile.TiffFile(path) as tif:
-            return tif[0].image_description
-    except IOError as exception:
-        _LOGGER.error('Bad path to image! %s', exception)
-        return ''
+def save_image(path, data, description=None):
+    """Save a tif image with image data and meta data.
+
+    Parameters
+    ----------
+    path : str
+        The path to the image.
+    data : numpy array
+        A numpy array with the image data.
+    description : str
+        The description string of the image.
+    """
+    tifffile.imsave(path, data, description=description)
 
 
-def save_image(path, data, metadata=None):
-    """Save a tif image with image data and meta data."""
-    tifffile.imsave(path, data, description=metadata)
-
-
-def make_proj(path_list):
-    """Make a dict of max projections from a list of image paths.
+def make_proj(images):
+    """Make a dict of max projections from a dict of channels and paths.
 
     Each channel will make one max projection.
 
     Parameters
     ----------
-    path_list : list
-        List of paths to images.
+    images : dict
+        Dict of channel ids and paths.
 
     Returns
     -------
     dict
-        Return a dict of channels that map image objects.
+        Return a dict of channels that map ImageData objects.
         Each image object have a max projection as data.
     """
-    _LOGGER.info('Making max projections...')
+    _LOGGER.info("Making max projections...")
     sorted_images = defaultdict(list)
     max_imgs = {}
-    for path in path_list:
-        channel = '{}'.format(experiment.attribute_as_str(path, 'C'))
-        image = Image(path)
+    for channel, path in images.items():
+        image = ImageData(path=path)
         # Exclude images with 0, 16 or 256 pixel side.
-        if (len(image.data) == 0 or len(image.data) == 16 or
-                len(image.data) == 256):
+        # pylint: disable=len-as-condition
+        if len(image.data) == 0 or len(image.data) == 16 or len(image.data) == 256:
             continue
         sorted_images[channel].append(image)
         proj = np.max([img.data for img in sorted_images[channel]], axis=0)
-        max_imgs[channel] = Image(data=proj, metadata=image.metadata)
+        max_imgs[channel] = ImageData(path=path, data=proj, metadata=image.metadata)
     return max_imgs
 
 
-class Image(object):
-    """Represent an image with a path, data, metadata and histogram.
+class ImageData:
+    """Represent the data of an image with path, data, metadata and histogram.
+
+    Parameters
+    ----------
+    path : str
+        Path to the image.
+    data : numpy array
+        A numpy array with the image data.
+    metadata : dict
+        The meta data of the image as a JSON dict.
 
     Attributes
     ----------
     path : str
-        Path to image.
+        The path to the image.
     """
 
-    def __init__(self, path=None, data=None, metadata=None):
-        """Set up instance attributes.
+    # pylint: disable=too-many-arguments, too-many-instance-attributes
 
-        Parameters
-        ----------
-        path : str
-            Path to image.
-        data : numpy.ndarray
-            Numpy array with data of image.
-        metadata : str
-            Metadata (description) of image.
-        """
+    def __init__(self, path=None, data=None, metadata=None):
+        """Set up instance."""
         self.path = path
         self._data = data
-        self._metadata = metadata
-        if path:
-            try:
-                with tifffile.TiffFile(path) as tif:
-                    self._data = tif[0].asarray()
-                    self._metadata = tif[0].image_description
-            except IOError as exception:
-                _LOGGER.error('Bad path to image! %s', exception)
+        self.description = None
+        if metadata is not None:
+            self.metadata = metadata
 
     @property
     def data(self):
-        """Return the data of the image."""
+        """:numpy array: Return the data of the image.
+
+        :setter: Set the data of the image.
+        """
+        if self._data is None:
+            self._load_image_data()
         return self._data
 
     @data.setter
@@ -109,34 +120,60 @@ class Image(object):
 
     @property
     def metadata(self):
-        """Return metadata of image."""
-        return self._metadata
+        """:str: Return metadata of image.
+
+        :setter: Set the meta data of the image.
+        """
+        if self.description is None:
+            self._load_image_data()
+        return xmltodict.parse(self.description)
 
     @metadata.setter
     def metadata(self, value):
         """Set the metadata of the image."""
-        self._metadata = value
+        self.description = xmltodict.unparse(value)
 
     @property
     def histogram(self):
-        """Calculate and return image histogram."""
-        if self._data.dtype.name == 'uint16':
+        """:numpy array: Calculate and return image histogram."""
+        if self._data is None:
+            self._load_image_data()
+        if self._data.dtype.name == "uint16":
             max_int = 65535
         else:
             max_int = 255
-        return np.histogram(self._data, 256, (0, max_int))
+        return np.histogram(self._data, bins=256, range=(0, max_int))
+
+    def _load_image_data(self):
+        """Load image data from path."""
+        try:
+            with tifffile.TiffFile(self.path) as tif:
+                self._data = tif.asarray(key=0)
+                self.description = tif.pages[0].description
+        except (OSError, ValueError) as exception:
+            _LOGGER.error("Bad path %s to image: %s", self.path, exception)
 
     def save(self, path=None, data=None, metadata=None):
-        """Save image with image data and optional meta data."""
+        """Save image with image data and optional meta data.
+
+        Parameters
+        ----------
+        path : str
+            The path to the image.
+        data : numpy array
+            A numpy array with the image data.
+        metadata : dict
+            The meta data of the image as a JSON dict.
+        """
         if path is None:
             path = self.path
         if data is None:
-            data = self._data
+            data = self.data
         if metadata is None:
-            metadata = self._metadata
-        save_image(path, data, metadata)
+            metadata = self.metadata
+        description = xmltodict.unparse(metadata)
+        save_image(path, data, description)
 
     def __repr__(self):
         """Return the representation."""
-        return '<Image(path={0!r}, data={1!r}, metadata={2!r})>'.format(
-            self.path, self._data, self._metadata)
+        return "<ImageData(path={0!r})>".format(self.path)

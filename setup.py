@@ -1,91 +1,78 @@
-"""Setup file for camacq package."""
-import io
+"""Set up file for camacq package."""
+from pathlib import Path
 
 from setuptools import find_packages, setup
 
-from camacq.const import __version__
+PROJECT_DIR = Path(__file__).parent.resolve()
+VERSION = (PROJECT_DIR / "camacq" / "VERSION").read_text().strip()
 
-GITHUB_URL = 'https://github.com/CellProfiling/cam_acq'
+GITHUB_URL = "https://github.com/CellProfiling/cam_acq"
+REQUIRES = [
+    "async_timeout",
+    "colorlog",
+    "jinja2",
+    "leicacam>=0.4.0",
+    "leicaexperiment",
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "ruamel.yaml>=0.15",
+    "scipy",
+    "tifffile",
+    "voluptuous",
+    "xmltodict",
+]
 
+README_FILE = PROJECT_DIR / "README.md"
+LONG_DESCR = README_FILE.read_text(encoding="utf-8")
 
-def read(*filenames, **kwargs):
-    """Return joined content of *filenames.
-
-    Parameters
-    ----------
-    *filenames : list
-        Variable length filename list.
-    **kwargs
-        Arbitrary keyword arguments.
-    encoding : codec, optional
-        Encoding to use to open filename. See
-        https://docs.python.org/2/library/codecs.html#standard-encodings
-        for supported encodings.
-    sep : str, optional
-        Separator to use between joined content of filenames.
-
-    Returns
-    -------
-    string
-        Return joined content of *filenames.
-    """
-    encoding = kwargs.get('encoding', 'utf-8')
-    sep = kwargs.get('sep', '\n')
-    buf = []
-    for filename in filenames:
-        with io.open(filename, encoding=encoding) as file_open:
-            buf.append(file_open.read())
-    return sep.join(buf)
-
-
-LONG_DESCR = read('README.rst')
-DOWNLOAD_URL = '{}/archive/master.zip'.format(GITHUB_URL)
+DOWNLOAD_URL = f"{GITHUB_URL}/archive/master.zip"
 CLASSIFIERS = [
     # How mature is this project? Common values are
     #   3 - Alpha
     #   4 - Beta
     #   5 - Production/Stable
-    'Development Status :: 3 - Alpha',
-
+    "Development Status :: 3 - Alpha",
     # Indicate who your project is intended for
-    'Intended Audience :: Science/Research',
-    'Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator',
-
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator",
     # Pick your license as you wish (should match "license" above)
-    'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     # Specify the Python versions you support here. In particular, ensure
     # that you indicate whether you support Python 2, Python 3 or both.
-    'Programming Language :: Python :: 2.7',
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
 ]
 
 CONFIG = {
-    'description': 'Control microscope through client server program.',
-    'long_description': LONG_DESCR,
-    'author': 'Martin Hjelmare',
-    'url': GITHUB_URL,
-    'download_url': DOWNLOAD_URL,
-    'license': 'GPLv3',
-    'author_email': 'marhje52@kth.se',
-    'version': __version__,
-    'install_requires': [
-        'colorlog',
-        'jinja2',
-        'matrixscreener',
-        'numpy',
-        'Pillow',
-        'PyYAML',
-        'ruamel.yaml',
-        'tifffile',
-        'zope.event',
-    ],
-    'packages': find_packages(exclude=['contrib', 'docs', 'tests*']),
-    'include_package_data': True,
-    'entry_points': {
-        'console_scripts': ['camacq = camacq.__main__:main']},
-    'name': 'camacq',
-    'zip_safe': False,
-    'classifiers': CLASSIFIERS,
+    "description": "Control microscope through client server program.",
+    "long_description": LONG_DESCR,
+    "long_description_content_type": "text/markdown",
+    "author": "Martin Hjelmare",
+    "url": GITHUB_URL,
+    "download_url": DOWNLOAD_URL,
+    "license": "GPLv3",
+    "author_email": "marhje52@kth.se",
+    "version": VERSION,
+    "python_requires": ">=3.6",
+    "install_requires": REQUIRES,
+    "packages": find_packages(exclude=["contrib", "docs", "tests*"]),
+    "include_package_data": True,
+    "entry_points": {
+        "console_scripts": ["camacq = camacq.__main__:main"],
+        "camacq.plugins": [
+            "api = camacq.plugins.api",
+            "automations = camacq.plugins.automations",
+            "gain = camacq.plugins.gain",
+            "leica = camacq.plugins.leica",
+            "rename_image = camacq.plugins.rename_image",
+            "sample = camacq.plugins.sample",
+        ],
+    },
+    "name": "camacq",
+    "zip_safe": False,
+    "classifiers": CLASSIFIERS,
 }
 
 setup(**CONFIG)

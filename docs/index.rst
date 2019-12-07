@@ -6,12 +6,17 @@
 Welcome to camacq's documentation!
 ==================================
 
+- `Project source at GitHub`_
+
+.. _`Project source at GitHub`: https://github.com/CellProfiling/cam_acq
+
 Contents:
 
 .. toctree::
+   :maxdepth: 2
    :includehidden:
 
-   source/modules
+   source/camacq
 
 Indices and tables
 ==================
