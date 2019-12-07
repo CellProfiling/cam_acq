@@ -12,13 +12,17 @@ before_script: "./scripts/setup_tests.py"
 script: tox
 deploy:
   provider: pypi
-  username:
-    secure: p6x0M9GLPJdnT1XTI/pW4+OT78npEcyXo+Yy0A25CuQh1Cq9MBjge5PflXcVHfUIi7VeCUb1Gly6I05miQ5fSMIqua+WdSEEWn9lm/9fwjdzvDCQ2ousmx3I1C7a+JZLmLYLG270NtKxB9Ah/vSWoyKgGlewbmvGqGw5Jq1ZM+PohaJoVVjBiODoj9o0K1NgZikHnNMQ1eXiNxBF/XzJxPhEQDc2+zH8+sIXtiqVhxdf3nGkohonqC350TMICp66Gj26ZPnQiD8ddKCkqqSqZBPsa/fEeAozPMqyCTsnhwpMFAyIYSFvkxtl6AciTDkpy1kZpzh+Ph5mZKFdZi0S0cFOf03M1aFxew8M7vZaMXI4gFl2eXcChAApPUaIyhFjTYFXyFLkfEkAVek4lN52q7zyAvTvwsCRe8AqXYDZdhF8o6Ht36etZb3mGimLmy3zbmeeEhskNUmB0mLU5G5YBE5TG8I1+s4ILfkDypFykT8Gda3HBKKau6qHlkH2v2s2wZndhfcg7T474zezZII7zqdd6O/cgHj+9MrhNIddmFAUx04jzTl0J+ggXtI137EOWPxv8EPPOLb1muzPD2Hgfq6o0JpBMect/Q4r72g/IJSlgwNFc8oSzpAe4+K3OgnVlwgKSUmN6CnBRgxGm3IxCbp8hNfJs//8AiX8bVHNZHo=
+  username: "__token__"
   password:
-    secure: BEyt7tRO8Y3rI1Yh8xy08YClFqyu8Hj3p8VfzqAIPMQjufl/NVJi1ajqlr1zR8u3RoH3rUHBQEcwZgFAUfbTuHZaYsQzE/2qjxGvwxgnu3UQ1/Xf6xWZyLQ22jhnHHTfWOmnMgfaPlckCuTC68OPiI1DSyfGgc65yvzToNon4U9S3v5x8EJusS1L3XmHCBxfxN4pl40xrhVsA53HfVkjXBP+RFM/Q0mpDq1TyUgJZubsaQG2t7KjRc0ohFg0dFeIGM3SFEWfcTK/o/JM00MrPv2czZJdLKsxFVZ0X76/5hGuE+0MqF4tZuWYu6uYM0nRf0j5MdEH4hDqAVS/oVKl6LukVTo6njECRWN2hktKYaJAStdaLFg7I3Eo+5xu6Z7C26On0wSooBKR7TzDe9GrLYUlbS3tszPpZCxdxuliDmYvPFfhnFFDt6NEM3J9WOBPjjOE9Jvccui3cEnjCHfSVglnESX+kGh0hcALKXSZ94J5IDgPHxLlwUxR/rnJ++CRWH4ADpR8ey4svFmtsoHndY+vhLr5MwT/kA3iy7fX1l+IyigmBolyF92rzYsghmrvsQczRQBMyFCbGheppxVFHpS5xE0FCS2VH34+p4n+Vj3jk+TCgJ7UT+3mUgd4jckvKZ+1PWBx1Tim0Wgu+W2yARQ1YSUIFY9uzIWExY82l6o=
+    secure: "Hzt1Z2C52wgY1MaQLG19mUHB/yVPPkE4tPQN3RJlEMNaga53L69hMTTcupuzP00blKt7a4TWAzBMcGzjzXXak42sz6LkqzcScM12G5ygZ6neNc48ZWuT97beJZSZqxb4xWwE6tsiIr9IgjXoF2DwRjBm6ynFM63zIKLmOHmFAdFTnbV4TVOxWN7XTE0nWV/wKN+cqxGyqr9MYW0ALgs3Zi4kOuinF58E8FVSsK8EPESwjZhX6BbNmhaUxXlWis6rc0F1rulI1ruNISgmex6WfyuhmUMSSTGDC+wJuCkXhgw8bQ7c6m13kmZKu5GDgtqb1I4YVGizmGIuURs1qBmgeX8bN0ECNMjwwDd9LEc9IEvvRjVyWBBzQ7NKT+Kev6/zDaq8qLSvpiH51xTeC5o9JdsZdKpC26Y7xC7veoXailq3bcuy6+4E6C0dEr/At0tQWOXLdew1KPbWDug+8j7OlSMVZKbYZYkGFJkX8OEDz83793ECWd3uS1Q2FFKm0MbEF7zYmBepnpd0x/dXJmw0mNfNUMpDxSfGbs0owpqqdnH6HYO/DByKlrm/I44CIsFYDcdCVsi6CMuC27Q5ZgZRxdWedrPuXKKMZr1V4MnvGCj4ulTU4rfkSHPGlw/63i3IMfhJ/YUfizLmXS9jN5os4Of6oTGKA3zAmwCYcHVskds="
+  # Remove the server option when testing is done.
+  server: "https://test.pypi.org/legacy/"
   edge: true
   distributions: sdist bdist_wheel
   skip_existing: true
   on:
-    tags: true
+    # Uncomment the tags option when testing is done.
+    # tags: true
+    # Remove the all_branches option when testing is done.
+    all_branch: true
     python: "3.6"
