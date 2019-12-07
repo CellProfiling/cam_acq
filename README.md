@@ -4,7 +4,7 @@ Python project to control microscope through client-server program.
 
 ## Install
 
-- Install the camacq package. Python version 3.6+ are supported.
+- Install the camacq package. Python version 3.6+ is supported.
 
     ```sh
     # Check python version.
