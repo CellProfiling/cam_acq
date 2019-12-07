@@ -9,7 +9,7 @@ GITHUB_PROJECT = "cam_acq"
 GITHUB_USER = "CellProfiling"
 HISTORY_FILE = "HISTORY.md"
 # Change this to 0.4.0 after changelog is generated when releasing 0.4.0.
-TAG_SINCE = "0.3.1"
+TAG_SINCE = "0.4.0"
 
 
 def validate_version():
