@@ -35,16 +35,6 @@ logging:
       handlers:
         - console
         - filelog
-gain:
-  channels:
-    - channel: green
-      init_gain: [450, 495, 540, 585, 630, 675, 720, 765, 810, 855, 900]
-    - channel: blue
-      init_gain: [400, 435, 470, 505, 540, 575, 610]
-    - channel: yellow
-      init_gain: [550, 585, 620, 655, 690, 725, 760]
-    - channel: red
-      init_gain: [525, 560, 595, 630, 665, 700, 735]
 
 rename_image:
 
@@ -114,7 +104,7 @@ automations:
         id: send
         data:
           command: "/cmd:startcamscan"
-  - name: analyze_gain
+  - name: set_exp_gain
     trigger:
       - type: event
         id: image_event
@@ -126,46 +116,13 @@ automations:
     action:
       - type: command
         id: stop_imaging
-      - type: gain
-        id: calc_gain
-        data:
-          plate_name: >
-            {{ trigger.event.plate_name }}
-          well_x: >
-            {{ trigger.event.well_x }}
-          well_y: >
-            {{ trigger.event.well_y }}
-  #          save_path: >
-  #            path/to/imaging_dir/gains/{{ trigger.event.plate_name }}/{{
-  #            trigger.event.well_name }}/{{ trigger.event.well_name }}
-  - name: set_exp_gain
-    trigger:
-      - type: event
-        id: gain_calc_event
-    action:
       - type: command
         id: send
         data:
           command: >
             /cmd:adjust /tar:pmt
-            /num:{% if trigger.event.channel_name == 'green' %}1 /exp:gain_job_1
-            {% elif trigger.event.channel_name == 'blue' %}1 /exp:gain_job_2
-            {% elif trigger.event.channel_name == 'yellow' %}2 /exp:gain_job_2
-            {% elif trigger.event.channel_name == 'red' %}2 /exp:gain_job_3
-            {% endif %}/prop:gain /value:{%
-              if trigger.event.channel_name == 'green' %}{%
-                if not trigger.event.gain %}800{% else
-                %}{{ [trigger.event.gain, 800] | min }}{% endif %}{%
-              elif trigger.event.channel_name == 'blue' %}{%
-                if not trigger.event.gain %}505{% else
-                %}{{ [trigger.event.gain, 610] | min }}{% endif %}{%
-              elif trigger.event.channel_name == 'yellow' %}{%
-                if not trigger.event.gain %}655{% else
-                %}{{ [trigger.event.gain, 760] | min }}{% endif %}{%
-              elif trigger.event.channel_name == 'red' %}{%
-                if not trigger.event.gain %}630{% else
-                %}{{ [trigger.event.gain + 25, 735] | min }}{% endif %}{%
-              endif %}
+            /num:1 /exp:gain_job_1
+            /prop:gain /value:800
         # Set channel to indicate that the channel is set at the microscope.
       - type: sample
         id: set_channel
@@ -173,22 +130,8 @@ automations:
           plate_name: "{{ trigger.event.plate_name }}"
           well_x: "{{ trigger.event.well_x }}"
           well_y: "{{ trigger.event.well_y }}"
-          channel_name: "{{ trigger.event.channel_name }}"
-          gain: >
-            {%
-            if trigger.event.channel_name == 'green' %}{%
-              if not trigger.event.gain %}800{% else
-              %}{{ [trigger.event.gain, 800] | min }}{% endif %}{%
-            elif trigger.event.channel_name == 'blue' %}{%
-              if not trigger.event.gain %}505{% else
-              %}{{ [trigger.event.gain, 610] | min }}{% endif %}{%
-            elif trigger.event.channel_name == 'yellow' %}{%
-              if not trigger.event.gain %}655{% else
-              %}{{ [trigger.event.gain, 760] | min }}{% endif %}{%
-            elif trigger.event.channel_name == 'red' %}{%
-              if not trigger.event.gain %}630{% else
-              %}{{ [trigger.event.gain + 25, 735] | min }}{% endif %}{%
-            endif %}
+          channel_name: red
+          gain: 800
   - name: add_exp_job
     trigger:
       - type: event
@@ -198,7 +141,7 @@ automations:
       type: AND
       conditions:
         - condition: >
-            {% if trigger.event.well.channels | length == 4 and
+            {% if trigger.event.well.channels | length == 1 and
             trigger.event.channel_name == "red" %}true{% endif %}
     action:
       - type: command
