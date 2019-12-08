@@ -14,7 +14,7 @@ TAG_SINCE = "0.4.0"
 
 def validate_version():
     """Validate version before release."""
-    import camacq
+    import camacq  # pylint: disable=import-outside-toplevel
 
     version_string = camacq.__version__
     versions = version_string.split(".", 3)
