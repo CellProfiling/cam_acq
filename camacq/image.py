@@ -52,7 +52,7 @@ def make_proj(images):
     Parameters
     ----------
     images : dict
-        Dict of channel ids and paths.
+        Dict of paths and channel ids.
 
     Returns
     -------
@@ -63,7 +63,7 @@ def make_proj(images):
     _LOGGER.info("Making max projections...")
     sorted_images = defaultdict(list)
     max_imgs = {}
-    for channel, path in images.items():
+    for path, channel in images.items():
         image = ImageData(path=path)
         # Exclude images with 0, 16 or 256 pixel side.
         # pylint: disable=len-as-condition
