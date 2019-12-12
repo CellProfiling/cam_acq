@@ -1,5 +1,20 @@
 # Change Log
 
+## [0.5.0](https://github.com/CellProfiling/cam_acq/tree/0.5.0) (2019-12-12)
+[Full Changelog](https://github.com/CellProfiling/cam_acq/compare/0.4.0...0.5.0)
+
+**Breaking Changes:**
+
+- Remove gain plugin [\#162](https://github.com/CellProfiling/cam_acq/pull/162) ([MartinHjelmare](https://github.com/MartinHjelmare))
+
+**Merged pull requests:**
+
+- Fix make\_proj [\#163](https://github.com/CellProfiling/cam_acq/pull/163) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add lint to scripts [\#161](https://github.com/CellProfiling/cam_acq/pull/161) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Fix travis pypi deploy round 2 [\#160](https://github.com/CellProfiling/cam_acq/pull/160) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Fix travis pypi deploy [\#159](https://github.com/CellProfiling/cam_acq/pull/159) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Update manifest to exclude more files [\#158](https://github.com/CellProfiling/cam_acq/pull/158) ([MartinHjelmare](https://github.com/MartinHjelmare))
+
 ## [0.4.0](https://github.com/CellProfiling/cam_acq/tree/0.4.0) (2019-12-07)
 [Full Changelog](https://github.com/CellProfiling/cam_acq/compare/0.3.1...0.4.0)
 
