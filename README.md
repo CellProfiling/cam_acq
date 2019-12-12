@@ -347,20 +347,10 @@ async def setup_module(center, config):
 ```
 
 Each plugin must have its own configuration section at the root of the config.
-This is an example of the gain plugin section in the configuration.
 
 ```yaml
-gain:
-  channels:
-    - channel: green
-      init_gain: [450, 495, 540, 585, 630, 675, 720, 765, 810, 855, 900]
-    - channel: blue
-      init_gain: [400, 435, 470, 505, 540, 575, 610]
-    - channel: yellow
-      init_gain: [550, 585, 620, 655, 690, 725, 760]
-    - channel: red
-      init_gain: [525, 560, 595, 630, 665, 700, 735]
-  save_dir: '/save_dir'
+example_plugin:
+  ...
 ```
 
 ## Development

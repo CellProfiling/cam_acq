@@ -42,22 +42,6 @@ def api_fixture(center):
         yield mock_api
 
 
-@pytest.fixture(name="proj", autouse=True)
-def make_proj_fixture():
-    """Patch image.make_proj."""
-    with asynctest.patch("camacq.plugins.gain.make_proj"):
-        yield
-
-
-@pytest.fixture(name="calc_gain")
-def calc_gain_fixture():
-    """Patch plugins.gain._calc_gain."""
-    with asynctest.patch("camacq.plugins.gain._calc_gain") as calc_gain:
-        gains = {"green": 700, "blue": 550, "yellow": 650, "red": 600}
-        calc_gain.return_value = gains
-        yield calc_gain
-
-
 @pytest.fixture(name="rename_image")
 def rename_image_fixture():
     """Patch plugins.rename_image.rename_image."""
@@ -76,7 +60,7 @@ class WorkflowImageEvent(ImageEvent):
         return self.data.get("job_id")
 
 
-async def test_workflow(center, caplog, api, calc_gain, rename_image):
+async def test_workflow(center, caplog, api, rename_image):
     """Test a complete workflow."""
     # pylint: disable=too-many-statements
     caplog.set_level(logging.DEBUG)
@@ -91,8 +75,6 @@ async def test_workflow(center, caplog, api, calc_gain, rename_image):
     assert not center.sample.plates
     assert api.start_imaging.call_count == 0
     assert api.stop_imaging.call_count == 0
-    assert calc_gain.call_count == 0
-    assert center.actions.actions.get("gain", {}).get("calc_gain")
     assert center.actions.actions.get("rename_image", {}).get("rename_image")
 
     event = CamAcqStartEvent()
@@ -138,55 +120,42 @@ async def test_workflow(center, caplog, api, calc_gain, rename_image):
     await center.wait_for()
 
     assert api.stop_imaging.call_count == 1
-    assert calc_gain.call_count == 1
     assert api.send.call_args_list[4] == asynctest.call(
-        command="/cmd:adjust /tar:pmt /num:1 /exp:gain_job_1 /prop:gain /value:700"
+        command="/cmd:adjust /tar:pmt /num:1 /exp:gain_job_1 /prop:gain /value:800"
     )
-    assert api.send.call_args_list[5] == asynctest.call(
-        command="/cmd:adjust /tar:pmt /num:1 /exp:gain_job_2 /prop:gain /value:550"
-    )
+    assert plate.wells[0, 0].channels["red"].gain == 800
+    assert api.send.call_args_list[5] == asynctest.call(command="/cmd:deletelist")
     assert api.send.call_args_list[6] == asynctest.call(
-        command="/cmd:adjust /tar:pmt /num:2 /exp:gain_job_2 /prop:gain /value:650"
-    )
-    assert api.send.call_args_list[7] == asynctest.call(
-        command="/cmd:adjust /tar:pmt /num:2 /exp:gain_job_3 /prop:gain /value:625"
-    )
-    assert plate.wells[0, 0].channels["green"].gain == 700
-    assert plate.wells[0, 0].channels["blue"].gain == 550
-    assert plate.wells[0, 0].channels["yellow"].gain == 650
-    assert plate.wells[0, 0].channels["red"].gain == 625
-    assert api.send.call_args_list[8] == asynctest.call(command="/cmd:deletelist")
-    assert api.send.call_args_list[9] == asynctest.call(
         (
             "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 "
             "/wellx:1 /welly:1 /fieldx:1 /fieldy:1 /dxpos:0 /dypos:0"
         )
     )
-    assert api.send.call_args_list[10] == asynctest.call(
+    assert api.send.call_args_list[7] == asynctest.call(
         (
             "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 "
             "/wellx:1 /welly:1 /fieldx:1 /fieldy:2 /dxpos:0 /dypos:0"
         )
     )
-    assert api.send.call_args_list[11] == asynctest.call(
+    assert api.send.call_args_list[8] == asynctest.call(
         (
             "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 "
             "/wellx:1 /welly:1 /fieldx:1 /fieldy:3 /dxpos:0 /dypos:0"
         )
     )
-    assert api.send.call_args_list[12] == asynctest.call(
+    assert api.send.call_args_list[9] == asynctest.call(
         (
             "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 "
             "/wellx:1 /welly:1 /fieldx:2 /fieldy:1 /dxpos:0 /dypos:0"
         )
     )
-    assert api.send.call_args_list[13] == asynctest.call(
+    assert api.send.call_args_list[10] == asynctest.call(
         (
             "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 "
             "/wellx:1 /welly:1 /fieldx:2 /fieldy:2 /dxpos:0 /dypos:0"
         )
     )
-    assert api.send.call_args_list[14] == asynctest.call(
+    assert api.send.call_args_list[11] == asynctest.call(
         (
             "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 "
             "/wellx:1 /welly:1 /fieldx:2 /fieldy:3 /dxpos:0 /dypos:0"
@@ -195,7 +164,7 @@ async def test_workflow(center, caplog, api, calc_gain, rename_image):
     assert rename_image_auto.enabled
     assert set_img_ok_auto.enabled
     assert api.start_imaging.call_count == 2
-    assert api.send.call_args_list[15] == asynctest.call(command="/cmd:startcamscan")
+    assert api.send.call_args_list[12] == asynctest.call(command="/cmd:startcamscan")
 
     for x_number in range(2):
         for y_number in range(3):
@@ -237,14 +206,14 @@ async def test_workflow(center, caplog, api, calc_gain, rename_image):
     assert api.stop_imaging.call_count == 2
     assert plate.wells[0, 1].x == 0
     assert plate.wells[0, 1].y == 1
-    assert api.send.call_args_list[16] == asynctest.call(command="/cmd:deletelist")
-    assert api.send.call_args_list[17] == asynctest.call(
+    assert api.send.call_args_list[13] == asynctest.call(command="/cmd:deletelist")
+    assert api.send.call_args_list[14] == asynctest.call(
         command=(
             "/cmd:add /tar:camlist /exp:p10xgain /ext:af /slide:0 "
             "/wellx:1 /welly:2 /fieldx:1 /fieldy:2 /dxpos:0 /dypos:0"
         )
     )
-    assert api.send.call_args_list[18] == asynctest.call(
+    assert api.send.call_args_list[15] == asynctest.call(
         command=(
             "/cmd:add /tar:camlist /exp:p10xgain /ext:af /slide:0 "
             "/wellx:1 /welly:2 /fieldx:2 /fieldy:2 /dxpos:0 /dypos:0"
@@ -253,4 +222,4 @@ async def test_workflow(center, caplog, api, calc_gain, rename_image):
     assert not rename_image_auto.enabled
     assert not set_img_ok_auto.enabled
     assert api.start_imaging.call_count == 3
-    assert api.send.call_args_list[19] == asynctest.call(command="/cmd:startcamscan")
+    assert api.send.call_args_list[16] == asynctest.call(command="/cmd:startcamscan")

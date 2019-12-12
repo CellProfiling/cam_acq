@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Make sure fixtures are in place before running tests."""
 import fnmatch
 import gzip
@@ -7,7 +7,7 @@ import shutil
 
 import click
 
-GAIN_DATA_DIR = os.path.join(os.path.dirname(__file__), "../tests/fixtures/gain_data")
+IMAGE_DATA_DIR = os.path.join(os.path.dirname(__file__), "../tests/fixtures/image_data")
 
 
 def _find_files(root_dir, search):
@@ -19,10 +19,10 @@ def _find_files(root_dir, search):
     return matches
 
 
-def pack_gain_fixture(root_dir=None):
-    """Gunzip tif images for gain tests."""
+def pack_image_fixture(root_dir=None):
+    """Gunzip tif images for image tests."""
     if root_dir is None:
-        root_dir = GAIN_DATA_DIR
+        root_dir = IMAGE_DATA_DIR
     matches = _find_files(root_dir, "*.tif")
     print("Gzipping the images, this will take some time...")
     for path in matches:
@@ -33,10 +33,10 @@ def pack_gain_fixture(root_dir=None):
         os.remove(path)
 
 
-def unpack_gain_fixture(root_dir=None):
-    """Unzip gunzipped tif images for gain tests."""
+def unpack_image_fixture(root_dir=None):
+    """Unzip gunzipped tif images for image tests."""
     if root_dir is None:
-        root_dir = GAIN_DATA_DIR
+        root_dir = IMAGE_DATA_DIR
     matches = _find_files(root_dir, "*.gz")
     for gz_path in matches:
         path, _ = os.path.splitext(gz_path)
@@ -50,9 +50,9 @@ def unpack_gain_fixture(root_dir=None):
 def main(pack):
     """Pack or unpack the images for test fixtures."""
     if pack:
-        pack_gain_fixture()
+        pack_image_fixture()
     else:
-        unpack_gain_fixture()
+        unpack_image_fixture()
 
 
 if __name__ == "__main__":
