@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 
 import voluptuous as vol
 
+from camacq.const import SAMPLE_EVENT
+from camacq.event import Event
 from camacq.exceptions import SampleError
 from camacq.helper import BASE_ACTION_SCHEMA
 
@@ -141,7 +143,11 @@ class Sample(ImageContainer, ABC):
     async def on_image(self, center, event):
         """Handle image event for this sample."""
 
-    async def set_sample(self, **values):
+    def get_sample(self, ids):
+        """Get an image container of the sample."""
+        return self.center.data.get(ids)
+
+    async def set_sample(self, ids, **values):
         """Set an image container of the sample.
 
         Returns
@@ -149,12 +155,15 @@ class Sample(ImageContainer, ABC):
         ImageContainer instance
             Return the ImageContainer instance that was updated.
         """
-        container = self._set_sample(**values)
-        await self.center.bus.notify(container.change_event)
+        container = self._set_sample(ids, **values)
+        self.center.data[ids] = container
+        event_class = container.change_event
+        event = event_class({"sample": self})
+        await self.center.bus.notify(event)
         return container
 
     @abstractmethod
-    def _set_sample(self, **values):
+    def _set_sample(self, ids, **values):
         """Set an image container of the sample.
 
         Returns
@@ -179,8 +188,7 @@ class Image(ABC):
         The path to the image.
     """
 
-    # pylint: disable=too-many-arguments, too-few-public-methods
-    # pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-few-public-methods
 
     def __repr__(self):
         """Return the representation."""
@@ -190,3 +198,18 @@ class Image(ABC):
     @abstractmethod
     def path(self):
         """Return the path of the image."""
+
+
+class SampleEvent(Event):
+    """An event produced by a sample change event."""
+
+    # pylint: disable=too-few-public-methods
+
+    __slots__ = ()
+
+    event_type = SAMPLE_EVENT
+
+    @property
+    def sample(self):
+        """:Sample instance: Return the sample instance of the event."""
+        return self.data.get("sample")
