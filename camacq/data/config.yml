@@ -57,9 +57,9 @@ automations:
           # Add next sample well for wells in sample if well is not done.
           plate_name: "00"
           well_x: >
-            {{ next_well_x('00') }}
+            {{ next_well_x(samples.leica, '00') }}
           well_y: >
-            {{ next_well_y('00') }}
+            {{ next_well_y(samples.leica, '00') }}
   - name: image_next_well
     trigger:
       - type: event
@@ -260,6 +260,6 @@ automations:
           # Add next sample well for wells in sample if well is not done.
           plate_name: "00"
           well_x: >
-            {{ next_well_x('00') }}
+            {{ next_well_x(samples.leica, '00') }}
           well_y: >
-            {{ next_well_y('00') }}
+            {{ next_well_y(samples.leica, '00') }}
