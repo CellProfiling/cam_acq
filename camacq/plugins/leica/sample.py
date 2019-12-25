@@ -67,15 +67,11 @@ class LeicaSample(Sample):
     ----------
     images : dict
         A dict of images of the sample.
-    plates : dict
-        A dict of plates of the sample.
 
     Attributes
     ----------
     images : dict
         Return a dict of Image instances.
-    plates : dict
-        Return a dict of Plate instances.
     """
 
     def __init__(self, images=None):
@@ -131,29 +127,46 @@ class LeicaSample(Sample):
         well_y = kwargs.pop("well_y", None)
         field_x = kwargs.pop("field_x", None)
         field_y = kwargs.pop("field_y", None)
-        channel_name = kwargs.pop("channel_name", None)
+        channel_id = kwargs.pop("channel_id", None)
 
         if all(
             name is not None for name in (plate_name, well_x, well_y, field_x, field_y)
         ):
             field = Field(
-                self._images, plate_name, well_x, well_y, field_x, field_y, **values,
+                self._images,
+                plate_name=plate_name,
+                well_x=well_x,
+                well_y=well_y,
+                field_x=field_x,
+                field_y=field_y,
+                **values,
             )
             return field
 
-        if all(name is not None for name in (plate_name, well_x, well_y, channel_name)):
+        if all(name is not None for name in (plate_name, well_x, well_y, channel_id)):
             channel = Channel(
-                self._images, plate_name, well_x, well_y, channel_name, **values
+                self._images,
+                plate_name=plate_name,
+                well_x=well_x,
+                well_y=well_y,
+                channel_id=channel_id,
+                **values,
             )
             return channel
 
         if all(name is not None for name in (plate_name, well_x, well_y)):
-            well = Well(self._images, plate_name, well_x, well_y, **values)
+            well = Well(
+                self._images,
+                plate_name=plate_name,
+                well_x=well_x,
+                well_y=well_y,
+                **values,
+            )
             return well
 
         if plate_name is None:
             return None
-        plate = Plate(self._images, plate_name, **values)
+        plate = Plate(self._images, plate_name=plate_name, **values)
         return plate
 
     def get_image(self, path):
@@ -379,22 +392,19 @@ class Channel(Well, ImageContainer):
     ----------
     images : dict
         All the images of the sample.
-    channel_name : str
-        Name of the channel.
     channel_id : int
         ID of the channel.
     values : Optional dict of values.
 
     Attributes
     ----------
-    name : str
-        Return name of the channel.
+    channel_id : int
+        Return channel_id of the channel.
     """
 
-    def __init__(self, images, channel_name, channel_id, **kwargs):
+    def __init__(self, images, channel_id, **kwargs):
         """Set up instance."""
         self._images = images
-        self.channel_name = channel_name
         self.channel_id = channel_id
         values = kwargs.pop("values", {})
         for attr, val in values.items():
@@ -403,10 +413,7 @@ class Channel(Well, ImageContainer):
 
     def __repr__(self):
         """Return the representation."""
-        return (
-            f"Channel(images={self._images}, "
-            f"channel_name={self.channel_name}, channel_id={self.channel_id})"
-        )
+        return f"Channel(images={self._images}, channel_id={self.channel_id})"
 
     @property
     def change_event(self):
@@ -541,6 +548,11 @@ class ChannelEvent(WellEvent):
     __slots__ = ()
 
     event_type = CHANNEL_EVENT
+
+    @property
+    def channel_id(self):
+        """:int: Return the channel id of the event."""
+        return self.container.channel_id
 
     @property
     def channel_name(self):
