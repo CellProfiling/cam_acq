@@ -44,7 +44,7 @@ def sample_fixture(center, config):
     yield mock_sample
 
 
-class SampleEvent(Event):
+class TestSampleEvent(sample_mod.SampleEvent):
     """Represent a test sample event."""
 
     # pylint: disable=too-few-public-methods
@@ -59,7 +59,7 @@ class SampleEvent(Event):
     @property
     def sample(self):
         """Return the sample instance of the event."""
-        return self.data.get("sample")
+        return self.data.get("container")
 
 
 class MockApi(api_mod.Api):
@@ -104,8 +104,8 @@ class MockSample(sample_mod.Sample):
 
     @property
     def change_event(self):
-        """:Event: Return an event that should be fired on container change."""
-        return SampleEvent({"sample": self})
+        """:str: Return the image event type to listen to for the sample."""
+        return TestSampleEvent
 
     @property
     def images(self):
@@ -139,7 +139,7 @@ class MockSample(sample_mod.Sample):
             channel_id=event.channel_id,
         )
 
-    def _set_sample(self, **values):
+    def _set_sample(self, values, **kwargs):
         """Set an image container of the sample.
 
         Returns
@@ -147,5 +147,5 @@ class MockSample(sample_mod.Sample):
         ImageContainer instance
             Return the ImageContainer instance that was updated.
         """
-        self.mock_set_sample(**values)
+        self.mock_set_sample(**values, **kwargs)
         return self

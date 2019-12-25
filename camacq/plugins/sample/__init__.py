@@ -1,16 +1,17 @@
 """Handle sample state."""
 import asyncio
+import json
 import logging
 from abc import ABC, abstractmethod
 
 import voluptuous as vol
 
-from camacq.const import SAMPLE_EVENT
 from camacq.event import Event
 from camacq.exceptions import SampleError
 from camacq.helper import BASE_ACTION_SCHEMA
 
 _LOGGER = logging.getLogger(__name__)
+SAMPLE_EVENT = "sample_event"
 
 ACTION_SET_SAMPLE = "set_sample"
 DATA_SAMPLE = "sample"
@@ -111,7 +112,7 @@ class ImageContainer(ABC):
     @property
     @abstractmethod
     def change_event(self):
-        """:Event: Return an event that should be fired on container change."""
+        """:Event: Return an event class to fire on container change."""
 
     @property
     @abstractmethod
@@ -143,11 +144,12 @@ class Sample(ImageContainer, ABC):
     async def on_image(self, center, event):
         """Handle image event for this sample."""
 
-    def get_sample(self, ids):
+    def get_sample(self, **kwargs):
         """Get an image container of the sample."""
-        return self.center.data.get(ids)
+        id_string = json.dumps(kwargs)
+        return self.center.data.get(id_string)
 
-    async def set_sample(self, ids, **values):
+    async def set_sample(self, values=None, **kwargs):
         """Set an image container of the sample.
 
         Returns
@@ -155,15 +157,17 @@ class Sample(ImageContainer, ABC):
         ImageContainer instance
             Return the ImageContainer instance that was updated.
         """
-        container = self._set_sample(ids, **values)
-        self.center.data[ids] = container
+        values = values or {}
+        container = self._set_sample(values=values, **kwargs)
+        id_string = json.dumps(kwargs)
+        self.center.data[id_string] = container
         event_class = container.change_event
-        event = event_class({"sample": self})
+        event = event_class({"container": container})
         await self.center.bus.notify(event)
         return container
 
     @abstractmethod
-    def _set_sample(self, ids, **values):
+    def _set_sample(self, values, **kwargs):
         """Set an image container of the sample.
 
         Returns
@@ -210,6 +214,11 @@ class SampleEvent(Event):
     event_type = SAMPLE_EVENT
 
     @property
-    def sample(self):
-        """:Sample instance: Return the sample instance of the event."""
-        return self.data.get("sample")
+    def container(self):
+        """:ImageContainer instance: Return the container instance of the event."""
+        return self.data.get("container")
+
+    def __repr__(self):
+        """Return the representation."""
+        data = dict(container=self.container)
+        return f"{type(self).__name__}({data})"
