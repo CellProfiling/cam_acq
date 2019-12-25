@@ -1,5 +1,4 @@
 """Provide sample implementation for leica microscope."""
-# pylint: disable=too-many-lines
 import logging
 
 import voluptuous as vol
