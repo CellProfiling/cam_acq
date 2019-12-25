@@ -456,8 +456,6 @@ class LeicaImage(Image):
 
     Attributes
     ----------
-    path : str
-        The path to the image.
     channel_id : int
         The channel id of the image.
     z_slice : int
