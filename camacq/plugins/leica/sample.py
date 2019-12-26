@@ -92,6 +92,11 @@ class LeicaSample(Sample):
         return IMAGE_EVENT
 
     @property
+    def image_class(self):
+        """:class object: Return the image class to instantiate for the sample."""
+        return LeicaImage
+
+    @property
     def images(self):
         """:dict: Return a dict with all images for the container."""
         return self._images
@@ -167,71 +172,6 @@ class LeicaSample(Sample):
             return None
         plate = Plate(self._images, plate_name=plate_name, **values)
         return plate
-
-    def get_image(self, path):
-        """Get image instance via path to image.
-
-        Parameters
-        ----------
-        path : str
-            The path to the image.
-
-        Returns
-        -------
-        Image instance
-            Return an Image instance. If no image is found, return
-            None.
-        """
-        return self._images.get(path)
-
-    async def set_image(self, path, **kwargs):
-        """Add an image to the sample.
-
-        Parameters
-        ----------
-        path : str
-            Path to the image.
-        channel_id : int
-            The channel id of the image.
-        z_slice : int
-            The z index of the image.
-        field_x : int
-            The field x coordinate of the image.
-        field_y : int
-            The field y coordinate of the image.
-        well_x : int
-            The well x coordinate of the image.
-        well_y : int
-            The well y coordinate of the image.
-        plate_name : str
-            The name of the plate of the image.
-
-        Returns
-        -------
-        Image instance
-            Return the Image instance.
-        """
-        image = LeicaImage(path, **kwargs)
-        self._images[image.path] = image
-
-        await self.set_sample(**kwargs)
-        return image
-
-    async def remove_image(self, path):
-        """Remove an image from the sample.
-
-        Parameters
-        ----------
-        path : str
-            The path to the image that should be removed.
-
-        Returns
-        -------
-        Image instance
-            Return the Image instance that was removed.
-        """
-        image = self._images.pop(path, None)
-        return image
 
 
 class Plate(ImageContainer):

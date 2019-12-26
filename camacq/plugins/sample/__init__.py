@@ -132,8 +132,13 @@ class Sample(ImageContainer, ABC):
 
     @property
     @abstractmethod
+    def image_class(self):
+        """:cls: Return the image class to instantiate for the sample."""
+
+    @property
+    @abstractmethod
     def name(self):
-        """Return the name of the sample."""
+        """:str: Return the name of the sample."""
 
     @property
     @abstractmethod
@@ -151,6 +156,14 @@ class Sample(ImageContainer, ABC):
 
     async def set_sample(self, values=None, **kwargs):
         """Set an image container of the sample.
+
+        Parameters
+        ----------
+        values : dict
+            The optional values to set on the container.
+        **kwargs
+            Arbitrary keyword arguments.
+            These will be used to create the id string of the container.
 
         Returns
         -------
@@ -170,11 +183,69 @@ class Sample(ImageContainer, ABC):
     def _set_sample(self, values, **kwargs):
         """Set an image container of the sample.
 
+        Parameters
+        ----------
+        values : dict
+            The values to set on the container.
+        **kwargs
+            Arbitrary keyword arguments.
+
         Returns
         -------
         ImageContainer instance
             Return the ImageContainer instance that was updated.
         """
+
+    def get_image(self, path):
+        """Get image instance via path to image.
+
+        Parameters
+        ----------
+        path : str
+            The path to the image.
+
+        Returns
+        -------
+        Image instance
+            Return an Image instance. If no image is found, return
+            None.
+        """
+        return self.images.get(path)
+
+    async def set_image(self, path, **kwargs):
+        """Add an image to the sample.
+
+        Parameters
+        ----------
+        path : str
+            Path to the image.
+
+        Returns
+        -------
+        Image instance
+            Return the Image instance.
+        """
+        image = self.image_class(path, **kwargs)
+        self.images[path] = image
+
+        await self.set_sample(**kwargs)
+        return image
+
+    async def remove_image(self, path):
+        """Remove an image from the sample.
+
+        Parameters
+        ----------
+        path : str
+            The path to the image that should be removed.
+
+        Returns
+        -------
+        Image instance
+            Return the Image instance that was removed.
+        """
+        image = self.images.pop(path, None)
+        return image
 
 
 class Image(ABC):
