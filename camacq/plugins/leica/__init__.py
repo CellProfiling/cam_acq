@@ -10,13 +10,7 @@ from leicacam.async_cam import AsyncCAM
 from leicacam.cam import bytes_as_dict, check_messages, tuples_as_bytes
 from leicaexperiment import attribute, attribute_as_str
 
-from camacq.const import (
-    CAMACQ_STOP_EVENT,
-    CONF_HOST,
-    CONF_IMAGING_DIR,
-    CONF_PORT,
-    JOB_ID,
-)
+from camacq.const import CAMACQ_STOP_EVENT
 from camacq.helper import ensure_dict
 from camacq.plugins.api import (
     Api,
@@ -33,7 +27,11 @@ from .sample import setup_module as sample_setup_module
 
 _LOGGER = logging.getLogger(__name__)
 
+CONF_HOST = "host"
+CONF_IMAGING_DIR = "imaging_dir"
 CONF_LEICA = "leica"
+CONF_PORT = "port"
+JOB_ID = "--E{:02d}"
 LEICA_COMMAND_EVENT = "leica_command_event"
 LEICA_START_COMMAND_EVENT = "leica_start_command_event"
 LEICA_STOP_COMMAND_EVENT = "leica_stop_command_event"

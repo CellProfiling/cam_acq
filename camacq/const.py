@@ -4,9 +4,6 @@ CONF_DATA = "data"
 CONF_ID = "id"
 CONF_TRIGGER = "trigger"
 CONFIG_DIR = "config_dir"
-CONF_HOST = "host"
-CONF_PORT = "port"
-CONF_IMAGING_DIR = "imaging_dir"
 LOG_LEVEL = "log_level"
 
 # events

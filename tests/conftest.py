@@ -6,7 +6,6 @@ import voluptuous as vol
 
 from camacq.const import IMAGE_EVENT
 from camacq.control import Center
-from camacq.event import Event
 from camacq.plugins import api as api_mod, sample as sample_mod
 
 SET_SAMPLE_SCHEMA = vol.Schema(dict)
@@ -100,12 +99,18 @@ class MockSample(sample_mod.Sample):
         """Set up instance."""
         self.image_events = []
         self._images = {}
+        self._values = {}
         self.mock_set_sample = Mock()
 
     @property
     def change_event(self):
         """:str: Return the image event type to listen to for the sample."""
         return TestSampleEvent
+
+    @property
+    def image_class(self):
+        """:cls: Return the image class to instantiate for the sample."""
+        return TestImage
 
     @property
     def images(self):
@@ -127,10 +132,16 @@ class MockSample(sample_mod.Sample):
         """Return the validation schema of the set_sample method."""
         return SET_SAMPLE_SCHEMA
 
+    @property
+    def values(self):
+        """:dict: Return a dict with the values set for the container."""
+        return self._values
+
     async def on_image(self, center, event):
         """Handle image event for this sample."""
         self.image_events.append(event)
-        await self.set_sample(
+        await self.set_image(
+            event.path,
             plate_name=event.plate_name,
             well_x=event.well_x,
             well_y=event.well_y,
@@ -139,7 +150,7 @@ class MockSample(sample_mod.Sample):
             channel_id=event.channel_id,
         )
 
-    def _set_sample(self, values, **kwargs):
+    async def _set_sample(self, values, **kwargs):
         """Set an image container of the sample.
 
         Returns
@@ -149,3 +160,20 @@ class MockSample(sample_mod.Sample):
         """
         self.mock_set_sample(**values, **kwargs)
         return self
+
+
+class TestImage(sample_mod.Image):
+    """Represent test image."""
+
+    # pylint: disable=too-few-public-methods
+
+    def __init__(self, path, **kwargs):
+        """Set up instance."""
+        self._path = path
+        for key, val in kwargs.items():
+            setattr(self, key, val)
+
+    @property
+    def path(self):
+        """Return the path of the image."""
+        return self._path
