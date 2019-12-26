@@ -119,6 +119,11 @@ class ImageContainer(ABC):
     def images(self):
         """:dict: Return a dict with all images for the container."""
 
+    @property
+    @abstractmethod
+    def values(self):
+        """:dict: Return a dict with the values set for the container."""
+
 
 class Sample(ImageContainer, ABC):
     """Representation of the state of the sample."""
@@ -127,13 +132,13 @@ class Sample(ImageContainer, ABC):
 
     @property
     @abstractmethod
-    def image_event_type(self):
-        """:str: Return the image event type to listen to for the sample."""
+    def image_class(self):
+        """:cls: Return the image class to instantiate for the sample."""
 
     @property
     @abstractmethod
-    def image_class(self):
-        """:cls: Return the image class to instantiate for the sample."""
+    def image_event_type(self):
+        """:str: Return the image event type to listen to for the sample."""
 
     @property
     @abstractmethod

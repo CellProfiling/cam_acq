@@ -73,13 +73,14 @@ class LeicaSample(Sample):
         Return a dict of Image instances.
     """
 
-    def __init__(self, images=None):
+    def __init__(self, images=None, values=None):
         """Set up instance."""
         self._images = images or {}
+        self._values = values or {}
 
     def __repr__(self):
         """Return the representation."""
-        return f"Sample(images={self._images})"
+        return f"Sample(images={self._images}, values={self._values})"
 
     @property
     def change_event(self):
@@ -87,14 +88,14 @@ class LeicaSample(Sample):
         return LeicaSampleEvent
 
     @property
-    def image_event_type(self):
-        """:str: Return the image event type to listen to for the sample."""
-        return IMAGE_EVENT
-
-    @property
     def image_class(self):
         """:cls: Return the image class to instantiate for the sample."""
         return LeicaImage
+
+    @property
+    def image_event_type(self):
+        """:str: Return the image event type to listen to for the sample."""
+        return IMAGE_EVENT
 
     @property
     def images(self):
@@ -110,6 +111,11 @@ class LeicaSample(Sample):
     def set_sample_schema(self):
         """Return the validation schema of the set_sample method."""
         return SET_SAMPLE_SCHEMA
+
+    @property
+    def values(self):
+        """:dict: Return a dict with the values set for the container."""
+        return self._values
 
     async def on_image(self, center, event):
         """Handle image event for this sample."""
@@ -194,13 +200,14 @@ class Plate(ImageContainer):
         """Set up instance."""
         self._images = images
         self.plate_name = plate_name
-        values = kwargs.pop("values", {})
-        for attr, val in values.items():
-            setattr(self, attr, val)
+        self._values = kwargs.pop("values", {})
 
     def __repr__(self):
         """Return the representation."""
-        return f"Plate(images={self._images}, name={self.plate_name})"
+        return (
+            f"Plate(images={self._images}, name={self.plate_name}, "
+            f"values={self._values})"
+        )
 
     @property
     def change_event(self):
@@ -215,6 +222,11 @@ class Plate(ImageContainer):
             for image in self._images.values()
             if image.plate_name == self.plate_name
         }
+
+    @property
+    def values(self):
+        """:dict: Return a dict with the values set for the container."""
+        return self._values
 
 
 class Well(Plate, ImageContainer):
@@ -242,14 +254,15 @@ class Well(Plate, ImageContainer):
         self._images = images
         self.well_x = well_x
         self.well_y = well_y
-        values = kwargs.pop("values", {})
-        for attr, val in values.items():
-            setattr(self, attr, val)
+        self._values = kwargs.pop("values", {})
         super().__init__(images, **kwargs)
 
     def __repr__(self):
         """Return the representation."""
-        return f"Well(images={self._images}, well_x={self.well_x}, well_y={self.well_y}"
+        return (
+            f"Well(images={self._images}, well_x={self.well_x}, "
+            f"well_y={self.well_y}, values={self._values})"
+        )
 
     @property
     def change_event(self):
@@ -266,6 +279,11 @@ class Well(Plate, ImageContainer):
             and image.well_x == self.well_x
             and image.well_y == self.well_y
         }
+
+    @property
+    def values(self):
+        """:dict: Return a dict with the values set for the container."""
+        return self._values
 
 
 class Field(Well, ImageContainer):
@@ -293,16 +311,14 @@ class Field(Well, ImageContainer):
         self._images = images
         self.field_x = field_x
         self.field_y = field_y
-        values = kwargs.pop("values", {})
-        for attr, val in values.items():
-            setattr(self, attr, val)
+        self._values = kwargs.pop("values", {})
         super().__init__(images, **kwargs)
 
     def __repr__(self):
         """Return the representation."""
         return (
             f"Field(images={self._images}, field_x={self.field_x}, "
-            f"field_y={self.field_y})"
+            f"field_y={self.field_y}, values={self._values})"
         )
 
     @property
@@ -322,6 +338,11 @@ class Field(Well, ImageContainer):
             and image.field_x == self.field_x
             and image.field_y == self.field_y
         }
+
+    @property
+    def values(self):
+        """:dict: Return a dict with the values set for the container."""
+        return self._values
 
 
 class Channel(Well, ImageContainer):
@@ -345,14 +366,15 @@ class Channel(Well, ImageContainer):
         """Set up instance."""
         self._images = images
         self.channel_id = channel_id
-        values = kwargs.pop("values", {})
-        for attr, val in values.items():
-            setattr(self, attr, val)
+        self._values = kwargs.pop("values", {})
         super().__init__(images, **kwargs)
 
     def __repr__(self):
         """Return the representation."""
-        return f"Channel(images={self._images}, channel_id={self.channel_id})"
+        return (
+            f"Channel(images={self._images}, channel_id={self.channel_id}, "
+            f"values={self._values})"
+        )
 
     @property
     def change_event(self):
@@ -370,6 +392,11 @@ class Channel(Well, ImageContainer):
             and image.well_y == self.well_y
             and image.channel_id == self.channel_id
         }
+
+    @property
+    def values(self):
+        """:dict: Return a dict with the values set for the container."""
+        return self._values
 
 
 class LeicaImage(Image):
@@ -476,7 +503,7 @@ class WellEvent(PlateEvent):
     @property
     def well_img_ok(self):
         """:bool: Return if the well has all images acquired ok."""
-        return self.container.well_img_ok
+        return self.container.values.get("well_img_ok", False)
 
 
 class ChannelEvent(WellEvent):
@@ -494,7 +521,7 @@ class ChannelEvent(WellEvent):
     @property
     def channel_name(self):
         """:str: Return the channel name of the event."""
-        return self.container.channel_name
+        return self.container.values.get("channel_name")
 
 
 class FieldEvent(WellEvent):
@@ -517,4 +544,4 @@ class FieldEvent(WellEvent):
     @property
     def field_img_ok(self):
         """:bool: Return if the field has all images acquired ok."""
-        return self.container.field_img_ok
+        return self.container.values.get("field_img_ok", False)

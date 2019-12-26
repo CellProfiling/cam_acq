@@ -32,9 +32,10 @@ async def setup_module(center, config):
 class CustomSample(Sample):
     """Represent a custom sample."""
 
-    def __init__(self, images=None):
+    def __init__(self, images=None, values=None):
         """Set up instance."""
         self._images = images or {}
+        self._values = values or {}
 
     @property
     def change_event(self):
@@ -42,14 +43,14 @@ class CustomSample(Sample):
         return SampleEvent
 
     @property
-    def image_event_type(self):
-        """:str: Return the image event type to listen to for the sample."""
-        return IMAGE_EVENT
-
-    @property
     def image_class(self):
         """:cls: Return the image class to instantiate for the sample."""
         return CustomImage
+
+    @property
+    def image_event_type(self):
+        """:str: Return the image event type to listen to for the sample."""
+        return IMAGE_EVENT
 
     @property
     def images(self):
@@ -66,6 +67,11 @@ class CustomSample(Sample):
         """Return the validation schema of the set_sample method."""
         return SET_SAMPLE_SCHEMA
 
+    @property
+    def values(self):
+        """:dict: Return a dict with the values set for the container."""
+        return self._values
+
     async def on_image(self, center, event):
         """Handle image event for this sample."""
         await self.set_image(event.path, fov_x=event.fov_x, fov_y=event.fov_y)
@@ -74,7 +80,7 @@ class CustomSample(Sample):
         """Set an image container of the sample."""
         fov_x = kwargs.pop("fov_x", None)
         fov_y = kwargs.pop("fov_y", None)
-        fov = FOVContainer(self._images, fov_x, fov_y, **values)
+        fov = FOVContainer(self._images, fov_x, fov_y, values)
         return fov
 
 
@@ -98,13 +104,12 @@ class CustomImage(Image):
 class FOVContainer(ImageContainer):
     """A FOV within sample."""
 
-    def __init__(self, images, fov_x, fov_y, **values):
+    def __init__(self, images, fov_x, fov_y, values):
         """Set up instance."""
         self._images = images
         self.fov_x = fov_x
         self.fov_y = fov_y
-        for attr, val in values.items():
-            setattr(self, attr, val)
+        self._values = values
 
     @property
     def change_event(self):
@@ -122,6 +127,11 @@ class FOVContainer(ImageContainer):
             for image in self._images.values()
             if image.fov_x == self.fov_x and image.fov_y == self.fov_y
         }
+
+    @property
+    def values(self):
+        """:dict: Return a dict with the values set for the container."""
+        return self._values
 
 
 class FOVEvent(SampleEvent):
