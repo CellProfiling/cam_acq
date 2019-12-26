@@ -149,7 +149,7 @@ class LeicaSample(Sample):
                 well_y=well_y,
                 field_x=field_x,
                 field_y=field_y,
-                **values,
+                values=values,
             )
             return field
 
@@ -160,7 +160,7 @@ class LeicaSample(Sample):
                 well_x=well_x,
                 well_y=well_y,
                 channel_id=channel_id,
-                **values,
+                values=values,
             )
             return channel
 
@@ -170,13 +170,13 @@ class LeicaSample(Sample):
                 plate_name=plate_name,
                 well_x=well_x,
                 well_y=well_y,
-                **values,
+                values=values,
             )
             return well
 
         if plate_name is None:
             return None
-        plate = Plate(self._images, plate_name=plate_name, **values)
+        plate = Plate(self._images, plate_name=plate_name, values=values)
         return plate
 
 

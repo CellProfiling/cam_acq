@@ -175,9 +175,12 @@ class Sample(ImageContainer, ABC):
         ImageContainer instance
             Return the ImageContainer instance that was updated.
         """
-        values = values or {}
-        container = self._set_sample(values=values, **kwargs)
         id_string = json.dumps(kwargs)
+        values = values or {}
+        container = self.center.data.get(id_string)
+        if container is None:
+            container = self._set_sample(values=values, **kwargs)
+        container.values.update(values)
         self.center.data[id_string] = container
         event_class = container.change_event
         event = event_class({"container": container})
