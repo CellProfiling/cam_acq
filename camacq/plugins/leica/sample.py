@@ -93,7 +93,7 @@ class LeicaSample(Sample):
 
     @property
     def image_class(self):
-        """:class object: Return the image class to instantiate for the sample."""
+        """:cls: Return the image class to instantiate for the sample."""
         return LeicaImage
 
     @property

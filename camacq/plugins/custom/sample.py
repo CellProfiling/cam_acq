@@ -47,6 +47,11 @@ class CustomSample(Sample):
         return IMAGE_EVENT
 
     @property
+    def image_class(self):
+        """:cls: Return the image class to instantiate for the sample."""
+        return CustomImage
+
+    @property
     def images(self):
         """:dict: Return a dict with all images for the container."""
         return self._images
@@ -63,22 +68,14 @@ class CustomSample(Sample):
 
     async def on_image(self, center, event):
         """Handle image event for this sample."""
-        await self.set_image(event.path, event.fov_x, event.fov_y)
+        await self.set_image(event.path, fov_x=event.fov_x, fov_y=event.fov_y)
 
     def _set_sample(self, values, **kwargs):
         """Set an image container of the sample."""
         fov_x = kwargs.pop("fov_x", None)
         fov_y = kwargs.pop("fov_y", None)
-        fov = FOVContainer(self._images, fov_x, fov_y, values)
+        fov = FOVContainer(self._images, fov_x, fov_y, **values)
         return fov
-
-    async def set_image(self, path, fov_x, fov_y):
-        """Add an image to the sample."""
-        image = CustomImage(path, fov_x, fov_y)
-        self._images[image.path] = image
-
-        await self.set_sample(fov_x=fov_x, fov_y=fov_y)
-        return image
 
 
 class CustomImage(Image):
@@ -101,7 +98,7 @@ class CustomImage(Image):
 class FOVContainer(ImageContainer):
     """A FOV within sample."""
 
-    def __init__(self, images, fov_x, fov_y, values):
+    def __init__(self, images, fov_x, fov_y, **values):
         """Set up instance."""
         self._images = images
         self.fov_x = fov_x
