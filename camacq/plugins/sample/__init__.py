@@ -12,6 +12,8 @@ from camacq.helper import BASE_ACTION_SCHEMA
 
 _LOGGER = logging.getLogger(__name__)
 SAMPLE_EVENT = "sample_event"
+SAMPLE_IMAGE_SET_EVENT = "sample_image_set_event"
+SAMPLE_IMAGE_REMOVE_EVENT = "sample_image_remove_event"
 
 ACTION_SET_SAMPLE = "set_sample"
 DATA_SAMPLE = "sample"
@@ -178,17 +180,26 @@ class Sample(ImageContainer, ABC):
         id_string = json.dumps(kwargs)
         values = values or {}
         container = self.center.data.get(id_string)
+        event = None
+
         if container is None:
-            container = self._set_sample(values=values, **kwargs)
+            container = await self._set_sample(values=values, **kwargs)
+            event_class = container.change_event
+            event = event_class({"container": container})
+
         container.values.update(values)
         self.center.data[id_string] = container
-        event_class = container.change_event
-        event = event_class({"container": container})
-        await self.center.bus.notify(event)
+
+        if not event and values:
+            event_class = container.change_event
+            event = event_class({"container": container})
+
+        if event:
+            await self.center.bus.notify(event)
         return container
 
     @abstractmethod
-    def _set_sample(self, values, **kwargs):
+    async def _set_sample(self, values, **kwargs):
         """Set an image container of the sample.
 
         Parameters
@@ -237,6 +248,9 @@ class Sample(ImageContainer, ABC):
         self.images[path] = image
 
         await self.set_sample(**kwargs)
+        event = SampleImageSetEvent({"container": self, "image": image})
+        await self.center.bus.notify(event)
+
         return image
 
     async def remove_image(self, path):
@@ -253,6 +267,8 @@ class Sample(ImageContainer, ABC):
             Return the Image instance that was removed.
         """
         image = self.images.pop(path, None)
+        event = SampleImageRemoveEvent({"container": self, "image": image})
+        await self.center.bus.notify(event)
         return image
 
 
@@ -300,4 +316,54 @@ class SampleEvent(Event):
     def __repr__(self):
         """Return the representation."""
         data = dict(container=self.container)
+        return f"{type(self).__name__}({data})"
+
+
+class SampleImageSetEvent(Event):
+    """An event produced by a new image on the sample."""
+
+    # pylint: disable=too-few-public-methods
+
+    __slots__ = ()
+
+    event_type = SAMPLE_IMAGE_SET_EVENT
+
+    @property
+    def container(self):
+        """:ImageContainer instance: Return the container instance of the event."""
+        return self.data.get("container")
+
+    @property
+    def image(self):
+        """:Image instance: Return the image instance of the event."""
+        return self.data.get("image")
+
+    def __repr__(self):
+        """Return the representation."""
+        data = dict(container=self.container, image=self.image)
+        return f"{type(self).__name__}({data})"
+
+
+class SampleImageRemoveEvent(Event):
+    """An event produced by a new image on the sample."""
+
+    # pylint: disable=too-few-public-methods
+
+    __slots__ = ()
+
+    event_type = SAMPLE_IMAGE_REMOVE_EVENT
+
+    @property
+    def container(self):
+        """:ImageContainer instance: Return the container instance of the event."""
+        return self.data.get("container")
+
+    @property
+    def image(self):
+        """:Image instance: Return the image instance of the event."""
+        return self.data.get("image")
+
+    def __repr__(self):
+        """Return the representation."""
+        data = dict(container=self.container, image=self.image)
         return f"{type(self).__name__}({data})"

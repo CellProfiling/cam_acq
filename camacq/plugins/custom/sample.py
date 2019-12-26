@@ -76,7 +76,7 @@ class CustomSample(Sample):
         """Handle image event for this sample."""
         await self.set_image(event.path, fov_x=event.fov_x, fov_y=event.fov_y)
 
-    def _set_sample(self, values, **kwargs):
+    async def _set_sample(self, values, **kwargs):
         """Set an image container of the sample."""
         fov_x = kwargs.pop("fov_x", None)
         fov_y = kwargs.pop("fov_y", None)

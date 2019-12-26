@@ -130,7 +130,7 @@ class LeicaSample(Sample):
             plate_name=event.plate_name,
         )
 
-    def _set_sample(self, values, **kwargs):
+    async def _set_sample(self, values, **kwargs):
         """Set an image container of the sample."""
         plate_name = kwargs.pop("plate_name", None)
         well_x = kwargs.pop("well_x", None)
@@ -142,6 +142,9 @@ class LeicaSample(Sample):
         if all(
             name is not None for name in (plate_name, well_x, well_y, field_x, field_y)
         ):
+            await self.set_sample(plate_name=plate_name)
+            await self.set_sample(plate_name=plate_name, well_x=well_x, well_y=well_y)
+
             field = Field(
                 self._images,
                 plate_name=plate_name,
@@ -154,6 +157,9 @@ class LeicaSample(Sample):
             return field
 
         if all(name is not None for name in (plate_name, well_x, well_y, channel_id)):
+            await self.set_sample(plate_name=plate_name)
+            await self.set_sample(plate_name=plate_name, well_x=well_x, well_y=well_y)
+
             channel = Channel(
                 self._images,
                 plate_name=plate_name,
@@ -165,6 +171,8 @@ class LeicaSample(Sample):
             return channel
 
         if all(name is not None for name in (plate_name, well_x, well_y)):
+            await self.set_sample(plate_name=plate_name)
+
             well = Well(
                 self._images,
                 plate_name=plate_name,
