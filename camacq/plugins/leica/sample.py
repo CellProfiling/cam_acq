@@ -36,11 +36,20 @@ SET_FIELD_SCHEMA = SET_WELL_SCHEMA.extend(
 )
 
 SET_CHANNEL_SCHEMA = SET_WELL_SCHEMA.extend(
-    {vol.Required("channel_name"): vol.Coerce(str), "channel_id": vol.Coerce(int),}
+    {
+        vol.Optional("channel_name"): vol.Coerce(str),
+        vol.Required("channel_id"): vol.Coerce(int),
+    }
 )
 
+SET_Z_SLICE_SCHEMA = SET_WELL_SCHEMA.extend({vol.Required("z_slice"): vol.Coerce(int)})
+
 SET_SAMPLE_SCHEMA = vol.Any(
-    SET_PLATE_SCHEMA, SET_WELL_SCHEMA, SET_FIELD_SCHEMA, SET_CHANNEL_SCHEMA
+    SET_PLATE_SCHEMA,
+    SET_WELL_SCHEMA,
+    SET_FIELD_SCHEMA,
+    SET_Z_SLICE_SCHEMA,
+    SET_CHANNEL_SCHEMA,
 )
 
 
