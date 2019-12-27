@@ -8,13 +8,6 @@ from camacq.helper import BASE_ACTION_SCHEMA
 
 _LOGGER = logging.getLogger(__name__)
 ACTION_RENAME_IMAGE = "rename_image"
-RENAME_IMAGE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
-    {
-        vol.Required("old_path"): vol.Coerce(str),
-        vol.Exclusive("new_path", "new_file"): vol.Coerce(str),
-        vol.Exclusive("new_name", "new_file"): vol.Coerce(str),
-    }
-)
 
 
 async def setup_module(center, config):
@@ -37,7 +30,8 @@ async def setup_module(center, config):
             Arbitrary keyword arguments. These will be passed to the
             action function when an action is called.
         """
-        old_path = kwargs.get("old_path")
+        sample_name = kwargs["sample"]
+        old_path = kwargs["old_path"]
         new_path = kwargs.get("new_path")
         new_name = kwargs.get("new_name")
 
@@ -49,13 +43,23 @@ async def setup_module(center, config):
         result = await center.add_executor_job(rename_image, old_path, new_path)
         if not result:
             return
-        image = center.samples.leica.get_image(old_path)
-        await center.samples.leica.remove_image(old_path)
+        sample = center.samples[sample_name]
+        image = sample.get_image(old_path)
+        await sample.remove_image(old_path)
         image._path = new_path  # pylint: disable=protected-access
-        await center.samples.leica.set_image(image)
+        await sample.set_image(image)
+
+    rename_image_action_schema = BASE_ACTION_SCHEMA.extend(
+        {
+            vol.Required("sample"): vol.All(vol.Coerce(str), vol.In(center.samples)),
+            vol.Required("old_path"): vol.Coerce(str),
+            vol.Exclusive("new_path", "new_file"): vol.Coerce(str),
+            vol.Exclusive("new_name", "new_file"): vol.Coerce(str),
+        }
+    )
 
     center.actions.register(
-        "rename_image", ACTION_RENAME_IMAGE, handle_action, RENAME_IMAGE_ACTION_SCHEMA,
+        "rename_image", ACTION_RENAME_IMAGE, handle_action, rename_image_action_schema,
     )
 
 

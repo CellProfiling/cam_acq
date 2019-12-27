@@ -9,6 +9,7 @@ import voluptuous as vol
 from camacq.event import Event
 from camacq.exceptions import SampleError
 from camacq.helper import BASE_ACTION_SCHEMA
+from camacq.util import dotdict
 
 _LOGGER = logging.getLogger(__name__)
 SAMPLE_EVENT = "sample_event"
@@ -16,7 +17,6 @@ SAMPLE_IMAGE_SET_EVENT = "sample_image_set_event"
 SAMPLE_IMAGE_REMOVE_EVENT = "sample_image_remove_event"
 
 ACTION_SET_SAMPLE = "set_sample"
-DATA_SAMPLE = "sample"
 SAMPLE_STATE_FILE = "state_file"
 SET_SAMPLE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
     {"sample_name": vol.Coerce(str)}, extra=vol.ALLOW_EXTRA
@@ -40,7 +40,6 @@ async def setup_module(center, config):
     config : dict
         The config dict.
     """
-    sample_store = center.data.setdefault(DATA_SAMPLE, {})
 
     async def handle_action(**kwargs):
         """Handle action call to add a state to the sample.
@@ -55,9 +54,9 @@ async def setup_module(center, config):
         method = ACTION_TO_METHOD[action_id]["method"]
         sample_name = kwargs.pop("sample_name", None)
         if sample_name:
-            samples = [sample_store[sample_name]]
+            samples = [center.samples[sample_name]]
         else:
-            samples = list(sample_store.values())
+            samples = list(center.samples.values())
         tasks = []
         for sample in samples:
             try:
@@ -84,23 +83,17 @@ async def setup_module(center, config):
         center.actions.register("sample", action_id, handle_action, schema)
 
 
-class Samples:
+class Samples(dotdict):
     """Hold all samples."""
 
     # pylint: disable=too-few-public-methods
 
-    def __init__(self, center):
-        """Set up the instance."""
-        self._center = center
-
     def __getattr__(self, sample_name):
         """Get a sample by name."""
-        sample = self._center.data.get(DATA_SAMPLE, {}).get(sample_name)
-
-        if sample is None:
-            raise SampleError(f"Unable to get sample with name {sample_name}")
-
-        return sample
+        try:
+            return self[sample_name]
+        except KeyError as exc:
+            raise SampleError(f"Unable to get sample with name {sample_name}") from exc
 
 
 def register_sample(center, sample):
@@ -108,8 +101,7 @@ def register_sample(center, sample):
     sample.center = center
     sample.data = {}
     center.bus.register(sample.image_event_type, sample.on_image)
-    sample_store = center.data.setdefault(DATA_SAMPLE, {})
-    sample_store[sample.name] = sample
+    center.samples[sample.name] = sample
 
 
 class ImageContainer(ABC):

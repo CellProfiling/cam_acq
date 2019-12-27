@@ -230,6 +230,7 @@ automations:
       - type: rename_image
         id: rename_image
         data:
+          sample: leica
           old_path: >
             {{ trigger.event.path }}
           new_path: >

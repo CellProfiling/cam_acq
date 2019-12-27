@@ -45,7 +45,7 @@ class Center:
         self.loop.set_exception_handler(loop_exception_handler)
         self.bus = EventBus(self)
         self.actions = ActionsRegistry(self)
-        self.samples = Samples(self)
+        self.samples = Samples()
         self.data = {}
         self._exit_code = 0
         self._stopped = None
