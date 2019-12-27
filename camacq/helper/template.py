@@ -3,7 +3,7 @@ import jinja2
 from jinja2.sandbox import ImmutableSandboxedEnvironment
 
 from camacq.exceptions import TemplateError
-from camacq.plugins.sample.helper import next_well_xy
+from camacq.plugins.leica.sample import next_well_xy
 
 TEMPLATE_ENV_DATA = "template_env"
 

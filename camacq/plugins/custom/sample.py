@@ -11,7 +11,11 @@ from camacq.plugins.sample import (
 )
 
 SET_SAMPLE_SCHEMA = vol.Schema(
-    {vol.Required("fov_x"): vol.Coerce(int), vol.Required("fov_y"): vol.Coerce(int)}
+    {
+        vol.Required("name"): "fov",
+        vol.Required("fov_x"): vol.Coerce(int),
+        vol.Required("fov_y"): vol.Coerce(int),
+    }
 )
 
 
@@ -71,9 +75,9 @@ class CustomSample(Sample):
         """Handle image event for this sample."""
         image = CustomImage(event.path, fov_x=event.fov_x, fov_y=event.fov_y)
         await self.set_image(image)
-        await self.set_sample(fov_x=event.fov_x, fov_y=event.fov_y)
+        await self.set_sample("fov", fov_x=event.fov_x, fov_y=event.fov_y)
 
-    async def _set_sample(self, values, **kwargs):
+    async def _set_sample(self, name, values, **kwargs):
         """Set an image container of the sample."""
         fov_x = kwargs.pop("fov_x", None)
         fov_y = kwargs.pop("fov_y", None)
@@ -124,6 +128,11 @@ class FOVContainer(ImageContainer):
             for image in self._images.values()
             if image.fov_x == self.fov_x and image.fov_y == self.fov_y
         }
+
+    @property
+    def name(self):
+        """:str: Return an identifying name for the container."""
+        return "fov"
 
     @property
     def values(self):

@@ -8,7 +8,7 @@ from camacq.const import IMAGE_EVENT
 from camacq.control import Center
 from camacq.plugins import api as api_mod, sample as sample_mod
 
-SET_SAMPLE_SCHEMA = vol.Schema(dict)
+SET_SAMPLE_SCHEMA = vol.Schema({vol.Required("name"): str,}, extra=vol.ALLOW_EXTRA)
 
 
 @pytest.fixture(name="center")
@@ -146,9 +146,9 @@ class MockSample(sample_mod.Sample):
             event.path, channel_id=event.channel_id, z_slice=event.z_slice, **field_args
         )
         await self.set_image(image)
-        await self.set_sample(**field_args)
+        await self.set_sample("field", **field_args)
 
-    async def _set_sample(self, values, **kwargs):
+    async def _set_sample(self, name, values, **kwargs):
         """Set an image container of the sample.
 
         Returns
@@ -156,8 +156,41 @@ class MockSample(sample_mod.Sample):
         ImageContainer instance
             Return the ImageContainer instance that was updated.
         """
-        self.mock_set_sample(**values, **kwargs)
-        return self
+        self.mock_set_sample(name, **values, **kwargs)
+        container = MockContainer(name, values, kwargs)
+        return container
+
+
+class MockContainer(sample_mod.ImageContainer):
+    """A mock container for images."""
+
+    def __init__(self, name, values, attrs):
+        """Set up instance."""
+        self._images = {}
+        self._values = values
+        self._name = name
+        for attr, val in attrs.items():
+            setattr(self, attr, val)
+
+    @property
+    def change_event(self):
+        """:Event: Return an event class to fire on container change."""
+        return TestSampleEvent
+
+    @property
+    def images(self):
+        """:dict: Return a dict with all images for the container."""
+        return self._images
+
+    @property
+    def name(self):
+        """:str: Return an identifying name for the container."""
+        return self._name
+
+    @property
+    def values(self):
+        """:dict: Return a dict with the values set for the container."""
+        return self._values
 
 
 class TestImage(sample_mod.Image):

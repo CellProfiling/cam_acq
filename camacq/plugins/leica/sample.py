@@ -1,4 +1,5 @@
 """Provide sample implementation for leica microscope."""
+import json
 import logging
 
 import voluptuous as vol
@@ -22,14 +23,21 @@ SAMPLE_IMAGE_EVENT = "sample_image_event"
 WELL_EVENT = "well_event"
 Z_SLICE_EVENT = "z_slice_event"
 
-SET_PLATE_SCHEMA = vol.Schema({vol.Required("plate_name"): vol.Coerce(str)})
+SET_PLATE_SCHEMA = vol.Schema(
+    {vol.Required("name"): "plate", vol.Required("plate_name"): vol.Coerce(str)}
+)
 
 SET_WELL_SCHEMA = SET_PLATE_SCHEMA.extend(
-    {vol.Required("well_x"): vol.Coerce(int), vol.Required("well_y"): vol.Coerce(int)}
+    {
+        vol.Required("name"): "well",
+        vol.Required("well_x"): vol.Coerce(int),
+        vol.Required("well_y"): vol.Coerce(int),
+    }
 )
 
 SET_FIELD_SCHEMA = SET_WELL_SCHEMA.extend(
     {
+        vol.Required("name"): "field",
         vol.Required("field_x"): vol.Coerce(int),
         vol.Required("field_y"): vol.Coerce(int),
     }
@@ -37,12 +45,15 @@ SET_FIELD_SCHEMA = SET_WELL_SCHEMA.extend(
 
 SET_CHANNEL_SCHEMA = SET_WELL_SCHEMA.extend(
     {
+        vol.Required("name"): "channel",
         vol.Optional("channel_name"): vol.Coerce(str),
         vol.Required("channel_id"): vol.Coerce(int),
     }
 )
 
-SET_Z_SLICE_SCHEMA = SET_WELL_SCHEMA.extend({vol.Required("z_slice"): vol.Coerce(int)})
+SET_Z_SLICE_SCHEMA = SET_WELL_SCHEMA.extend(
+    {vol.Required("name"): "z_slice", vol.Required("z_slice"): vol.Coerce(int)}
+)
 
 SET_SAMPLE_SCHEMA = vol.Any(
     SET_PLATE_SCHEMA,
@@ -144,7 +155,7 @@ class LeicaSample(Sample):
         channel_args = {**z_slice_args, "channel_id": event.channel_id}
         await self.set_sample(**channel_args)
 
-    async def _set_sample(self, values, **kwargs):
+    async def _set_sample(self, name, values, **kwargs):
         """Set an image container of the sample."""
         plate_name = kwargs.get("plate_name")
         well_x = kwargs.get("well_x")
@@ -154,11 +165,11 @@ class LeicaSample(Sample):
         z_slice = kwargs.get("z_slice")
         channel_id = kwargs.get("channel_id")
 
-        if all(
-            name is not None for name in (plate_name, well_x, well_y, field_x, field_y)
-        ):
-            await self.set_sample(plate_name=plate_name)
-            await self.set_sample(plate_name=plate_name, well_x=well_x, well_y=well_y)
+        if name == "field":
+            await self.set_sample("plate", plate_name=plate_name)
+            await self.set_sample(
+                "well", plate_name=plate_name, well_x=well_x, well_y=well_y
+            )
 
             field = Field(
                 self._images,
@@ -171,9 +182,11 @@ class LeicaSample(Sample):
             )
             return field
 
-        if all(name is not None for name in (plate_name, well_x, well_y, channel_id)):
-            await self.set_sample(plate_name=plate_name)
-            await self.set_sample(plate_name=plate_name, well_x=well_x, well_y=well_y)
+        if name == "channel":
+            await self.set_sample("plate", plate_name=plate_name)
+            await self.set_sample(
+                "well", plate_name=plate_name, well_x=well_x, well_y=well_y
+            )
 
             channel = Channel(
                 self._images,
@@ -185,9 +198,11 @@ class LeicaSample(Sample):
             )
             return channel
 
-        if all(name is not None for name in (plate_name, well_x, well_y, z_slice)):
-            await self.set_sample(plate_name=plate_name)
-            await self.set_sample(plate_name=plate_name, well_x=well_x, well_y=well_y)
+        if name == "z_slice":
+            await self.set_sample("plate", plate_name=plate_name)
+            await self.set_sample(
+                "well", plate_name=plate_name, well_x=well_x, well_y=well_y
+            )
 
             z_slice_container = ZSlice(
                 self._images,
@@ -199,8 +214,8 @@ class LeicaSample(Sample):
             )
             return z_slice_container
 
-        if all(name is not None for name in (plate_name, well_x, well_y)):
-            await self.set_sample(plate_name=plate_name)
+        if name == "well":
+            await self.set_sample("plate", plate_name=plate_name)
 
             well = Well(
                 self._images,
@@ -211,10 +226,11 @@ class LeicaSample(Sample):
             )
             return well
 
-        if plate_name is None:
-            return None
-        plate = Plate(self._images, plate_name=plate_name, values=values)
-        return plate
+        if name == "plate":
+            plate = Plate(self._images, plate_name=plate_name, values=values)
+            return plate
+
+        return None
 
 
 class Plate(ImageContainer):
@@ -259,6 +275,11 @@ class Plate(ImageContainer):
             for image in self._images.values()
             if image.plate_name == self.plate_name
         }
+
+    @property
+    def name(self):
+        """:str: Return an identifying name for the container."""
+        return "plate"
 
     @property
     def values(self):
@@ -316,6 +337,11 @@ class Well(Plate, ImageContainer):
             and image.well_x == self.well_x
             and image.well_y == self.well_y
         }
+
+    @property
+    def name(self):
+        """:str: Return an identifying name for the container."""
+        return "well"
 
     @property
     def values(self):
@@ -377,6 +403,11 @@ class Field(Well, ImageContainer):
         }
 
     @property
+    def name(self):
+        """:str: Return an identifying name for the container."""
+        return "field"
+
+    @property
     def values(self):
         """:dict: Return a dict with the values set for the container."""
         return self._values
@@ -431,6 +462,11 @@ class Channel(Well, ImageContainer):
         }
 
     @property
+    def name(self):
+        """:str: Return an identifying name for the container."""
+        return "channel"
+
+    @property
     def values(self):
         """:dict: Return a dict with the values set for the container."""
         return self._values
@@ -483,6 +519,11 @@ class ZSlice(Well, ImageContainer):
             and image.well_y == self.well_y
             and image.z_slice == self.z_slice
         }
+
+    @property
+    def name(self):
+        """:str: Return an identifying name for the container."""
+        return "z_slice"
 
     @property
     def values(self):
@@ -649,3 +690,34 @@ class ZSliceEvent(WellEvent):
     def z_slice(self):
         """:int: Return the z_slice of the event."""
         return self.container.z_slice
+
+
+def next_well_xy(sample, plate_name, x_wells=None, y_wells=None):
+    """Return the next not done well for the given plate x, y format."""
+    if json.dumps({"name": "plate", "plate_name": plate_name}) not in sample.data:
+        return None, None
+    if x_wells is None or y_wells is None:
+        not_done = (
+            (cont.well_x, cont.well_y)
+            for cont in sample.data.values()
+            if cont.name == "well"
+            and cont.plate_name == plate_name
+            and not cont.values.get("well_img_ok", False)
+        )
+    else:
+        done = {
+            (cont.well_x, cont.well_y)
+            for cont in sample.data.values()
+            if cont.name == "well"
+            and cont.plate_name == plate_name
+            and cont.values.get("well_img_ok", False)
+        }
+        not_done = (
+            (x_well, y_well)
+            for x_well in range(x_wells)
+            for y_well in range(y_wells)
+            if (x_well, y_well) not in done
+        )
+
+    x_well, y_well = next(not_done, (None, None))
+    return x_well, y_well

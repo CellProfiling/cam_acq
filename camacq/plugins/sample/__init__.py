@@ -124,6 +124,11 @@ class ImageContainer(ABC):
 
     @property
     @abstractmethod
+    def name(self):
+        """:str: Return an identifying name for the container."""
+
+    @property
+    @abstractmethod
     def values(self):
         """:dict: Return a dict with the values set for the container."""
 
@@ -153,16 +158,32 @@ class Sample(ImageContainer, ABC):
     async def on_image(self, center, event):
         """Handle image event for this sample."""
 
-    def get_sample(self, **kwargs):
-        """Get an image container of the sample."""
-        id_string = json.dumps(kwargs)
+    def get_sample(self, name, **kwargs):
+        """Get an image container of the sample.
+
+        Parameters
+        ----------
+        name : str
+            The name of the container type.
+        **kwargs
+            Arbitrary keyword arguments.
+            These will be used to create the id string of the container.
+
+        Returns
+        -------
+        ImageContainer instance
+            Return the found ImageContainer instance.
+        """
+        id_string = json.dumps({"name": name, **kwargs})
         return self.data.get(id_string)
 
-    async def set_sample(self, values=None, **kwargs):
+    async def set_sample(self, name, values=None, **kwargs):
         """Set an image container of the sample.
 
         Parameters
         ----------
+        name : str
+            The name of the container type.
         values : dict
             The optional values to set on the container.
         **kwargs
@@ -174,13 +195,13 @@ class Sample(ImageContainer, ABC):
         ImageContainer instance
             Return the ImageContainer instance that was updated.
         """
-        id_string = json.dumps(kwargs)
+        id_string = json.dumps({"name": name, **kwargs})
         values = values or {}
         container = self.data.get(id_string)
         event = None
 
         if container is None:
-            container = await self._set_sample(values=values, **kwargs)
+            container = await self._set_sample(name, values, **kwargs)
             event_class = container.change_event
             event = event_class({"container": container})
 
@@ -196,7 +217,7 @@ class Sample(ImageContainer, ABC):
         return container
 
     @abstractmethod
-    async def _set_sample(self, values, **kwargs):
+    async def _set_sample(self, name, values, **kwargs):
         """Set an image container of the sample.
 
         Parameters

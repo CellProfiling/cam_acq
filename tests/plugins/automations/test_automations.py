@@ -25,6 +25,7 @@ async def test_setup_automation(center, sample):
           - type: sample
             id: set_sample
             data:
+              name: well
               plate_name: test
               well_x: 1
               well_y: 1
@@ -43,7 +44,7 @@ async def test_setup_automation(center, sample):
     await center.wait_for()
     assert sample.mock_set_sample.call_count == 1
     assert sample.mock_set_sample.call_args == call(
-        plate_name="test", well_x="1", well_y="1"
+        "well", plate_name="test", well_x="1", well_y="1"
     )
 
     await center.actions.call("automations", "toggle", name="test_automation")
@@ -75,7 +76,12 @@ async def test_sample_event(center, api, sample):
     assert automation.enabled
 
     await center.samples.test.set_sample(
-        plate_name="test", well_x="1", well_y="1", channel_name="yellow", gain=333
+        "channel",
+        plate_name="test",
+        well_x="1",
+        well_y="1",
+        channel_name="yellow",
+        gain=333,
     )
     await center.wait_for()
     assert "send" in center.actions.actions["command"]
