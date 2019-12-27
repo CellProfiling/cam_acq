@@ -134,11 +134,6 @@ class Sample(ImageContainer, ABC):
 
     @property
     @abstractmethod
-    def image_class(self):
-        """:cls: Return the image class to instantiate for the sample."""
-
-    @property
-    @abstractmethod
     def image_event_type(self):
         """:str: Return the image event type to listen to for the sample."""
 
@@ -231,23 +226,20 @@ class Sample(ImageContainer, ABC):
         """
         return self.images.get(path)
 
-    async def set_image(self, path, **kwargs):
+    async def set_image(self, image):
         """Add an image to the sample.
 
         Parameters
         ----------
-        path : str
-            Path to the image.
+        image : Image
+            An Image instance.
 
         Returns
         -------
         Image instance
             Return the Image instance.
         """
-        image = self.image_class(path, **kwargs)
-        self.images[path] = image
-
-        await self.set_sample(**kwargs)
+        self.images[image.path] = image
         event = SampleImageSetEvent({"container": self, "image": image})
         await self.center.bus.notify(event)
 

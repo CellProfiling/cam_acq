@@ -43,11 +43,6 @@ class CustomSample(Sample):
         return SampleEvent
 
     @property
-    def image_class(self):
-        """:cls: Return the image class to instantiate for the sample."""
-        return CustomImage
-
-    @property
     def image_event_type(self):
         """:str: Return the image event type to listen to for the sample."""
         return IMAGE_EVENT
@@ -74,7 +69,9 @@ class CustomSample(Sample):
 
     async def on_image(self, center, event):
         """Handle image event for this sample."""
-        await self.set_image(event.path, fov_x=event.fov_x, fov_y=event.fov_y)
+        image = CustomImage(event.path, fov_x=event.fov_x, fov_y=event.fov_y)
+        await self.set_image(image)
+        await self.set_sample(fov_x=event.fov_x, fov_y=event.fov_y)
 
     async def _set_sample(self, values, **kwargs):
         """Set an image container of the sample."""

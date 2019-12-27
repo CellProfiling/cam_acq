@@ -20,6 +20,7 @@ IMAGE_REMOVED_EVENT = "image_removed_event"
 PLATE_EVENT = "plate_event"
 SAMPLE_IMAGE_EVENT = "sample_image_event"
 WELL_EVENT = "well_event"
+Z_SLICE_EVENT = "z_slice_event"
 
 SET_PLATE_SCHEMA = vol.Schema({vol.Required("plate_name"): vol.Coerce(str)})
 
@@ -88,11 +89,6 @@ class LeicaSample(Sample):
         return LeicaSampleEvent
 
     @property
-    def image_class(self):
-        """:cls: Return the image class to instantiate for the sample."""
-        return LeicaImage
-
-    @property
     def image_event_type(self):
         """:str: Return the image event type to listen to for the sample."""
         return IMAGE_EVENT
@@ -119,25 +115,35 @@ class LeicaSample(Sample):
 
     async def on_image(self, center, event):
         """Handle image event for this sample."""
-        await self.set_image(
-            event.path,
-            channel_id=event.channel_id,
-            z_slice=event.z_slice,
-            field_x=event.field_x,
-            field_y=event.field_y,
-            well_x=event.well_x,
-            well_y=event.well_y,
-            plate_name=event.plate_name,
+        field_args = {
+            "plate_name": event.plate_name,
+            "well_x": event.well_x,
+            "well_y": event.well_y,
+            "field_x": event.field_x,
+            "field_y": event.field_y,
+        }
+        image = LeicaImage(
+            event.path, channel_id=event.channel_id, z_slice=event.z_slice, **field_args
         )
+        await self.set_image(image)
+        await self.set_sample(**field_args)
+        field_args.pop("field_x")
+        field_args.pop("field_y")
+        z_slice_args = {**field_args, "z_slice": event.z_slice}
+        await self.set_sample(**z_slice_args)
+        z_slice_args.pop("z_slice")
+        channel_args = {**z_slice_args, "channel_id": event.channel_id}
+        await self.set_sample(**channel_args)
 
     async def _set_sample(self, values, **kwargs):
         """Set an image container of the sample."""
-        plate_name = kwargs.pop("plate_name", None)
-        well_x = kwargs.pop("well_x", None)
-        well_y = kwargs.pop("well_y", None)
-        field_x = kwargs.pop("field_x", None)
-        field_y = kwargs.pop("field_y", None)
-        channel_id = kwargs.pop("channel_id", None)
+        plate_name = kwargs.get("plate_name")
+        well_x = kwargs.get("well_x")
+        well_y = kwargs.get("well_y")
+        field_x = kwargs.get("field_x")
+        field_y = kwargs.get("field_y")
+        z_slice = kwargs.get("z_slice")
+        channel_id = kwargs.get("channel_id")
 
         if all(
             name is not None for name in (plate_name, well_x, well_y, field_x, field_y)
@@ -169,6 +175,20 @@ class LeicaSample(Sample):
                 values=values,
             )
             return channel
+
+        if all(name is not None for name in (plate_name, well_x, well_y, z_slice)):
+            await self.set_sample(plate_name=plate_name)
+            await self.set_sample(plate_name=plate_name, well_x=well_x, well_y=well_y)
+
+            z_slice_container = ZSlice(
+                self._images,
+                plate_name=plate_name,
+                well_x=well_x,
+                well_y=well_y,
+                z_slice=z_slice,
+                values=values,
+            )
+            return z_slice_container
 
         if all(name is not None for name in (plate_name, well_x, well_y)):
             await self.set_sample(plate_name=plate_name)
@@ -407,6 +427,60 @@ class Channel(Well, ImageContainer):
         return self._values
 
 
+class ZSlice(Well, ImageContainer):
+    """A channel with attributes.
+
+    Parameters
+    ----------
+    images : dict
+        All the images of the sample.
+    z_slice : int
+        ID of the slice.
+    values : Optional dict of values.
+
+    Attributes
+    ----------
+    z_slice : int
+        Return z_slice of the channel.
+    """
+
+    def __init__(self, images, z_slice, **kwargs):
+        """Set up instance."""
+        self._images = images
+        self.z_slice = z_slice
+        self._values = kwargs.pop("values", {})
+        super().__init__(images, **kwargs)
+
+    def __repr__(self):
+        """Return the representation."""
+        return (
+            f"ZSlice(images={self._images}, slice_id={self.z_slice}, "
+            f"values={self._values})"
+        )
+
+    @property
+    def change_event(self):
+        """:Event: Return an event class to fire on container change."""
+        return ZSliceEvent
+
+    @property
+    def images(self):
+        """:dict: Return a dict with all images for the channel."""
+        return {
+            image.path: image
+            for image in self._images.values()
+            if image.plate_name == self.plate_name
+            and image.well_x == self.well_x
+            and image.well_y == self.well_y
+            and image.z_slice == self.z_slice
+        }
+
+    @property
+    def values(self):
+        """:dict: Return a dict with the values set for the container."""
+        return self._values
+
+
 class LeicaImage(Image):
     """An image with path and position info.
 
@@ -553,3 +627,16 @@ class FieldEvent(WellEvent):
     def field_img_ok(self):
         """:bool: Return if the field has all images acquired ok."""
         return self.container.values.get("field_img_ok", False)
+
+
+class ZSliceEvent(WellEvent):
+    """An event produced by a sample z slice change event."""
+
+    __slots__ = ()
+
+    event_type = Z_SLICE_EVENT
+
+    @property
+    def z_slice(self):
+        """:int: Return the z_slice of the event."""
+        return self.container.z_slice

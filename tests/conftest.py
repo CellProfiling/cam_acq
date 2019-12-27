@@ -108,11 +108,6 @@ class MockSample(sample_mod.Sample):
         return TestSampleEvent
 
     @property
-    def image_class(self):
-        """:cls: Return the image class to instantiate for the sample."""
-        return TestImage
-
-    @property
     def images(self):
         """:dict: Return a dict with all images for the container."""
         return self._images
@@ -140,15 +135,18 @@ class MockSample(sample_mod.Sample):
     async def on_image(self, center, event):
         """Handle image event for this sample."""
         self.image_events.append(event)
-        await self.set_image(
-            event.path,
-            plate_name=event.plate_name,
-            well_x=event.well_x,
-            well_y=event.well_y,
-            field_x=event.field_x,
-            field_y=event.field_y,
-            channel_id=event.channel_id,
+        field_args = {
+            "plate_name": event.plate_name,
+            "well_x": event.well_x,
+            "well_y": event.well_y,
+            "field_x": event.field_x,
+            "field_y": event.field_y,
+        }
+        image = TestImage(
+            event.path, channel_id=event.channel_id, z_slice=event.z_slice, **field_args
         )
+        await self.set_image(image)
+        await self.set_sample(**field_args)
 
     async def _set_sample(self, values, **kwargs):
         """Set an image container of the sample.

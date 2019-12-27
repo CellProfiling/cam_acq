@@ -215,6 +215,7 @@ async def test_sample_access(center, api, sample):
             "well_y": 0,
             "field_x": 1,
             "field_y": 1,
+            "z_slice": 0,
             "channel_id": 0,
         }
     )
