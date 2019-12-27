@@ -103,6 +103,7 @@ class Samples:
 def register_sample(center, sample):
     """Register sample."""
     sample.center = center
+    sample.data = {}
     center.bus.register(sample.image_event_type, sample.on_image)
     sample_store = center.data.setdefault(DATA_SAMPLE, {})
     sample_store[sample.name] = sample
@@ -131,6 +132,7 @@ class Sample(ImageContainer, ABC):
     """Representation of the state of the sample."""
 
     center = None
+    data = None
 
     @property
     @abstractmethod
@@ -154,7 +156,7 @@ class Sample(ImageContainer, ABC):
     def get_sample(self, **kwargs):
         """Get an image container of the sample."""
         id_string = json.dumps(kwargs)
-        return self.center.data.get(id_string)
+        return self.data.get(id_string)
 
     async def set_sample(self, values=None, **kwargs):
         """Set an image container of the sample.
@@ -174,7 +176,7 @@ class Sample(ImageContainer, ABC):
         """
         id_string = json.dumps(kwargs)
         values = values or {}
-        container = self.center.data.get(id_string)
+        container = self.data.get(id_string)
         event = None
 
         if container is None:
@@ -183,7 +185,7 @@ class Sample(ImageContainer, ABC):
             event = event_class({"container": container})
 
         container.values.update(values)
-        self.center.data[id_string] = container
+        self.data[id_string] = container
 
         if not event and values:
             event_class = container.change_event
