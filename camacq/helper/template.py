@@ -4,6 +4,7 @@ from jinja2.sandbox import ImmutableSandboxedEnvironment
 
 from camacq.exceptions import TemplateError
 from camacq.plugins.leica.sample import next_well_xy
+from camacq.plugins.sample import get_matched_samples
 
 TEMPLATE_ENV_DATA = "template_env"
 
@@ -16,6 +17,7 @@ def get_env(center):
         env = _set_global(env, "next_well_xy", template_functions.next_well_xy)
         env = _set_global(env, "next_well_x", template_functions.next_well_x)
         env = _set_global(env, "next_well_y", template_functions.next_well_y)
+        env = _set_global(env, "matched_samples", get_matched_samples)
         center.data[TEMPLATE_ENV_DATA] = env
     return center.data[TEMPLATE_ENV_DATA]
 

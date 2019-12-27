@@ -51,16 +51,8 @@ async def setup_module(center, config):
             return
         image = center.samples.leica.get_image(old_path)
         await center.samples.leica.remove_image(old_path)
-        await center.samples.leica.set_image(
-            new_path,
-            channel_id=image.channel_id,
-            z_slice=image.z_slice,
-            field_x=image.field_x,
-            field_y=image.field_y,
-            well_x=image.well_x,
-            well_y=image.well_y,
-            plate_name=image.plate_name,
-        )
+        image._path = new_path  # pylint: disable=protected-access
+        await center.samples.leica.set_image(image)
 
     center.actions.register(
         "rename_image", ACTION_RENAME_IMAGE, handle_action, RENAME_IMAGE_ACTION_SCHEMA,

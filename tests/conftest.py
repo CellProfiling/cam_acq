@@ -143,7 +143,10 @@ class MockSample(sample_mod.Sample):
             "field_y": event.field_y,
         }
         image = TestImage(
-            event.path, channel_id=event.channel_id, z_slice=event.z_slice, **field_args
+            event.path,
+            channel_id=event.channel_id,
+            z_slice_id=event.z_slice_id,
+            **field_args
         )
         await self.set_image(image)
         await self.set_sample("field", **field_args)

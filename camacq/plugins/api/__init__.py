@@ -220,9 +220,9 @@ class ImageEvent(Event):
         return self.data.get("field_y")
 
     @property
-    def z_slice(self):
+    def z_slice_id(self):
         """:int: Return z index of the image."""
-        return self.data.get("z_slice")
+        return self.data.get("z_slice_id")
 
     @property
     def channel_id(self):
@@ -238,13 +238,14 @@ class ImageEvent(Event):
         """Return the representation."""
         return (
             "<{}: plate_name {}: well_x {}: well_y {}: field_x {}: "
-            "field_y {}: channel_id {}>".format(
+            "field_y {}: z_slice_id {}: channel_id {}>".format(
                 type(self).__name__,
                 self.plate_name,
                 self.well_x,
                 self.well_y,
                 self.field_x,
                 self.field_y,
+                self.z_slice_id,
                 self.channel_id,
             )
         )

@@ -6,6 +6,7 @@ import voluptuous as vol
 
 from camacq.const import IMAGE_EVENT
 from camacq.plugins.sample import (
+    BASE_SET_SAMPLE_ACTION_SCHEMA,
     Image,
     ImageContainer,
     Sample,
@@ -23,7 +24,7 @@ SAMPLE_IMAGE_EVENT = "sample_image_event"
 WELL_EVENT = "well_event"
 Z_SLICE_EVENT = "z_slice_event"
 
-SET_PLATE_SCHEMA = vol.Schema(
+SET_PLATE_SCHEMA = BASE_SET_SAMPLE_ACTION_SCHEMA.extend(
     {vol.Required("name"): "plate", vol.Required("plate_name"): vol.Coerce(str)}
 )
 
@@ -32,6 +33,7 @@ SET_WELL_SCHEMA = SET_PLATE_SCHEMA.extend(
         vol.Required("name"): "well",
         vol.Required("well_x"): vol.Coerce(int),
         vol.Required("well_y"): vol.Coerce(int),
+        "values": vol.Schema({"well_img_ok": vol.Coerce(bool)}, extra=vol.ALLOW_EXTRA),
     }
 )
 
@@ -40,14 +42,15 @@ SET_FIELD_SCHEMA = SET_WELL_SCHEMA.extend(
         vol.Required("name"): "field",
         vol.Required("field_x"): vol.Coerce(int),
         vol.Required("field_y"): vol.Coerce(int),
+        "values": vol.Schema({"field_img_ok": vol.Coerce(bool)}, extra=vol.ALLOW_EXTRA),
     }
 )
 
 SET_CHANNEL_SCHEMA = SET_WELL_SCHEMA.extend(
     {
         vol.Required("name"): "channel",
-        vol.Optional("channel_name"): vol.Coerce(str),
         vol.Required("channel_id"): vol.Coerce(int),
+        "values": vol.Schema({"gain": vol.Coerce(float)}, extra=vol.ALLOW_EXTRA),
     }
 )
 
@@ -143,17 +146,20 @@ class LeicaSample(Sample):
             "field_y": event.field_y,
         }
         image = LeicaImage(
-            event.path, channel_id=event.channel_id, z_slice=event.z_slice, **field_args
+            event.path,
+            channel_id=event.channel_id,
+            z_slice_id=event.z_slice_id,
+            **field_args,
         )
         await self.set_image(image)
-        await self.set_sample(**field_args)
+        await self.set_sample("field", **field_args)
         field_args.pop("field_x")
         field_args.pop("field_y")
-        z_slice_args = {**field_args, "z_slice": event.z_slice}
-        await self.set_sample(**z_slice_args)
-        z_slice_args.pop("z_slice")
+        z_slice_args = {**field_args, "z_slice_id": event.z_slice_id}
+        await self.set_sample("z_slice", **z_slice_args)
+        z_slice_args.pop("z_slice_id")
         channel_args = {**z_slice_args, "channel_id": event.channel_id}
-        await self.set_sample(**channel_args)
+        await self.set_sample("channel", **channel_args)
 
     async def _set_sample(self, name, values, **kwargs):
         """Set an image container of the sample."""
@@ -162,7 +168,7 @@ class LeicaSample(Sample):
         well_y = kwargs.get("well_y")
         field_x = kwargs.get("field_x")
         field_y = kwargs.get("field_y")
-        z_slice = kwargs.get("z_slice")
+        z_slice_id = kwargs.get("z_slice_id")
         channel_id = kwargs.get("channel_id")
 
         if name == "field":
@@ -209,7 +215,7 @@ class LeicaSample(Sample):
                 plate_name=plate_name,
                 well_x=well_x,
                 well_y=well_y,
-                z_slice=z_slice,
+                z_slice_id=z_slice_id,
                 values=values,
             )
             return z_slice_container
@@ -479,27 +485,27 @@ class ZSlice(Well, ImageContainer):
     ----------
     images : dict
         All the images of the sample.
-    z_slice : int
+    z_slice_id : int
         ID of the slice.
     values : Optional dict of values.
 
     Attributes
     ----------
-    z_slice : int
-        Return z_slice of the channel.
+    z_slice_id : int
+        Return z_slice_id of the channel.
     """
 
-    def __init__(self, images, z_slice, **kwargs):
+    def __init__(self, images, z_slice_id, **kwargs):
         """Set up instance."""
         self._images = images
-        self.z_slice = z_slice
+        self.z_slice_id = z_slice_id
         self._values = kwargs.pop("values", {})
         super().__init__(images, **kwargs)
 
     def __repr__(self):
         """Return the representation."""
         return (
-            f"ZSlice(images={self._images}, slice_id={self.z_slice}, "
+            f"ZSlice(images={self._images}, z_slice_id={self.z_slice_id}, "
             f"values={self._values})"
         )
 
@@ -517,7 +523,7 @@ class ZSlice(Well, ImageContainer):
             if image.plate_name == self.plate_name
             and image.well_x == self.well_x
             and image.well_y == self.well_y
-            and image.z_slice == self.z_slice
+            and image.z_slice_id == self.z_slice_id
         }
 
     @property
@@ -540,7 +546,7 @@ class LeicaImage(Image):
         Path to the image.
     channel_id : int
         The channel id of the image.
-    z_slice : int
+    z_slice_id : int
         The z index of the image.
     field_x : int
         The field x coordinate of the image.
@@ -557,7 +563,7 @@ class LeicaImage(Image):
     ----------
     channel_id : int
         The channel id of the image.
-    z_slice : int
+    z_slice_id : int
         The z index of the image.
     field_x : int
         The field x coordinate of the image.
@@ -575,12 +581,20 @@ class LeicaImage(Image):
     # pylint: disable=too-many-instance-attributes
 
     def __init__(
-        self, path, channel_id, z_slice, field_x, field_y, well_x, well_y, plate_name,
+        self,
+        path,
+        channel_id,
+        z_slice_id,
+        field_x,
+        field_y,
+        well_x,
+        well_y,
+        plate_name,
     ):
         """Set up instance."""
         self._path = path
         self.channel_id = channel_id
-        self.z_slice = z_slice
+        self.z_slice_id = z_slice_id
         self.field_x = field_x
         self.field_y = field_y
         self.well_x = well_x
@@ -610,6 +624,11 @@ class PlateEvent(LeicaSampleEvent):
     event_type = PLATE_EVENT
 
     @property
+    def plate(self):
+        """:ImageContainer: Return the plate container of the event."""
+        return self.container
+
+    @property
     def plate_name(self):
         """:str: Return the name of the plate."""
         return self.container.plate_name
@@ -621,6 +640,11 @@ class WellEvent(PlateEvent):
     __slots__ = ()
 
     event_type = WELL_EVENT
+
+    @property
+    def well(self):
+        """:ImageContainer: Return the well container of the event."""
+        return self.container
 
     @property
     def well_x(self):
@@ -646,6 +670,11 @@ class ChannelEvent(WellEvent):
     event_type = CHANNEL_EVENT
 
     @property
+    def channel(self):
+        """:ImageContainer: Return the channel container of the event."""
+        return self.container
+
+    @property
     def channel_id(self):
         """:int: Return the channel id of the event."""
         return self.container.channel_id
@@ -662,6 +691,11 @@ class FieldEvent(WellEvent):
     __slots__ = ()
 
     event_type = FIELD_EVENT
+
+    @property
+    def field(self):
+        """:ImageContainer: Return the field container of the event."""
+        return self.container
 
     @property
     def field_x(self):
@@ -688,8 +722,13 @@ class ZSliceEvent(WellEvent):
 
     @property
     def z_slice(self):
-        """:int: Return the z_slice of the event."""
-        return self.container.z_slice
+        """:ImageContainer: Return the z slice container of the event."""
+        return self.container
+
+    @property
+    def z_slice_id(self):
+        """:int: Return the z_slice id of the event."""
+        return self.container.z_slice_id
 
 
 def next_well_xy(sample, plate_name, x_wells=None, y_wells=None):

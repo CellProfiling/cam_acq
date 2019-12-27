@@ -21,6 +21,9 @@ SAMPLE_STATE_FILE = "state_file"
 SET_SAMPLE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
     {"sample_name": vol.Coerce(str)}, extra=vol.ALLOW_EXTRA
 )
+BASE_SET_SAMPLE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
+    {vol.Required("name"): vol.Coerce(str), "values": dict}, extra=vol.PREVENT_EXTRA
+)
 
 ACTION_TO_METHOD = {
     ACTION_SET_SAMPLE: {"method": "set_sample", "schema": SET_SAMPLE_ACTION_SCHEMA},
@@ -328,6 +331,11 @@ class SampleEvent(Event):
         """:ImageContainer instance: Return the container instance of the event."""
         return self.data.get("container")
 
+    @property
+    def container_name(self):
+        """:str: Return the container name of the event."""
+        return self.container.name
+
     def __repr__(self):
         """Return the representation."""
         data = dict(container=self.container)
@@ -382,3 +390,23 @@ class SampleImageRemoveEvent(Event):
         """Return the representation."""
         data = dict(container=self.container, image=self.image)
         return f"{type(self).__name__}({data})"
+
+
+def get_matched_samples(sample, name, attrs=None, values=None):
+    """Return the sample items that match."""
+    attrs = attrs or {}
+    values = values or {}
+    items = [
+        cont
+        for cont in sample.data.values()
+        if cont.name == name
+        and (
+            not attrs
+            or all(getattr(cont, attr, None) == val for attr, val in attrs.items())
+        )
+        and (
+            not values
+            or all(cont.values.get(key) == val for key, val in values.items())
+        )
+    ]
+    return items
