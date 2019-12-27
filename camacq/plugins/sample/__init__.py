@@ -22,7 +22,7 @@ SET_SAMPLE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
     {"sample_name": vol.Coerce(str)}, extra=vol.ALLOW_EXTRA
 )
 BASE_SET_SAMPLE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
-    {vol.Required("name"): vol.Coerce(str), "values": dict}, extra=vol.PREVENT_EXTRA
+    {vol.Required("name"): vol.Coerce(str), "values": dict}
 )
 
 ACTION_TO_METHOD = {
