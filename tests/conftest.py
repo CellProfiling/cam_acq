@@ -46,8 +46,6 @@ def sample_fixture(center, config):
 class TestSampleEvent(sample_mod.SampleEvent):
     """Represent a test sample event."""
 
-    # pylint: disable=too-few-public-methods
-
     event_type = "test_sample_event"
 
     @property

@@ -239,7 +239,7 @@ class Plate(ImageContainer):
     def __repr__(self):
         """Return the representation."""
         return (
-            f"Plate(images={self._images}, name={self.plate_name}, "
+            f"Plate(images={self._images}, plate_name={self.plate_name}, "
             f"values={self._values})"
         )
 
@@ -512,7 +512,6 @@ class ZSlice(Well, ImageContainer):
         return self._values
 
 
-# pylint: disable=too-few-public-methods
 class LeicaSampleEvent(SampleEvent):
     """An event produced by a sample change event."""
 

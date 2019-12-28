@@ -244,7 +244,7 @@ class Image(ImageContainer):
 
     def __repr__(self):
         """Return the representation."""
-        return "<Image(path={0!r})>".format(self.path)
+        return f"<Image(path={self.path}, values={self.values})>"
 
     @property
     def change_event(self):
@@ -295,7 +295,7 @@ class SampleEvent(Event):
         return f"{type(self).__name__}({data})"
 
 
-class SampleImageSetEvent(Event):
+class SampleImageSetEvent(SampleEvent):
     """An event produced by a new image on the sample."""
 
     __slots__ = ()
@@ -303,19 +303,9 @@ class SampleImageSetEvent(Event):
     event_type = SAMPLE_IMAGE_SET_EVENT
 
     @property
-    def container(self):
-        """:ImageContainer instance: Return the container instance of the event."""
-        return self.data.get("container")
-
-    @property
     def image(self):
         """:Image instance: Return the image instance of the event."""
         return self.container
-
-    def __repr__(self):
-        """Return the representation."""
-        data = dict(container=self.container)
-        return f"{type(self).__name__}({data})"
 
 
 def get_matched_samples(sample, name, attrs=None, values=None):
