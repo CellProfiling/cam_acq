@@ -545,11 +545,6 @@ class PlateEvent(LeicaSampleEvent):
     event_type = PLATE_EVENT
 
     @property
-    def plate(self):
-        """:ImageContainer: Return the plate container of the event."""
-        return self.container
-
-    @property
     def plate_name(self):
         """:str: Return the name of the plate."""
         return self.container.plate_name
@@ -561,11 +556,6 @@ class WellEvent(PlateEvent):
     __slots__ = ()
 
     event_type = WELL_EVENT
-
-    @property
-    def well(self):
-        """:ImageContainer: Return the well container of the event."""
-        return self.container
 
     @property
     def well_x(self):
@@ -591,11 +581,6 @@ class ChannelEvent(WellEvent):
     event_type = CHANNEL_EVENT
 
     @property
-    def channel(self):
-        """:ImageContainer: Return the channel container of the event."""
-        return self.container
-
-    @property
     def channel_id(self):
         """:int: Return the channel id of the event."""
         return self.container.channel_id
@@ -612,11 +597,6 @@ class FieldEvent(WellEvent):
     __slots__ = ()
 
     event_type = FIELD_EVENT
-
-    @property
-    def field(self):
-        """:ImageContainer: Return the field container of the event."""
-        return self.container
 
     @property
     def field_x(self):
@@ -640,11 +620,6 @@ class ZSliceEvent(WellEvent):
     __slots__ = ()
 
     event_type = Z_SLICE_EVENT
-
-    @property
-    def z_slice(self):
-        """:ImageContainer: Return the z slice container of the event."""
-        return self.container
 
     @property
     def z_slice_id(self):

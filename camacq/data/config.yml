@@ -71,7 +71,7 @@ automations:
     condition:
       type: AND
       conditions:
-        - condition: "{{ not trigger.event.well.images }}"
+        - condition: "{{ not trigger.event.images }}"
     action:
       - type: command
         id: send
@@ -82,16 +82,16 @@ automations:
         data:
           command: >
             /cmd:add /tar:camlist /exp:p10xgain /ext:af /slide:0
-            /wellx:{{ trigger.event.well.well_x + 1 }}
-            /welly:{{ trigger.event.well.well_y + 1 }} /fieldx:1 /fieldy:2 /dxpos:0
+            /wellx:{{ trigger.event.well_x + 1 }}
+            /welly:{{ trigger.event.well_y + 1 }} /fieldx:1 /fieldy:2 /dxpos:0
             /dypos:0
       - type: command
         id: send
         data:
           command: >
             /cmd:add /tar:camlist /exp:p10xgain /ext:af /slide:0
-            /wellx:{{ trigger.event.well.well_x + 1 }}
-            /welly:{{ trigger.event.well.well_y + 1 }} /fieldx:2 /fieldy:2 /dxpos:0
+            /wellx:{{ trigger.event.well_x + 1 }}
+            /welly:{{ trigger.event.well_y + 1 }} /fieldx:2 /fieldy:2 /dxpos:0
             /dypos:0
       # Turn off rename image and set_img_ok during gain job phase.
       - type: automations
@@ -174,8 +174,8 @@ automations:
               {% for y_number in range(1, 4) -%}
                 {%- if outer_first and loop.first %}[{% endif -%}
                 "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 /wellx:{{
-                trigger.event.well.well_x + 1 }} /welly:{{
-                trigger.event.well.well_y + 1 }} /fieldx:{{ x_number }} /fieldy:{{
+                trigger.event.well_x + 1 }} /welly:{{
+                trigger.event.well_y + 1 }} /fieldx:{{ x_number }} /fieldy:{{
                 y_number }} /dxpos:0 /dypos:0"
                 {%- if outer_last and loop.last %}]{% else %}, {% endif -%}
               {%- endfor %}
@@ -257,7 +257,7 @@ automations:
             {%
             if matched_samples(samples.leica,
             'field',
-            attrs={'well_x': trigger.event.field.well_x, 'well_y': trigger.event.field.well_y},
+            attrs={'well_x': trigger.event.well_x, 'well_y': trigger.event.well_y},
             values={'field_img_ok': true}) | length == 6
             %}true{% endif %}
     action:
@@ -267,9 +267,9 @@ automations:
           name: well
           plate_name: "00"
           well_x: >
-            {{ trigger.event.field.well_x }}
+            {{ trigger.event.well_x }}
           well_y: >
-            {{ trigger.event.field.well_y }}
+            {{ trigger.event.well_y }}
           values:
             well_img_ok: True
   - name: add_next_well

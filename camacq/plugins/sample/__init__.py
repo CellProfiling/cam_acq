@@ -312,11 +312,6 @@ class SampleImageSetEvent(SampleEvent):
 
     event_type = SAMPLE_IMAGE_SET_EVENT
 
-    @property
-    def image(self):
-        """:Image instance: Return the image instance of the event."""
-        return self.container
-
 
 def get_matched_samples(sample, name, attrs=None, values=None):
     """Return the sample items that match."""
