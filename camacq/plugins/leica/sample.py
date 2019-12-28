@@ -148,34 +148,30 @@ class LeicaSample(Sample):
 
     async def on_image(self, center, event):
         """Handle image event for this sample."""
-        field_args = {
-            "plate_name": event.plate_name,
-            "well_x": event.well_x,
-            "well_y": event.well_y,
-            "field_x": event.field_x,
-            "field_y": event.field_y,
-        }
         await self.set_sample(
             "image",
             path=event.path,
-            channel_id=event.channel_id,
+            plate_name=event.plate_name,
+            well_x=event.well_x,
+            well_y=event.well_y,
+            field_x=event.field_x,
+            field_y=event.field_y,
             z_slice_id=event.z_slice_id,
-            **field_args,
+            channel_id=event.channel_id,
         )
-        await self.set_sample("field", **field_args)
-        field_args.pop("field_x")
-        field_args.pop("field_y")
-        z_slice_args = {**field_args, "z_slice_id": event.z_slice_id}
-        await self.set_sample("z_slice", **z_slice_args)
-        z_slice_args.pop("z_slice_id")
-        channel_args = {**z_slice_args, "channel_id": event.channel_id}
-        await self.set_sample("channel", **channel_args)
 
     async def _set_sample(self, name, values, **kwargs):
         """Set an image container of the sample."""
         sample = None
 
         if name == "image":
+            params = SET_FIELD_SCHEMA({"name": "field", **kwargs})
+            await self.set_sample(**params)
+            params = SET_Z_SLICE_SCHEMA({"name": "z_slice", **kwargs})
+            await self.set_sample(**params)
+            params = SET_CHANNEL_SCHEMA({"name": "channel", **kwargs})
+            await self.set_sample(**params)
+
             sample = Image(values=values, **kwargs)
 
         if name == "field":

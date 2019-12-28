@@ -83,11 +83,12 @@ class CustomSample(Sample):
         await self.set_sample(
             "image", path=event.path, fov_x=event.fov_x, fov_y=event.fov_y
         )
-        await self.set_sample("fov", fov_x=event.fov_x, fov_y=event.fov_y)
 
     async def _set_sample(self, name, values, **kwargs):
         """Set an image container of the sample."""
         if name == "image":
+            params = SET_FOV_SCHEMA({"name": "fov", **kwargs})
+            await self.set_sample(**params)
             sample = Image(values=values, **kwargs)
         if name == "fov":
             sample = FOVContainer(self._images, values=values, **kwargs)
