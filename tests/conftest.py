@@ -8,7 +8,7 @@ from camacq.const import IMAGE_EVENT
 from camacq.control import Center
 from camacq.plugins import api as api_mod, sample as sample_mod
 
-SET_SAMPLE_SCHEMA = vol.Schema({vol.Required("name"): str,}, extra=vol.ALLOW_EXTRA)
+SET_SAMPLE_SCHEMA = vol.Schema({vol.Required("name"): str}, extra=vol.ALLOW_EXTRA)
 
 
 @pytest.fixture(name="center")

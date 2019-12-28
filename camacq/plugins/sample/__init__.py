@@ -14,10 +14,8 @@ from camacq.util import dotdict
 _LOGGER = logging.getLogger(__name__)
 SAMPLE_EVENT = "sample_event"
 SAMPLE_IMAGE_SET_EVENT = "sample_image_set_event"
-SAMPLE_IMAGE_REMOVE_EVENT = "sample_image_remove_event"
 
 ACTION_SET_SAMPLE = "set_sample"
-SAMPLE_STATE_FILE = "state_file"
 SET_SAMPLE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
     {"sample_name": vol.Coerce(str)}, extra=vol.ALLOW_EXTRA
 )
@@ -220,6 +218,8 @@ class Sample(ImageContainer, ABC):
 
         Parameters
         ----------
+        name : str
+            The name of the container type.
         values : dict
             The values to set on the container.
         **kwargs
@@ -263,7 +263,7 @@ class Image(ImageContainer):
 
     @property
     def path(self):
-        """Return the path of the image."""
+        """:str: Return the path of the image."""
         return self._path
 
     @property

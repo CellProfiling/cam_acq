@@ -1,6 +1,5 @@
 """Provide sample implementation for leica microscope."""
 import json
-import logging
 
 import voluptuous as vol
 
@@ -14,13 +13,10 @@ from camacq.plugins.sample import (
     register_sample,
 )
 
-_LOGGER = logging.getLogger(__name__)
 LEICA_SAMPLE_EVENT = "leica_sample_event"
 CHANNEL_EVENT = "channel_event"
 FIELD_EVENT = "field_event"
-IMAGE_REMOVED_EVENT = "image_removed_event"
 PLATE_EVENT = "plate_event"
-SAMPLE_IMAGE_EVENT = "sample_image_event"
 WELL_EVENT = "well_event"
 Z_SLICE_EVENT = "z_slice_event"
 
@@ -100,11 +96,8 @@ class LeicaSample(Sample):
     ----------
     images : dict
         A dict of images of the sample.
-
-    Attributes
-    ----------
-    images : dict
-        Return a dict of Image instances.
+    values : dict
+        Optional dict of values.
     """
 
     def __init__(self, images=None, values=None):
@@ -133,7 +126,7 @@ class LeicaSample(Sample):
 
     @property
     def name(self):
-        """Return the name of the sample."""
+        """:str: Return the name of the sample."""
         return "leica"
 
     @property
@@ -217,12 +210,14 @@ class Plate(ImageContainer):
     ----------
     images : dict
         All the images of the sample.
-    name: str
+    plate_name: str
         The name of the plate.
+    values : dict
+        Optional dict of values.
 
     Attributes
     ----------
-    name: str
+    plate_name: str
         The name of the plate.
     """
 
@@ -275,6 +270,10 @@ class Well(Plate, ImageContainer):
         x coordinate of the well, minimum 0.
     well_y : int
         y coordinate of the well, minimum 0.
+    plate_name: str
+        The name of the plate.
+    values : dict
+        Optional dict of values.
 
     Attributes
     ----------
@@ -337,6 +336,14 @@ class Field(Well, ImageContainer):
         Coordinate of field in x.
     field_y : int
         Coordinate of field in y.
+    well_x : int
+        x coordinate of the well, minimum 0.
+    well_y : int
+        y coordinate of the well, minimum 0.
+    plate_name: str
+        The name of the plate.
+    values : dict
+        Optional dict of values.
 
     Attributes
     ----------
@@ -399,7 +406,14 @@ class Channel(Well, ImageContainer):
         All the images of the sample.
     channel_id : int
         ID of the channel.
-    values : Optional dict of values.
+    well_x : int
+        x coordinate of the well, minimum 0.
+    well_y : int
+        y coordinate of the well, minimum 0.
+    plate_name: str
+        The name of the plate.
+    values : dict
+        Optional dict of values.
 
     Attributes
     ----------
@@ -458,7 +472,14 @@ class ZSlice(Well, ImageContainer):
         All the images of the sample.
     z_slice_id : int
         ID of the slice.
-    values : Optional dict of values.
+    well_x : int
+        x coordinate of the well, minimum 0.
+    well_y : int
+        y coordinate of the well, minimum 0.
+    plate_name: str
+        The name of the plate.
+    values : dict
+        Optional dict of values.
 
     Attributes
     ----------

@@ -107,10 +107,7 @@ class FOVContainer(ImageContainer):
 
     @property
     def change_event(self):
-        """:Event: Return an event that should be fired on container change.
-
-        :setter: Set the change event.
-        """
+        """:Event: Return an event that should be fired on container change."""
         return FOVEvent
 
     @property
