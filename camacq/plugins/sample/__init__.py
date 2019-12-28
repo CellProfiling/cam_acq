@@ -289,6 +289,16 @@ class SampleEvent(Event):
         """:str: Return the container name of the event."""
         return self.container.name
 
+    @property
+    def images(self):
+        """:dict: Return the container images of the event."""
+        return self.container.images
+
+    @property
+    def values(self):
+        """:dict: Return the container values of the event."""
+        return self.container.values
+
     def __repr__(self):
         """Return the representation."""
         data = dict(container=self.container)
