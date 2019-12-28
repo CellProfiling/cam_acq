@@ -29,7 +29,7 @@ def log_util_fixture():
 @pytest.fixture(name="api")
 def api_fixture(center):
     """Return a leica api instance."""
-    config = {"api": {"leica": {}}}
+    config = {"leica": {}}
     client = asynctest.Mock(AsyncCAM(loop=center.loop))
     mock_api = asynctest.Mock(LeicaApi(center, config, client))
     mock_api.send_many = partial(base_api.Api.send_many, mock_api)

@@ -22,7 +22,7 @@ def center_fixture(event_loop):
 @pytest.fixture(name="config")
 def config_fixture():
     """Return a config."""
-    return {"api": {"test_api": None}, "sample": {}}
+    return {"test_api": None, "sample": {}}
 
 
 @pytest.fixture(name="api")
