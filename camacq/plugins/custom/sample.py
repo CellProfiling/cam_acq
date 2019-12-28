@@ -3,6 +3,7 @@ import voluptuous as vol
 
 from camacq.const import IMAGE_EVENT
 from camacq.plugins.sample import (
+    BASE_SET_SAMPLE_ACTION_SCHEMA,
     Image,
     ImageContainer,
     Sample,
@@ -10,13 +11,19 @@ from camacq.plugins.sample import (
     register_sample,
 )
 
-SET_SAMPLE_SCHEMA = vol.Schema(
+SET_FOV_SCHEMA = BASE_SET_SAMPLE_ACTION_SCHEMA.extend(
     {
         vol.Required("name"): "fov",
         vol.Required("fov_x"): vol.Coerce(int),
         vol.Required("fov_y"): vol.Coerce(int),
     }
 )
+
+SET_IMAGE_SCHEMA = SET_FOV_SCHEMA.extend(
+    {vol.Required("name"): "image", vol.Required("path"): vol.Coerce(str),}
+)
+
+SET_SAMPLE_SCHEMA = vol.Any(SET_FOV_SCHEMA, SET_IMAGE_SCHEMA)
 
 
 async def setup_module(center, config):
@@ -83,16 +90,14 @@ class CustomSample(Sample):
         if name == "image":
             sample = Image(values=values, **kwargs)
         if name == "fov":
-            fov_x = kwargs.pop("fov_x", None)
-            fov_y = kwargs.pop("fov_y", None)
-            sample = FOVContainer(self._images, fov_x, fov_y, values)
+            sample = FOVContainer(self._images, values=values, **kwargs)
         return sample
 
 
 class FOVContainer(ImageContainer):
     """A FOV within sample."""
 
-    def __init__(self, images, fov_x, fov_y, values):
+    def __init__(self, images, values, fov_x, fov_y):
         """Set up instance."""
         self._images = images
         self.fov_x = fov_x
