@@ -55,7 +55,16 @@ SET_CHANNEL_SCHEMA = SET_WELL_SCHEMA.extend(
 )
 
 SET_Z_SLICE_SCHEMA = SET_WELL_SCHEMA.extend(
-    {vol.Required("name"): "z_slice", vol.Required("z_slice"): vol.Coerce(int)}
+    {vol.Required("name"): "z_slice", vol.Required("z_slice_id"): vol.Coerce(int)}
+)
+
+SET_IMAGE_SCHEMA = SET_FIELD_SCHEMA.extend(
+    {
+        vol.Required("name"): "image",
+        vol.Required("path"): vol.Coerce(str),
+        vol.Required("channel_id"): vol.Coerce(int),
+        vol.Required("z_slice_id"): vol.Coerce(int),
+    }
 )
 
 SET_SAMPLE_SCHEMA = vol.Any(
@@ -64,6 +73,7 @@ SET_SAMPLE_SCHEMA = vol.Any(
     SET_FIELD_SCHEMA,
     SET_Z_SLICE_SCHEMA,
     SET_CHANNEL_SCHEMA,
+    SET_IMAGE_SCHEMA,
 )
 
 
@@ -145,13 +155,13 @@ class LeicaSample(Sample):
             "field_x": event.field_x,
             "field_y": event.field_y,
         }
-        image = LeicaImage(
-            event.path,
+        await self.set_sample(
+            "image",
+            path=event.path,
             channel_id=event.channel_id,
             z_slice_id=event.z_slice_id,
             **field_args,
         )
-        await self.set_image(image)
         await self.set_sample("field", **field_args)
         field_args.pop("field_x")
         field_args.pop("field_y")
@@ -163,80 +173,45 @@ class LeicaSample(Sample):
 
     async def _set_sample(self, name, values, **kwargs):
         """Set an image container of the sample."""
-        plate_name = kwargs.get("plate_name")
-        well_x = kwargs.get("well_x")
-        well_y = kwargs.get("well_y")
-        field_x = kwargs.get("field_x")
-        field_y = kwargs.get("field_y")
-        z_slice_id = kwargs.get("z_slice_id")
-        channel_id = kwargs.get("channel_id")
+        sample = None
+
+        if name == "image":
+            sample = Image(values=values, **kwargs)
 
         if name == "field":
-            await self.set_sample("plate", plate_name=plate_name)
-            await self.set_sample(
-                "well", plate_name=plate_name, well_x=well_x, well_y=well_y
-            )
+            params = SET_PLATE_SCHEMA({"name": "plate", **kwargs})
+            await self.set_sample(**params)
+            params = SET_WELL_SCHEMA({"name": "well", **kwargs})
+            await self.set_sample(**params)
 
-            field = Field(
-                self._images,
-                plate_name=plate_name,
-                well_x=well_x,
-                well_y=well_y,
-                field_x=field_x,
-                field_y=field_y,
-                values=values,
-            )
-            return field
+            sample = Field(self._images, values=values, **kwargs)
 
         if name == "channel":
-            await self.set_sample("plate", plate_name=plate_name)
-            await self.set_sample(
-                "well", plate_name=plate_name, well_x=well_x, well_y=well_y
-            )
+            params = SET_PLATE_SCHEMA({"name": "plate", **kwargs})
+            await self.set_sample(**params)
+            params = SET_WELL_SCHEMA({"name": "well", **kwargs})
+            await self.set_sample(**params)
 
-            channel = Channel(
-                self._images,
-                plate_name=plate_name,
-                well_x=well_x,
-                well_y=well_y,
-                channel_id=channel_id,
-                values=values,
-            )
-            return channel
+            sample = Channel(self._images, values=values, **kwargs)
 
         if name == "z_slice":
-            await self.set_sample("plate", plate_name=plate_name)
-            await self.set_sample(
-                "well", plate_name=plate_name, well_x=well_x, well_y=well_y
-            )
+            params = SET_PLATE_SCHEMA({"name": "plate", **kwargs})
+            await self.set_sample(**params)
+            params = SET_WELL_SCHEMA({"name": "well", **kwargs})
+            await self.set_sample(**params)
 
-            z_slice_container = ZSlice(
-                self._images,
-                plate_name=plate_name,
-                well_x=well_x,
-                well_y=well_y,
-                z_slice_id=z_slice_id,
-                values=values,
-            )
-            return z_slice_container
+            sample = ZSlice(self._images, values=values, **kwargs)
 
         if name == "well":
-            await self.set_sample("plate", plate_name=plate_name)
+            params = SET_PLATE_SCHEMA({"name": "plate", **kwargs})
+            await self.set_sample(**params)
 
-            well = Well(
-                self._images,
-                plate_name=plate_name,
-                well_x=well_x,
-                well_y=well_y,
-                values=values,
-            )
-            return well
+            sample = Well(self._images, values=values, **kwargs)
 
         if name == "plate":
-            plate = Plate(self._images, plate_name=plate_name, values=values)
-            return plate
+            sample = Plate(self._images, values=values, **kwargs)
 
-        return None
+        return sample
 
 
 class Plate(ImageContainer):
@@ -535,76 +510,6 @@ class ZSlice(Well, ImageContainer):
     def values(self):
         """:dict: Return a dict with the values set for the container."""
         return self._values
-
-
-class LeicaImage(Image):
-    """An image with path and position info.
-
-    Parameters
-    ----------
-    path : str
-        Path to the image.
-    channel_id : int
-        The channel id of the image.
-    z_slice_id : int
-        The z index of the image.
-    field_x : int
-        The field x coordinate of the image.
-    field_y : int
-        The field y coordinate of the image.
-    well_x : int
-        The well x coordinate of the image.
-    well_y : int
-        The well y coordinate of the image.
-    plate_name : str
-        The name of the plate.
-
-    Attributes
-    ----------
-    channel_id : int
-        The channel id of the image.
-    z_slice_id : int
-        The z index of the image.
-    field_x : int
-        The field x coordinate of the image.
-    field_y : int
-        The field y coordinate of the image.
-    well_x : int
-        The well x coordinate of the image.
-    well_y : int
-        The well y coordinate of the image.
-    plate_name : str
-        The name of the plate.
-    """
-
-    # pylint: disable=too-many-arguments, too-few-public-methods
-    # pylint: disable=too-many-instance-attributes
-
-    def __init__(
-        self,
-        path,
-        channel_id,
-        z_slice_id,
-        field_x,
-        field_y,
-        well_x,
-        well_y,
-        plate_name,
-    ):
-        """Set up instance."""
-        self._path = path
-        self.channel_id = channel_id
-        self.z_slice_id = z_slice_id
-        self.field_x = field_x
-        self.field_y = field_y
-        self.well_x = well_x
-        self.well_y = well_y
-        self.plate_name = plate_name
-
-    @property
-    def path(self):
-        """Return the path of the image."""
-        return self._path
 
 
 # pylint: disable=too-few-public-methods

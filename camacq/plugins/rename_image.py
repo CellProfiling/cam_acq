@@ -44,10 +44,15 @@ async def setup_module(center, config):
         if not result:
             return
         sample = center.samples[sample_name]
-        image = sample.get_image(old_path)
-        await sample.remove_image(old_path)
-        image._path = new_path  # pylint: disable=protected-access
-        await sample.set_image(image)
+        image = sample.images.pop(old_path, None)
+        if image is None:
+            return
+        image_attrs = image.__dict__.copy()
+        image_attrs.pop("_path")
+        image_attrs.pop("_values")
+        await sample.set_sample(
+            image.name, path=new_path, values=image.values, **image_attrs
+        )
 
     rename_image_action_schema = BASE_ACTION_SCHEMA.extend(
         {

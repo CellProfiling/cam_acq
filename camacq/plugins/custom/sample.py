@@ -73,33 +73,20 @@ class CustomSample(Sample):
 
     async def on_image(self, center, event):
         """Handle image event for this sample."""
-        image = CustomImage(event.path, fov_x=event.fov_x, fov_y=event.fov_y)
-        await self.set_image(image)
+        await self.set_sample(
+            "image", path=event.path, fov_x=event.fov_x, fov_y=event.fov_y
+        )
         await self.set_sample("fov", fov_x=event.fov_x, fov_y=event.fov_y)
 
     async def _set_sample(self, name, values, **kwargs):
         """Set an image container of the sample."""
-        fov_x = kwargs.pop("fov_x", None)
-        fov_y = kwargs.pop("fov_y", None)
-        fov = FOVContainer(self._images, fov_x, fov_y, values)
-        return fov
-
-
-class CustomImage(Image):
-    """Represent an image with path and position info."""
-
-    # pylint: disable=too-few-public-methods
-
-    def __init__(self, path, fov_x, fov_y):
-        """Set up instance."""
-        self._path = path
-        self.fov_x = fov_x
-        self.fov_y = fov_y
-
-    @property
-    def path(self):
-        """Return the path of the image."""
-        return self._path
+        if name == "image":
+            sample = Image(values=values, **kwargs)
+        if name == "fov":
+            fov_x = kwargs.pop("fov_x", None)
+            fov_y = kwargs.pop("fov_y", None)
+            sample = FOVContainer(self._images, fov_x, fov_y, values)
+        return sample
 
 
 class FOVContainer(ImageContainer):

@@ -142,13 +142,13 @@ class MockSample(sample_mod.Sample):
             "field_x": event.field_x,
             "field_y": event.field_y,
         }
-        image = TestImage(
-            event.path,
+        await self.set_sample(
+            "image",
+            path=event.path,
             channel_id=event.channel_id,
             z_slice_id=event.z_slice_id,
             **field_args
         )
-        await self.set_image(image)
         await self.set_sample("field", **field_args)
 
     async def _set_sample(self, name, values, **kwargs):
@@ -160,8 +160,11 @@ class MockSample(sample_mod.Sample):
             Return the ImageContainer instance that was updated.
         """
         self.mock_set_sample(name, **values, **kwargs)
-        container = MockContainer(name, values, kwargs)
-        return container
+        if name == "image":
+            sample = sample_mod.Image(values=values, **kwargs)
+        else:
+            sample = MockContainer(name, values, kwargs)
+        return sample
 
 
 class MockContainer(sample_mod.ImageContainer):
@@ -194,20 +197,3 @@ class MockContainer(sample_mod.ImageContainer):
     def values(self):
         """:dict: Return a dict with the values set for the container."""
         return self._values
-
-
-class TestImage(sample_mod.Image):
-    """Represent test image."""
-
-    # pylint: disable=too-few-public-methods
-
-    def __init__(self, path, **kwargs):
-        """Set up instance."""
-        self._path = path
-        for key, val in kwargs.items():
-            setattr(self, key, val)
-
-    @property
-    def path(self):
-        """Return the path of the image."""
-        return self._path

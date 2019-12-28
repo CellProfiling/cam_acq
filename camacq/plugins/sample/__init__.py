@@ -203,6 +203,9 @@ class Sample(ImageContainer, ABC):
         container.values.update(values)
         self.data[id_string] = container
 
+        if name == "image":
+            self.images[container.path] = container
+
         if not event and values:
             event_class = container.change_event
             event = event_class({"container": container})
@@ -228,91 +231,49 @@ class Sample(ImageContainer, ABC):
             Return the ImageContainer instance that was updated.
         """
 
-    def get_image(self, path):
-        """Get image instance via path to image.
 
-        Parameters
-        ----------
-        path : str
-            The path to the image.
+class Image(ImageContainer):
+    """An image with path and position info."""
 
-        Returns
-        -------
-        Image instance
-            Return an Image instance. If no image is found, return
-            None.
-        """
-        return self.images.get(path)
-
-    async def set_image(self, image):
-        """Add an image to the sample.
-
-        Parameters
-        ----------
-        image : Image
-            An Image instance.
-
-        Returns
-        -------
-        Image instance
-            Return the Image instance.
-        """
-        self.images[image.path] = image
-        event = SampleImageSetEvent({"container": self, "image": image})
-        await self.center.bus.notify(event)
-
-        return image
-
-    async def remove_image(self, path):
-        """Remove an image from the sample.
-
-        Parameters
-        ----------
-        path : str
-            The path to the image that should be removed.
-
-        Returns
-        -------
-        Image instance
-            Return the Image instance that was removed.
-        """
-        image = self.images.pop(path, None)
-        event = SampleImageRemoveEvent({"container": self, "image": image})
-        await self.center.bus.notify(event)
-        return image
-
-
-class Image(ABC):
-    """An image with path and position info.
-
-    Parameters
-    ----------
-    path : str
-        Path to the image.
-
-
-    Attributes
-    ----------
-    path : str
-        The path to the image.
-    """
-
-    # pylint: disable=too-few-public-methods
+    def __init__(self, path, values=None, **kwargs):
+        """Set up instance."""
+        self._path = path
+        self._values = values or {}
+        for attr, val in kwargs.items():
+            setattr(self, attr, val)
 
     def __repr__(self):
         """Return the representation."""
         return "<Image(path={0!r})>".format(self.path)
 
     @property
-    @abstractmethod
+    def change_event(self):
+        """:Event: Return an event class to fire on container change."""
+        return SampleImageSetEvent
+
+    @property
+    def images(self):
+        """:dict: Return a dict with all images for the container."""
+        return {self.path: self}
+
+    @property
+    def name(self):
+        """:str: Return an identifying name for the container."""
+        return "image"
+
+    @property
     def path(self):
         """Return the path of the image."""
+        return self._path
+
+    @property
+    def values(self):
+        """:dict: Return a dict with the values set for the container."""
+        return self._values
 
 
 class SampleEvent(Event):
     """An event produced by a sample change event."""
-
-    # pylint: disable=too-few-public-methods
 
     __slots__ = ()
 
@@ -337,8 +298,6 @@ class SampleEvent(Event):
 class SampleImageSetEvent(Event):
     """An event produced by a new image on the sample."""
 
-    # pylint: disable=too-few-public-methods
-
     __slots__ = ()
 
     event_type = SAMPLE_IMAGE_SET_EVENT
@@ -351,36 +310,11 @@ class SampleImageSetEvent(Event):
     @property
     def image(self):
         """:Image instance: Return the image instance of the event."""
-        return self.data.get("image")
+        return self.container
 
     def __repr__(self):
         """Return the representation."""
-        data = dict(container=self.container, image=self.image)
-        return f"{type(self).__name__}({data})"
-
-
-class SampleImageRemoveEvent(Event):
-    """An event produced by a new image on the sample."""
-
-    # pylint: disable=too-few-public-methods
-
-    __slots__ = ()
-
-    event_type = SAMPLE_IMAGE_REMOVE_EVENT
-
-    @property
-    def container(self):
-        """:ImageContainer instance: Return the container instance of the event."""
-        return self.data.get("container")
-
-    @property
-    def image(self):
-        """:Image instance: Return the image instance of the event."""
-        return self.data.get("image")
-
-    def __repr__(self):
-        """Return the representation."""
-        data = dict(container=self.container, image=self.image)
+        data = dict(container=self.container)
         return f"{type(self).__name__}({data})"
 
 
