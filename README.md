@@ -258,59 +258,73 @@ Currently each condition must be a template that renders to the string
 
 ## Sample
 
-The sample state should represent the sample with plate, wells, fields,
-images etc. See below for the full sample state attribute structure in
-camacq. This is available as a variable in templates in automations.
+The sample state should represent the sample with a representation that
+is specific to each implemented microscope api using the `ImageContainer`
+api of camacq. An image container has a `name`, a dictionary of `images` and
+a dictionary of `values` as attributes. The container also fires a specific
+event on container change.
+
+There are two special cases of the image container. The first is the main
+sample container of each microscope api, eg the leica container. The main
+container has an extra attribute `data` which is a dictionary with all the
+containers of the sample. The second special case is the image in the
+dictionary of images of an image container. The image is also a container
+and has only itself in the images dictionary and a `path` attribute with
+the path of the image.
+
+Eg for the leica sample there are plate, well, field, z_slice, channel and
+image containers under the main leica sample container.
+
+All implemented sample states are available as a variable `samples` in
+templates in automations. The leica sample is available as `samples.leica`.
+
+See below for the leica sample state attribute structure in camacq.
+The words in all capital letters are example values. Each image container
+has a name, which is either of plate, well, field, z_slice, channel or image.
+The different leica containers have different leica specific attributes
+that aren't all shown below.
 
 ```yaml
-sample:
-  plates:
-    [plate_name]:
-      name: [plate_name]
-      images:
-        [path]:
-          path: [path]
-          plate_name: [plate_name]
-          well_x: [well_x]
-          well_y: [well_y]
-          field_x: [field_x]
-          field_y: [field_y]
-          channel_id: [channel_id]
-      wells:
-        [well_x, well_y]:
-          x: [well_x]
-          y: [well_y]
-          name: [well_name]
-          img_ok: [True/False]
-          images:
-            [path]:
-              path: [path]
-              plate_name: [plate_name]
-              well_x: [well_x]
-              well_y: [well_y]
-              field_x: [field_x]
-              field_y: [field_y]
-              channel_id: [channel_id]
-          channels:
-            [channel_name]:
-              gain: [value]
-          fields:
-            [field_x, field_y]:
-              x: [field_x]
-              y: [field_y]
-              name: [field_name]
-              dx: [dx]
-              dy: [dy]
-              img_ok: [True/False]
-              images:
-                [path]:
-                  path: [path]
-                  plate_name: [plate_name]
-                  well_x: [well_x]
-                  well_y: [well_y]
-                  field_x: [field_x]
-                  field_y: [field_y]
-                  channel_id: [channel_id]
+samples:
+  leica:
+    name: leica
+    images:
+      PATH:
+        name: image
+        path: PATH
+        plate_name: PLATE_NAME
+        well_x: WELL_X
+        well_y: WELL_Y
+        field_x: FIELD_X
+        field_y: FIELD_Y
+        z_slice_id: Z_SLICE_ID
+        channel_id: CHANNEL_ID
+        images:
+          PATH: self
+        values:
+          VALUE_KEY: VALUE
+    values:
+      VALUE_KEY: VALUE
+    data:
+      CONTAINER_ID:
+        name: plate/well/field/z_slice/channel/image
+        images:
+          PATH:
+            name: image
+            path: PATH
+            plate_name: PLATE_NAME
+            well_x: WELL_X
+            well_y: WELL_Y
+            field_x: FIELD_X
+            field_y: FIELD_Y
+            z_slice_id: Z_SLICE_ID
+            channel_id: CHANNEL_ID
+            images:
+              PATH: self
+            values:
+              VALUE_KEY: VALUE
+        values:
+          VALUE_KEY: VALUE
 ```
 
 ## Plugins
