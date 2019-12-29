@@ -107,16 +107,12 @@ automations:
         well_img_ok: true
   action:
     - type: sample
-      id: set_well
+      id: set_sample
       data:
         plate_name: plate_1
         well_x: 1
         well_y: >
-          {% if trigger.event.well is defined %}
-            {{ trigger.event.well_y + 1 }}
-          {% else %}
-            1
-          {% endif %}
+          {{ trigger.event.well_y + 1 }}
     - type: command
       id: start_imaging
 ```
@@ -164,16 +160,12 @@ action.
 ```yaml
 action:
   - type: sample
-    id: set_well
+    id: set_sample
     data:
       plate_name: plate_1
       well_x: 1
       well_y: >
-        {% if trigger.event.well is defined %}
-          {{ trigger.event.well_y + 1 }}
-        {% else %}
-          1
-        {% endif %}
+        {{ trigger.event.well_y + 1 }}
   - type: command
     id: start_imaging
 ```
@@ -192,14 +184,14 @@ pieces of automation configuration code to control the microscope.
 Besides having all the standard Jinja2 features, we also have the
 trigger event and the full sample state data available as variables when
 the template is rendered. Eg if a well event triggered the automation we
-can use `trigger.event.well` inside the template and have
-access to all the attributes of the well that triggered the event.
+can use `trigger.event.container` inside the template and have
+access to all the attributes of the well container that triggered the event.
 Useful sample attributes are also directly available on the
 `trigger.event` eg `trigger.event.well_x`.
 
 ```yaml
 well_y: >
-  {% if trigger.event.well is defined %}
+  {% if trigger.event.container is defined %}
     {{ trigger.event.well_y + 1 }}
   {% else %}
     1
@@ -207,7 +199,7 @@ well_y: >
 ```
 
 If we need access to some sample state that isn't part of the trigger,
-we can use `sample` directly in the template. Via this
+we can use `samples` directly in the template. Via this
 variable the whole sample state data is accessible from inside a
 template. See below for the sample attribute structure. Note that only
 condition and action values in key-value pairs support rendering a
@@ -218,7 +210,7 @@ not in trigger sections.
 
 A condition can be used to check the current sample state and only
 execute the action if some criteria is met. Say eg we want to make sure
-that a well has four channels and that the green channel gain is set to
+that channel 3 of well 1:1 of plate 1 is green and that gain is set to
 800.
 
 ```yaml
@@ -226,29 +218,29 @@ condition:
   type: AND
   conditions:
     - condition: >
-        {% if sample.plate['plate_1'].wells[1, 1].channels | length == 4 %}
+        {% if samples.leica.data['{"name": "channel", "plate_name": "plate_1", "well_x": 1, "well_y": 1, "channel_id": 3}'].values['channel_name'] == 'green' %}
           true
         {% endif %}
     - condition: >
-        {% if sample.plate['plate_1'].wells[1, 1].channels['green'] == 800 %}
+        {% if samples.leica.data['{"name": "channel", "plate_name": "plate_1", "well_x": 1, "well_y": 1, "channel_id": 3}'].values['gain'] == 800 %}
           true
         {% endif %}
 ```
 
 The trigger event data is also available in the condition template as a
 variable. Below example will evaluate to true if the well that triggered
-the event has either 3 or 4 channels set.
+the event has either 1 or 2 as x coordinate.
 
 ```yaml
 condition:
   type: OR
   conditions:
     - condition: >
-        {% if trigger.event.well.channels | length == 3 %}
+        {% if trigger.event.well_x == 1 %}
           true
         {% endif %}
     - condition: >
-        {% if trigger.event.well.channels | length == 4 %}
+        {% if trigger.event.well_x == 2 %}
           true
         {% endif %}
 ```
