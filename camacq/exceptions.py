@@ -21,6 +21,10 @@ class MissingActionError(CamAcqError):
         super().__init__(f"No such action id registered: {action_id}")
 
 
+class SampleError(CamAcqError):
+    """Represent a sample error."""
+
+
 class TemplateError(CamAcqError):
     """Represent a template error."""
 

@@ -180,7 +180,7 @@ class Automation:
 
     async def trigger(self, variables):
         """Run actions of this automation."""
-        variables["sample"] = self._center.sample
+        variables["samples"] = self._center.samples
         _LOGGER.debug("Triggered %s", self)
         try:
             cond = self._cond_func(variables)

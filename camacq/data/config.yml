@@ -48,26 +48,30 @@ automations:
     action:
       # Set a plate the first time.
       - type: sample
-        id: set_plate
+        id: set_sample
         data:
+          name: plate
           plate_name: "00"
       - type: sample
-        id: set_well
+        id: set_sample
         data:
           # Add next sample well for wells in sample if well is not done.
+          name: well
           plate_name: "00"
           well_x: >
-            {{ next_well_x('00') }}
+            {{ next_well_x(samples.leica, '00') }}
           well_y: >
-            {{ next_well_y('00') }}
+            {{ next_well_y(samples.leica, '00') }}
   - name: image_next_well
     trigger:
       - type: event
         id: well_event
+        data:
+          container_name: well
     condition:
       type: AND
       conditions:
-        - condition: "{{ not trigger.event.well.images }}"
+        - condition: "{{ not trigger.event.images }}"
     action:
       - type: command
         id: send
@@ -78,16 +82,16 @@ automations:
         data:
           command: >
             /cmd:add /tar:camlist /exp:p10xgain /ext:af /slide:0
-            /wellx:{{ trigger.event.well.x + 1 }}
-            /welly:{{ trigger.event.well.y + 1 }} /fieldx:1 /fieldy:2 /dxpos:0
+            /wellx:{{ trigger.event.well_x + 1 }}
+            /welly:{{ trigger.event.well_y + 1 }} /fieldx:1 /fieldy:2 /dxpos:0
             /dypos:0
       - type: command
         id: send
         data:
           command: >
             /cmd:add /tar:camlist /exp:p10xgain /ext:af /slide:0
-            /wellx:{{ trigger.event.well.x + 1 }}
-            /welly:{{ trigger.event.well.y + 1 }} /fieldx:2 /fieldy:2 /dxpos:0
+            /wellx:{{ trigger.event.well_x + 1 }}
+            /welly:{{ trigger.event.well_y + 1 }} /fieldx:2 /fieldy:2 /dxpos:0
             /dypos:0
       # Turn off rename image and set_img_ok during gain job phase.
       - type: automations
@@ -125,24 +129,26 @@ automations:
             /prop:gain /value:800
         # Set channel to indicate that the channel is set at the microscope.
       - type: sample
-        id: set_channel
+        id: set_sample
         data:
+          name: channel
           plate_name: "{{ trigger.event.plate_name }}"
           well_x: "{{ trigger.event.well_x }}"
           well_y: "{{ trigger.event.well_y }}"
-          channel_name: red
-          gain: 800
+          channel_id: 3
+          values:
+            channel_name: red
+            gain: 800
   - name: add_exp_job
     trigger:
       - type: event
         id: channel_event
-    # Trigger on condition that all channels have been reset.
+    # Trigger on condition that all channels have been set.
     condition:
       type: AND
       conditions:
         - condition: >
-            {% if trigger.event.well.channels | length == 1 and
-            trigger.event.channel_name == "red" %}true{% endif %}
+            {% if trigger.event.channel_name == "red" %}true{% endif %}
     action:
       - type: command
         id: send
@@ -168,8 +174,8 @@ automations:
               {% for y_number in range(1, 4) -%}
                 {%- if outer_first and loop.first %}[{% endif -%}
                 "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 /wellx:{{
-                trigger.event.well.x + 1 }} /welly:{{
-                trigger.event.well.y + 1 }} /fieldx:{{ x_number }} /fieldy:{{
+                trigger.event.well_x + 1 }} /welly:{{
+                trigger.event.well_y + 1 }} /fieldx:{{ x_number }} /fieldy:{{
                 y_number }} /dxpos:0 /dypos:0"
                 {%- if outer_last and loop.last %}]{% else %}, {% endif -%}
               {%- endfor %}
@@ -196,24 +202,18 @@ automations:
         id: image_event
         data:
           job_id: 4
-    condition:
-      type: AND
-      conditions:
-        - condition: >
-            {% if not sample.plates[trigger.event.plate_name].wells[
-              (trigger.event.well_x, trigger.event.well_y)].fields[
-              (trigger.event.field_x, trigger.event.field_y)].img_ok
-              %}true{% endif %}
     action:
       - type: sample
-        id: set_field
+        id: set_sample
         data:
+          name: field
           plate_name: "{{ trigger.event.plate_name }}"
           well_x: "{{ trigger.event.well_x }}"
           well_y: "{{ trigger.event.well_y }}"
           field_x: "{{ trigger.event.field_x }}"
           field_y: "{{ trigger.event.field_y }}"
-          img_ok: true
+          values:
+            field_img_ok: true
   - name: rename_image
     trigger:
       - type: event
@@ -230,6 +230,7 @@ automations:
       - type: rename_image
         id: rename_image
         data:
+          sample: leica
           old_path: >
             {{ trigger.event.path }}
           new_path: >
@@ -243,23 +244,51 @@ automations:
             elif trigger.event.job_id == 4
             %}{{ trigger.event.path | replace('C00', 'C03') }}{%
             endif %}
+  - name: set_well_ok
+    trigger:
+      - type: event
+        id: field_event
+        data:
+          field_img_ok: true
+    condition:
+      type: AND
+      conditions:
+        - condition: >
+            {%
+            if matched_samples(samples.leica,
+            'field',
+            attrs={'well_x': trigger.event.well_x, 'well_y': trigger.event.well_y},
+            values={'field_img_ok': true}) | length == 6
+            %}true{% endif %}
+    action:
+      - type: sample
+        id: set_sample
+        data:
+          name: well
+          plate_name: "00"
+          well_x: >
+            {{ trigger.event.well_x }}
+          well_y: >
+            {{ trigger.event.well_y }}
+          values:
+            well_img_ok: True
   - name: add_next_well
     trigger:
       - type: event
         id: well_event
         data:
-          field_x: 1
-          field_y: 2
+          container_name: well
           well_img_ok: true
     action:
       - type: command
         id: stop_imaging
       - type: sample
-        id: set_well
+        id: set_sample
         data:
           # Add next sample well for wells in sample if well is not done.
+          name: well
           plate_name: "00"
           well_x: >
-            {{ next_well_x('00') }}
+            {{ next_well_x(samples.leica, '00') }}
           well_y: >
-            {{ next_well_y('00') }}
+            {{ next_well_y(samples.leica, '00') }}
