@@ -219,8 +219,9 @@ class Action:
         self.func = func
         self.schema = schema
 
-    async def __call__(self, silent=False, **kwargs):
+    async def __call__(self, **kwargs):
         """Call action."""
+        silent = kwargs.get("silent", False)
         try:
             kwargs = self.schema(kwargs)
         except vol.Invalid as exc:

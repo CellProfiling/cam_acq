@@ -51,6 +51,7 @@ async def setup_module(center, config):
         action_id = kwargs.pop("action_id")
         method = ACTION_TO_METHOD[action_id]["method"]
         sample_name = kwargs.pop("sample_name", None)
+        silent = kwargs.pop("silent", False)
         if sample_name:
             samples = [center.samples[sample_name]]
         else:
@@ -60,7 +61,8 @@ async def setup_module(center, config):
             try:
                 kwargs = sample.set_sample_schema(kwargs)
             except vol.Invalid as exc:
-                _LOGGER.error(
+                _LOGGER.log(
+                    logging.DEBUG if silent else logging.ERROR,
                     "Invalid action call parameters %s: %s for action: %s.%s",
                     kwargs,
                     exc,

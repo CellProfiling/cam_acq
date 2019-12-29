@@ -12,7 +12,13 @@ import camacq
 _LOGGER = logging.getLogger(__name__)
 
 PACKAGE_MODULE = "{}.{}"
-BASE_ACTION_SCHEMA = vol.Schema({"action_id": str}, extra=vol.REMOVE_EXTRA)
+BASE_ACTION_SCHEMA = vol.Schema(
+    {
+        "action_id": str,
+        "silent": vol.Boolean(),  # pylint: disable=no-value-for-parameter
+    },
+    extra=vol.REMOVE_EXTRA,
+)
 
 
 def get_module(package, module_name):
