@@ -176,4 +176,4 @@ class ImageData:
 
     def __repr__(self):
         """Return the representation."""
-        return "<ImageData(path={0!r})>".format(self.path)
+        return f"ImageData(path={self.path})"

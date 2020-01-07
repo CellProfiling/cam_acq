@@ -304,7 +304,7 @@ class SampleEvent(Event):
     def __repr__(self):
         """Return the representation."""
         data = dict(container=self.container)
-        return f"{type(self).__name__}({data})"
+        return f"{type(self).__name__}(data={data})"
 
 
 class SampleImageSetEvent(SampleEvent):

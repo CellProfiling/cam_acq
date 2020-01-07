@@ -24,7 +24,7 @@ def validate_version():
     except ValueError:
         print(
             "Only integers are allowed in release version, "
-            "please adjust current version {}".format(version_string)
+            f"please adjust current version {version_string}"
         )
         return None
     return version_string
@@ -39,7 +39,7 @@ def generate():
     if not version:
         os.chdir(old_dir)
         return
-    print("Generating changelog for version {}".format(version))
+    print(f"Generating changelog for version {version}")
     options = [
         "--user",
         GITHUB_USER,

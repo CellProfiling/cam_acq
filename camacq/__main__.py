@@ -15,9 +15,7 @@ def check_dir_arg(path):
     # remove if not needed
     if os.path.isdir(path):
         return path
-    raise argparse.ArgumentTypeError(
-        "String {} is not a path to a directory".format(path)
-    )
+    raise argparse.ArgumentTypeError(f"String {path} is not a path to a directory")
 
 
 def check_log_level(loglevel):
@@ -27,9 +25,7 @@ def check_log_level(loglevel):
     # specify --log=DEBUG or --log=debug
     numeric_level = getattr(logging, loglevel.upper(), None)
     if not isinstance(numeric_level, int):
-        raise argparse.ArgumentTypeError(
-            "String {} is not a valid log level".format(loglevel)
-        )
+        raise argparse.ArgumentTypeError(f"String {loglevel} is not a valid log level")
     return numeric_level
 
 
@@ -66,10 +62,8 @@ def ensure_config_path(config_dir):
     if not os.path.isdir(config_dir):
         if config_dir != config_util.get_default_config_dir():
             print(
-                (
-                    "Fatal Error: Specified configuration directory does "
-                    "not exist {} "
-                ).format(config_dir)
+                "Fatal Error: Specified configuration directory "
+                f"does not exist: {config_dir}"
             )
             sys.exit(1)
 
@@ -77,10 +71,8 @@ def ensure_config_path(config_dir):
             os.mkdir(config_dir)
         except OSError:
             print(
-                (
-                    "Fatal Error: Unable to create default configuration "
-                    "directory {} "
-                ).format(config_dir)
+                "Fatal Error: Unable to create default configuration "
+                f"directory: {config_dir}"
             )
             sys.exit(1)
 
