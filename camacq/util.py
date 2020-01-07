@@ -1,7 +1,6 @@
 """Host utils that are not aware of the implementation of camacq."""
 import asyncio
 import csv
-import os
 from collections import defaultdict
 
 try:
@@ -50,7 +49,6 @@ def read_csv(path, index=None):
     csv_map = defaultdict(dict)
     if index is None:
         csv_map = []
-    path = os.path.normpath(path)
     with open(path) as file_handle:
         reader = csv.DictReader(file_handle)
         for row in reader:
