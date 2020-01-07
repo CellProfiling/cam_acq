@@ -44,6 +44,7 @@ def parse_command_line(args=None):
         "-C",
         "--config",
         dest=CONFIG_DIR,
+        type=check_dir_arg,
         default=config_util.get_default_config_dir(),
         help="the path to camacq configuration directory",
     )
