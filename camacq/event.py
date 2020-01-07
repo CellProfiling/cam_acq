@@ -31,7 +31,7 @@ class Event:
 
     def __repr__(self):
         """Return the representation."""
-        return "<{}: {}>".format(type(self).__name__, self.data)
+        return f"{type(self).__name__}(data={self.data})"
 
 
 class EventBus:

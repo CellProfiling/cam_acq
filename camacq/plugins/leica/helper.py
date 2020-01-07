@@ -82,9 +82,9 @@ def get_imgs(path, img_type="tif", search=""):
         Return paths of all images found.
     """
     if search:
-        search = "{}*".format(search)
+        search = f"{search}*"
     patterns = ["slide", "chamber", "field", "image"]
     for pattern in patterns:
         if pattern not in path:
-            path = os.path.join(path, "{}--*".format(pattern))
-    return experiment.glob("{}{}.{}".format(path, search, img_type))
+            path = os.path.join(path, f"{pattern}--*")
+    return experiment.glob(f"{path}{search}.{img_type}")

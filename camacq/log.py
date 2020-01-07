@@ -53,7 +53,7 @@ def enable_log(config):
         "%(asctime)s;%(levelname)-5s;%(threadName)-10s;%(name)-18s;" "%(message)s"
     )
     date_format = "%Y-%m-%d %H:%M:%S"
-    color_format = "%(log_color)s{}".format(log_format)
+    color_format = f"%(log_color)s{log_format}"
     root_logger.handlers[0].setFormatter(
         colorlog.ColoredFormatter(
             color_format,

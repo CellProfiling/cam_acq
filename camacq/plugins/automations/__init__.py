@@ -203,7 +203,9 @@ class Automation:
 
     # pylint: disable=too-many-arguments
 
-    def __init__(self, center, name, attach_triggers, cond_func, action_sequence):
+    def __init__(
+        self, center, name, attach_triggers, cond_func, action_sequence, enabled=True
+    ):
         """Set up instance."""
         self._center = center
         self.name = name
@@ -212,11 +214,16 @@ class Automation:
         self._attach_triggers = attach_triggers
         self._detach_triggers = None
         self._cond_func = cond_func
-        self.enable()
+        if enabled:
+            self.enable()
 
     def __repr__(self):
         """Return the representation."""
-        return "<Automation: name: {}: enabled: {}>".format(self.name, self.enabled)
+        return (
+            f"Automation(center={self._center}, name={self.name}, "
+            f"attach_triggers={self._attach_triggers}, cond_func={self._cond_func}, "
+            f"action_sequence={self._action_sequence}, enabled={self.enabled})"
+        )
 
     def enable(self):
         """Enable automation."""

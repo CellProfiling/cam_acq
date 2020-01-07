@@ -25,7 +25,7 @@ def validate_commands(value):
         try:
             return json.loads(value)
         except ValueError:
-            raise vol.Invalid("Invalid commands: {}".format(value))
+            raise vol.Invalid(f"Invalid commands: {value}")
     else:
         schema = vol.Schema([COMMAND_VALIDATOR])
         return schema(value)
@@ -236,16 +236,13 @@ class ImageEvent(Event):
 
     def __repr__(self):
         """Return the representation."""
-        return (
-            "<{}: plate_name {}: well_x {}: well_y {}: field_x {}: "
-            "field_y {}: z_slice_id {}: channel_id {}>".format(
-                type(self).__name__,
-                self.plate_name,
-                self.well_x,
-                self.well_y,
-                self.field_x,
-                self.field_y,
-                self.z_slice_id,
-                self.channel_id,
-            )
+        data = dict(
+            plate_name=self.plate_name,
+            well_x=self.well_x,
+            well_y=self.well_y,
+            field_x=self.field_x,
+            field_y=self.field_y,
+            z_slice_id=self.z_slice_id,
+            channel_id=self.channel_id,
         )
+        return f"{type(self).__name__}(data={data})"

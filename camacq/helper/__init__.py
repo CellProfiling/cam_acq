@@ -35,7 +35,7 @@ def get_module(package, module_name):
     matches = [
         name
         for _, name, _ in pkgutil.walk_packages(
-            camacq.__path__, prefix="{}.".format(camacq.__name__)
+            camacq.__path__, prefix=f"{camacq.__name__}."
         )
         if module_path in name
     ]

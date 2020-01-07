@@ -26,7 +26,7 @@ def pack_image_fixture(root_dir=None):
     matches = _find_files(root_dir, "*.tif")
     print("Gzipping the images, this will take some time...")
     for path in matches:
-        gz_path = "{}.gz".format(path)
+        gz_path = f"{path}.gz"
         with open(path, "rb") as f_in:
             with gzip.open(gz_path, "wb") as f_out:
                 shutil.copyfileobj(f_in, f_out)

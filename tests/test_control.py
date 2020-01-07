@@ -116,7 +116,7 @@ async def test_register_non_coroutine(center, caplog):
     center.actions.register(action_type, action_id, test_action, schema)
     assert not center.actions.actions
     assert (
-        "Action handler function {} is not a coroutine function".format(test_action)
+        f"Action handler function {test_action} is not a coroutine function"
         in caplog.text
     )
 
@@ -130,8 +130,7 @@ async def test_call_non_action(center, caplog):
 
     assert not center.actions.actions
     assert (
-        "No action registered for type {} or id {}".format(action_type, action_id)
-        in caplog.text
+        f"No action registered for type {action_type} or id {action_id}" in caplog.text
     )
 
 

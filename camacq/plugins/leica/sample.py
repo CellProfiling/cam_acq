@@ -107,7 +107,7 @@ class LeicaSample(Sample):
 
     def __repr__(self):
         """Return the representation."""
-        return f"Sample(images={self._images}, values={self._values})"
+        return f"LeicaSample(images={self._images}, values={self._values})"
 
     @property
     def change_event(self):
