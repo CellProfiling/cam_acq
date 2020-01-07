@@ -1,6 +1,5 @@
 """Helper functions for Leica api."""
-import ntpath
-import os
+from pathlib import Path, PureWindowsPath
 
 from leicaexperiment import experiment
 
@@ -8,11 +7,11 @@ from leicaexperiment import experiment
 def find_image_path(relpath, root):
     """Parse the relpath from the server to find file path from root.
 
-    Convert from windows path to os path.
+    Convert from windows path to posix path.
 
     Parameters
     ----------
-    relpath : string
+    relpath : str
         A relative path to the image.
     root : str
         Path to directory where path should start.
@@ -22,13 +21,8 @@ def find_image_path(relpath, root):
     str
         Return path to image.
     """
-    if not relpath:
-        return None
-    paths = []
-    while relpath:
-        relpath, tail = ntpath.split(relpath)
-        paths.append(tail)
-    return str(os.path.join(root, *list(reversed(paths))))
+    parts = PureWindowsPath(relpath).parts
+    return str(Path(root).joinpath(*parts))
 
 
 def get_field(path):
@@ -81,10 +75,11 @@ def get_imgs(path, img_type="tif", search=""):
     str
         Return paths of all images found.
     """
+    path = Path(path)
     if search:
         search = f"{search}*"
-    patterns = ["slide", "chamber", "field", "image"]
+    patterns = ["slide", "chamber--", "field--", "image--"]
     for pattern in patterns:
-        if pattern not in path:
-            path = os.path.join(path, f"{pattern}--*")
+        if pattern not in str(path):
+            path = path / f"{pattern}*"
     return experiment.glob(f"{path}{search}.{img_type}")
