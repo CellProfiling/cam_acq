@@ -1,8 +1,8 @@
 """Main module."""
 import argparse
 import logging
-import os
 import sys
+from pathlib import Path
 
 import camacq.bootstrap as bootstrap
 import camacq.config as config_util
@@ -13,8 +13,9 @@ from camacq.util import asyncio_run
 def check_dir_arg(path):
     """Check that argument is a directory."""
     # remove if not needed
-    if os.path.isdir(path):
-        return path
+    path = Path(path)
+    if path.is_dir():
+        return path.resolve()
     raise argparse.ArgumentTypeError(f"String {path} is not a path to a directory")
 
 
@@ -49,8 +50,6 @@ def parse_command_line(args=None):
         help="the path to camacq configuration directory",
     )
     args = parser.parse_args(args=args)
-    if args.config_dir:
-        args.config_dir = os.path.normpath(args.config_dir)
     cmd_args_dict = vars(args)
     cmd_args_dict = {key: val for key, val in cmd_args_dict.items() if val}
 
@@ -60,22 +59,16 @@ def parse_command_line(args=None):
 def ensure_config_path(config_dir):
     """Validate the configuration directory."""
     # Test if configuration directory exists
-    if not os.path.isdir(config_dir):
-        if config_dir != config_util.get_default_config_dir():
-            print(
-                "Fatal Error: Specified configuration directory "
-                f"does not exist: {config_dir}"
-            )
-            sys.exit(1)
-
-        try:
-            os.mkdir(config_dir)
-        except OSError:
-            print(
-                "Fatal Error: Unable to create default configuration "
-                f"directory: {config_dir}"
-            )
-            sys.exit(1)
+    if config_dir.is_dir():
+        return
+    try:
+        config_dir.mkdir()
+    except OSError:
+        print(
+            "Fatal Error: Unable to create default configuration "
+            f"directory: {config_dir}"
+        )
+        sys.exit(1)
 
 
 def ensure_config_file(config_dir):
@@ -103,7 +96,7 @@ def main(args=None):
     """Run main function."""
     # Parse command line arguments
     cmd_args = parse_command_line(args=args)
-    config_dir = os.path.join(os.getcwd(), cmd_args[CONFIG_DIR])
+    config_dir = cmd_args[CONFIG_DIR]
     ensure_config_path(config_dir)
     config_file = ensure_config_file(config_dir)
     exit_code = asyncio_run(setup_and_start(config_file, cmd_args))

@@ -1,6 +1,7 @@
 """Test a complete workflow."""
 import logging
 from functools import partial
+from pathlib import Path
 from pkg_resources import resource_filename
 
 import asynctest
@@ -66,7 +67,7 @@ async def test_workflow(center, caplog, api, rename_image):
     """Test a complete workflow."""
     # pylint: disable=too-many-statements
     caplog.set_level(logging.DEBUG)
-    config_path = resource_filename(bootstrap.__name__, DEFAULT_CONFIG_TEMPLATE)
+    config_path = Path(resource_filename(bootstrap.__name__, DEFAULT_CONFIG_TEMPLATE))
     config = await center.add_executor_job(load_config_file, config_path)
     config.pop("logging")
     await bootstrap.setup_dict(center, config)
