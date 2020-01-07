@@ -244,7 +244,7 @@ class Automation:
     async def trigger(self, variables):
         """Run actions of this automation."""
         variables["samples"] = self._center.samples
-        _LOGGER.debug("Triggered %s", self)
+        _LOGGER.debug("Triggered automation %s", self.name)
         try:
             cond = self._cond_func(variables)
         except TemplateError as exc:
