@@ -1,10 +1,10 @@
 """Handle renaming of an image."""
 import logging
-import os
+from pathlib import Path
 
 import voluptuous as vol
 
-from camacq.helper import BASE_ACTION_SCHEMA
+from camacq.helper import BASE_ACTION_SCHEMA, has_at_least_one_key
 
 _LOGGER = logging.getLogger(__name__)
 ACTION_RENAME_IMAGE = "rename_image"
@@ -31,15 +31,16 @@ async def setup_module(center, config):
             action function when an action is called.
         """
         sample_name = kwargs["sample"]
-        old_path = kwargs["old_path"]
+        old_path = Path(kwargs["old_path"])
         new_path = kwargs.get("new_path")
         new_name = kwargs.get("new_name")
 
         if new_name:
-            old_dir = os.path.dirname(old_path)
-            new_path = os.path.join(old_dir, new_name)
-        if not new_path:
-            return
+            old_dir = old_path.parent
+            new_path = old_dir / new_name
+
+        new_path = Path(new_path)  # make sure new_path is a Path instance
+
         result = await center.add_executor_job(rename_image, old_path, new_path)
         if not result:
             return
@@ -54,13 +55,18 @@ async def setup_module(center, config):
             image.name, path=new_path, values=image.values, **image_attrs
         )
 
-    rename_image_action_schema = BASE_ACTION_SCHEMA.extend(
-        {
-            vol.Required("sample"): vol.All(vol.Coerce(str), vol.In(center.samples)),
-            vol.Required("old_path"): vol.Coerce(str),
-            vol.Exclusive("new_path", "new_file"): vol.Coerce(str),
-            vol.Exclusive("new_name", "new_file"): vol.Coerce(str),
-        }
+    rename_image_action_schema = vol.All(
+        BASE_ACTION_SCHEMA.extend(
+            {
+                vol.Required("sample"): vol.All(
+                    vol.Coerce(str), vol.In(center.samples)
+                ),
+                vol.Required("old_path"): vol.Coerce(str),
+                vol.Exclusive("new_path", "new_file"): vol.Coerce(str),
+                vol.Exclusive("new_name", "new_file"): vol.Coerce(str),
+            }
+        ),
+        has_at_least_one_key("new_path", "new_name"),
     )
 
     center.actions.register(
@@ -80,17 +86,12 @@ def rename_image(old_path, new_path):
 
     """
     renamed = False
-    if os.path.exists(new_path):
-        try:
-            os.remove(new_path)
-        except OSError as exc:
-            _LOGGER.error("Failed to remove existing image: %s", exc)
-            return renamed
     try:
-        os.rename(old_path, new_path)
-        renamed = True
+        old_path.replace(new_path)
     except FileNotFoundError as exc:
         _LOGGER.error("File not found: %s", exc)
     except OSError as exc:
         _LOGGER.error("Failed to rename image: %s", exc)
+    else:
+        renamed = True
     return renamed
