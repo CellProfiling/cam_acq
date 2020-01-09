@@ -107,6 +107,7 @@ async def setup_module(center, config):
 
 def _process_automations(center, config):
     """Process automations from config."""
+    automations = center.data.setdefault(DATA_AUTOMATIONS, {})
     conf = config[CONF_AUTOMATIONS]
     for block in conf:
         name = block[CONF_NAME]
@@ -115,7 +116,6 @@ def _process_automations(center, config):
         cond_func = _process_condition(center, block[CONF_CONDITION])
         # use partial to get a function with args to call later
         attach_triggers = partial(_process_trigger, center, block[CONF_TRIGGER])
-        automations = center.data.setdefault(DATA_AUTOMATIONS, {})
         automations[name] = Automation(
             center, name, attach_triggers, cond_func, action_sequence
         )
