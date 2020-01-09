@@ -1,7 +1,5 @@
 """Host utils that are not aware of the implementation of camacq."""
 import asyncio
-import csv
-from collections import defaultdict
 
 try:
     asyncio_run = asyncio.run  # pylint: disable=invalid-name
