@@ -28,13 +28,6 @@ ACTION_DELAY = "delay"
 ACTION_TOGGLE = "toggle"
 DATA_AUTOMATIONS = "automations"
 
-TOGGLE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
-    {
-        vol.Required(NAME): vol.Coerce(str),
-        ENABLED: vol.Boolean(),  # pylint: disable=no-value-for-parameter
-    }
-)
-
 TRIGGER_ACTION_SCHEMA = vol.Schema(
     [
         {
@@ -85,23 +78,28 @@ async def setup_module(center, config):
         The config dict.
     """
     _process_automations(center, config)
+    automations = center.data[DATA_AUTOMATIONS]
 
     async def handle_action(**kwargs):
         """Enable or disable an automation."""
         name = kwargs[NAME]
-        automation = center.data[DATA_AUTOMATIONS].get(name)
-        if not automation:
-            _LOGGER.error("Missing automation %s", name)
-            return
+        automation = automations[name]
         enabled = kwargs.get(ENABLED, not automation.enabled)
         if enabled:
             automation.enable()
         else:
             automation.disable()
 
+    toggle_action_schema = BASE_ACTION_SCHEMA.extend(
+        {
+            vol.Required(NAME): vol.All(vol.Coerce(str), vol.In(automations)),
+            ENABLED: vol.Boolean(),  # pylint: disable=no-value-for-parameter
+        }
+    )
+
     # register action to enable/disable automation
     center.actions.register(
-        "automations", ACTION_TOGGLE, handle_action, TOGGLE_ACTION_SCHEMA
+        "automations", ACTION_TOGGLE, handle_action, toggle_action_schema
     )
 
 
