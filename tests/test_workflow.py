@@ -1,6 +1,7 @@
 """Test a complete workflow."""
 import logging
 from functools import partial
+from pathlib import Path
 from pkg_resources import resource_filename
 
 import asynctest
@@ -64,9 +65,9 @@ class WorkflowImageEvent(ImageEvent):
 
 async def test_workflow(center, caplog, api, rename_image):
     """Test a complete workflow."""
-    # pylint: disable=too-many-statements
+    # pylint: disable=too-many-locals,too-many-statements
     caplog.set_level(logging.DEBUG)
-    config_path = resource_filename(bootstrap.__name__, DEFAULT_CONFIG_TEMPLATE)
+    config_path = Path(resource_filename(bootstrap.__name__, DEFAULT_CONFIG_TEMPLATE))
     config = await center.add_executor_job(load_config_file, config_path)
     config.pop("logging")
     await bootstrap.setup_dict(center, config)
@@ -129,42 +130,15 @@ async def test_workflow(center, caplog, api, rename_image):
     assert channel.values.get("gain") == 800
     assert channel.values.get("channel_name") == "red"
     assert api.send.call_args_list[5] == asynctest.call(command="/cmd:deletelist")
-    assert api.send.call_args_list[6] == asynctest.call(
-        (
-            "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 "
-            "/wellx:1 /welly:1 /fieldx:1 /fieldy:1 /dxpos:0 /dypos:0"
+    for idx, api_call in enumerate(api.send.call_args_list[6:12]):
+        field_x = int(idx / 3) + 1
+        field_y = idx % 3 + 1
+        assert api_call == asynctest.call(
+            (
+                "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 /wellx:1 "
+                f"/welly:1 /fieldx:{field_x} /fieldy:{field_y} /dxpos:0 /dypos:0"
+            )
         )
-    )
-    assert api.send.call_args_list[7] == asynctest.call(
-        (
-            "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 "
-            "/wellx:1 /welly:1 /fieldx:1 /fieldy:2 /dxpos:0 /dypos:0"
-        )
-    )
-    assert api.send.call_args_list[8] == asynctest.call(
-        (
-            "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 "
-            "/wellx:1 /welly:1 /fieldx:1 /fieldy:3 /dxpos:0 /dypos:0"
-        )
-    )
-    assert api.send.call_args_list[9] == asynctest.call(
-        (
-            "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 "
-            "/wellx:1 /welly:1 /fieldx:2 /fieldy:1 /dxpos:0 /dypos:0"
-        )
-    )
-    assert api.send.call_args_list[10] == asynctest.call(
-        (
-            "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 "
-            "/wellx:1 /welly:1 /fieldx:2 /fieldy:2 /dxpos:0 /dypos:0"
-        )
-    )
-    assert api.send.call_args_list[11] == asynctest.call(
-        (
-            "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 "
-            "/wellx:1 /welly:1 /fieldx:2 /fieldy:3 /dxpos:0 /dypos:0"
-        )
-    )
     assert rename_image_auto.enabled
     assert set_img_ok_auto.enabled
     assert api.start_imaging.call_count == 2
@@ -188,24 +162,14 @@ async def test_workflow(center, caplog, api, rename_image):
             await center.bus.notify(event)
     await center.wait_for()
 
-    assert rename_image.call_args_list[0] == asynctest.call(
-        "test_path_0_0_C00", "test_path_0_0_C03"
-    )
-    assert rename_image.call_args_list[1] == asynctest.call(
-        "test_path_0_1_C00", "test_path_0_1_C03"
-    )
-    assert rename_image.call_args_list[2] == asynctest.call(
-        "test_path_0_2_C00", "test_path_0_2_C03"
-    )
-    assert rename_image.call_args_list[3] == asynctest.call(
-        "test_path_1_0_C00", "test_path_1_0_C03"
-    )
-    assert rename_image.call_args_list[4] == asynctest.call(
-        "test_path_1_1_C00", "test_path_1_1_C03"
-    )
-    assert rename_image.call_args_list[5] == asynctest.call(
-        "test_path_1_2_C00", "test_path_1_2_C03"
-    )
+    for idx, rename_call in enumerate(rename_image.call_args_list[:6]):
+        field_x = int(idx / 3)
+        field_y = idx % 3
+        assert rename_call == asynctest.call(
+            Path(f"test_path_{field_x}_{field_y}_C00"),
+            Path(f"test_path_{field_x}_{field_y}_C03"),
+        )
+
     fields = get_matched_samples(
         center.samples.leica,
         "field",

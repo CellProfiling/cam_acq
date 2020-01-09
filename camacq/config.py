@@ -1,6 +1,7 @@
 """Handle the config file."""
 import logging
 import os
+from pathlib import Path
 
 from pkg_resources import resource_filename
 from ruamel.yaml import YAML, YAMLError
@@ -20,8 +21,8 @@ def get_default_config_dir():
     str
         Return the path to the configuration directory.
     """
-    data_dir = os.getenv("APPDATA") if os.name == "nt" else os.path.expanduser("~")
-    return os.path.join(data_dir, CONFIG_DIR_NAME)
+    data_dir = os.getenv("APPDATA") if os.name == "nt" else Path.home()
+    return (Path(data_dir) / CONFIG_DIR_NAME).resolve()
 
 
 def find_config_file(config_dir):
@@ -29,18 +30,18 @@ def find_config_file(config_dir):
 
     Parameters
     ----------
-    config_dir : str
+    config_dir : pathlib.Path
         The path to the configuration directory.
 
     Returns
     -------
-    str
+    pathlib.Path
         Return path to the configuration file if found, None if not
         found.
     """
-    config_path = os.path.join(config_dir, YAML_CONFIG_FILE)
+    config_path = config_dir / YAML_CONFIG_FILE
 
-    return config_path if os.path.isfile(config_path) else None
+    return config_path if config_path.is_file() else None
 
 
 def load_config_file(path):
@@ -48,7 +49,7 @@ def load_config_file(path):
 
     Parameters
     ----------
-    path : str
+    path : pathlib.Path
         The path to the configuration YAML file.
 
     Returns
@@ -65,8 +66,7 @@ def load_config_file(path):
         raise YAMLError(exception)  # or let it pass?
     if not isinstance(cfg, dict):
         _LOGGER.error(
-            "The configuration file %s does not contain a dictionary",
-            os.path.basename(path),
+            "The configuration file %s does not contain a dictionary", path.name,
         )
         raise TypeError()  # or let it pass?
     return cfg
@@ -77,18 +77,18 @@ def create_default_config(config_dir):
 
     Parameters
     ----------
-    config_dir : str
+    config_dir : pathlib.Path
         The path to the configuration directory.
 
     Returns
     -------
-    str
+    pathlib.Path
         Return path to new configuration file if success, None if
         failed.
     """
-    config_path = os.path.join(config_dir, YAML_CONFIG_FILE)
+    config_path = config_dir / YAML_CONFIG_FILE
     default_config_template = resource_filename(__name__, DEFAULT_CONFIG_TEMPLATE)
-    data = load_config_file(default_config_template)
+    data = load_config_file(Path(default_config_template))
     yaml = YAML()
 
     try:
@@ -108,12 +108,12 @@ def ensure_config_exists(config_dir):
 
     Parameters
     ----------
-    config_dir : str
+    config_dir : pathlib.Path
         The path to the configuration directory.
 
     Returns
     -------
-    str
+    pathlib.Path
         Return path to the configuration file.
     """
     config_path = find_config_file(config_dir)

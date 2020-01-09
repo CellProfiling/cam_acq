@@ -3,6 +3,7 @@ import logging
 import logging.config
 import logging.handlers
 import os
+from pathlib import Path
 
 import colorlog
 
@@ -17,7 +18,7 @@ def check_path(path):
 
     Parameters
     ----------
-    path : str
+    path : pathlib.Path
         The path to the log file or log directory.
 
     Returns
@@ -26,10 +27,10 @@ def check_path(path):
         Return True if path exists and is writable.
     """
     if (
-        os.path.isfile(path)
+        path.is_file()
         and os.access(path, os.W_OK)
-        or not os.path.isfile(path)
-        and os.access(os.path.dirname(path), os.W_OK)
+        or path.parent.is_dir()
+        and os.access(path.parent, os.W_OK)
     ):
         return True
     _LOGGER.error("Unable to access log file %s (access denied)", path)
@@ -70,11 +71,11 @@ def enable_log(config):
     log_config = config.get("logging")
     if log_config:
         log_path = log_config["handlers"]["filelog"]["filename"]
-        if log_path and check_path(log_path):
+        if log_path and check_path(Path(log_path)):
             logging.config.dictConfig(log_config)
     else:  # get log path from default config dir
         _LOGGER.info("No config for logging supplied")
-        log_path = os.path.join(config[CONFIG_DIR], LOG_FILENAME)
+        log_path = config[CONFIG_DIR] / LOG_FILENAME
         _LOGGER.info("Using default log path at: %s", log_path)
         if check_path(log_path):
             filelog = logging.handlers.RotatingFileHandler(
