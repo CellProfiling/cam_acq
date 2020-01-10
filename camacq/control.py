@@ -29,8 +29,8 @@ class Center:
         Return the event loop.
     bus : EventBus instance
         Return the EventBus instance.
-    sample : Sample instance
-        Return the Sample instance.
+    samples : Samples instance
+        Return the Samples instance that holds all the Sample instances.
     actions : ActionsRegistry instance
         Return the ActionsRegistry instance.
     data : dict

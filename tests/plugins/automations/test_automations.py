@@ -51,6 +51,36 @@ async def test_setup_automation(center, sample):
     assert not automation.enabled
 
 
+async def test_toggle_invalid_name(center, caplog):
+    """Test toggle an automation with invalid automation name."""
+    config = """
+        automations:
+        - name: test_automation
+          trigger:
+          - type: event
+            id: camacq_start_event
+          action:
+          - type: sample
+            id: set_sample
+            data:
+              name: well
+              plate_name: test
+              well_x: 1
+              well_y: 1
+    """
+
+    config = YAML(typ="safe").load(config)
+    await plugins.setup_module(center, config)
+    automation = center.data["automations"]["test_automation"]
+
+    assert automation.enabled
+    await center.actions.automations.toggle(name="invalid")
+    assert automation.enabled
+    assert "Invalid action call parameters" in caplog.text
+    await center.actions.automations.toggle(name="test_automation")
+    assert not automation.enabled
+
+
 async def test_sample_event(center, api, sample):
     """Test a trigger for sample change event."""
 
