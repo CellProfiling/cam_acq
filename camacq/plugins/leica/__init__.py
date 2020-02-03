@@ -8,7 +8,7 @@ import voluptuous as vol
 from async_timeout import timeout as async_timeout
 from leicacam.async_cam import AsyncCAM
 from leicacam.cam import bytes_as_dict, check_messages, tuples_as_bytes
-from leicaexperiment import attribute, attribute_as_str
+from leicaimage import attribute, attribute_as_str
 
 from camacq.const import CAMACQ_STOP_EVENT
 from camacq.helper import ensure_dict

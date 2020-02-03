@@ -35,10 +35,10 @@ def test_get_well():
 
 def test_get_imgs():
     """Test get imgs."""
-    images = get_imgs(WELL_PATH, search="C31")
+    images = get_imgs(str(WELL_PATH), search="C31")
 
     assert len(images) == 6
 
-    images = get_imgs(FIELD_PATH, search="C22")
+    images = get_imgs(str(FIELD_PATH), search="C22")
 
     assert len(images) == 3
