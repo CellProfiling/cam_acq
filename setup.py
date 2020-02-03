@@ -12,7 +12,7 @@ REQUIRES = [
     "colorlog",
     "jinja2",
     "leicacam>=0.4.0",
-    "leicaexperiment",
+    "leicaimage",
     "numpy",
     "ruamel.yaml>=0.15",
     "tifffile",

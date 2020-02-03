@@ -1,7 +1,7 @@
 """Helper functions for Leica api."""
 from pathlib import Path, PureWindowsPath
 
-from leicaexperiment import experiment
+from leicaimage import experiment
 
 
 def find_image_path(relpath, root):
@@ -72,14 +72,15 @@ def get_imgs(path, img_type="tif", search=""):
 
     Returns
     -------
-    str
+    list
         Return paths of all images found.
     """
-    path = Path(path)
+    root = Path(path)
+    _path = Path("")
     if search:
         search = f"{search}*"
     patterns = ["slide", "chamber--", "field--", "image--"]
     for pattern in patterns:
-        if pattern not in str(path):
-            path = path / f"{pattern}*"
-    return experiment.glob(f"{path}{search}.{img_type}")
+        if pattern not in path:
+            _path = _path / f"{pattern}*"
+    return list(root.glob(f"{_path}{search}.{img_type}"))
