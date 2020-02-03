@@ -1,4 +1,4 @@
-# camacq [![Build Status](https://travis-ci.org/CellProfiling/cam_acq.svg?branch=develop)](https://travis-ci.org/CellProfiling/cam_acq) [![Documentation Status](https://readthedocs.org/projects/cam-acq/badge/?version=latest)](http://cam-acq.readthedocs.io/en/latest/?badge=latest) [![License](http://img.shields.io/badge/license-GPLv3-blue.svg)](https://www.gnu.org/copyleft/gpl.html)
+# camacq [![Build Status](https://travis-ci.org/CellProfiling/cam_acq.svg?branch=develop)](https://travis-ci.org/CellProfiling/cam_acq) [![Documentation Status](https://readthedocs.org/projects/cam-acq/badge/?version=latest)](http://cam-acq.readthedocs.io/en/latest/?badge=latest)
 
 Python project to control microscope through client-server program.
 
