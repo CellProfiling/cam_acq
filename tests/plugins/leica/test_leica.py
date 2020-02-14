@@ -1,7 +1,7 @@
 """Test Leica API."""
 import asyncio
-import os
 from collections import OrderedDict
+from pathlib import Path
 
 import asynctest
 import pytest
@@ -147,7 +147,7 @@ async def test_receive(api, get_imgs):
     root_path = "/root"
     leica_config = {"imaging_dir": root_path}
     api.config = leica_config
-    image_path = os.path.join(root_path, image_path)
+    image_path = str(Path(root_path) / image_path)
     get_imgs.return_value = [image_path]
     mock_handler = asynctest.CoroutineMock()
     api.center.bus.register("image_event", mock_handler)
@@ -156,7 +156,7 @@ async def test_receive(api, get_imgs):
 
     assert len(get_imgs.mock_calls) == 1
     _, args, kwargs = get_imgs.mock_calls[0]
-    assert args[0] == os.path.join(root_path, field_path)
+    assert args[0] == str(Path(root_path) / field_path)
     assert kwargs == dict(search="--E04")
     assert len(mock_handler.mock_calls) == 1
     _, args, _ = mock_handler.mock_calls[0]

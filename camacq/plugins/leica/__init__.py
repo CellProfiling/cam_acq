@@ -8,15 +8,9 @@ import voluptuous as vol
 from async_timeout import timeout as async_timeout
 from leicacam.async_cam import AsyncCAM
 from leicacam.cam import bytes_as_dict, check_messages, tuples_as_bytes
-from leicaexperiment import attribute, attribute_as_str
+from leicaimage import attribute, attribute_as_str
 
-from camacq.const import (
-    CAMACQ_STOP_EVENT,
-    CONF_HOST,
-    CONF_IMAGING_DIR,
-    CONF_PORT,
-    JOB_ID,
-)
+from camacq.const import CAMACQ_STOP_EVENT
 from camacq.helper import ensure_dict
 from camacq.plugins.api import (
     Api,
@@ -29,10 +23,15 @@ from camacq.plugins.api import (
 
 from .command import start, stop
 from .helper import find_image_path, get_field, get_imgs
+from .sample import setup_module as sample_setup_module
 
 _LOGGER = logging.getLogger(__name__)
 
+CONF_HOST = "host"
+CONF_IMAGING_DIR = "imaging_dir"
 CONF_LEICA = "leica"
+CONF_PORT = "port"
+JOB_ID = "--E{:02d}"
 LEICA_COMMAND_EVENT = "leica_command_event"
 LEICA_START_COMMAND_EVENT = "leica_start_command_event"
 LEICA_STOP_COMMAND_EVENT = "leica_stop_command_event"
@@ -65,6 +64,7 @@ async def setup_module(center, config):
     config : dict
         The config dict.
     """
+    await sample_setup_module(center, config)
     conf = config[CONF_LEICA]
     host = conf[CONF_HOST]
     port = conf[CONF_PORT]
@@ -283,7 +283,7 @@ class LeicaImageEvent(ImageEvent):
         return attribute(self.path, "Y")
 
     @property
-    def z_slice(self):
+    def z_slice_id(self):
         """:int: Return z index of the image."""
         return attribute(self.path, "Z")
 

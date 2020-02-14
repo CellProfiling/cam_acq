@@ -12,7 +12,13 @@ import camacq
 _LOGGER = logging.getLogger(__name__)
 
 PACKAGE_MODULE = "{}.{}"
-BASE_ACTION_SCHEMA = vol.Schema({"action_id": str}, extra=vol.REMOVE_EXTRA)
+BASE_ACTION_SCHEMA = vol.Schema(
+    {
+        "action_id": str,
+        "silent": vol.Boolean(),  # pylint: disable=no-value-for-parameter
+    },
+    extra=vol.REMOVE_EXTRA,
+)
 
 
 def get_module(package, module_name):
@@ -29,7 +35,7 @@ def get_module(package, module_name):
     matches = [
         name
         for _, name, _ in pkgutil.walk_packages(
-            camacq.__path__, prefix="{}.".format(camacq.__name__)
+            camacq.__path__, prefix=f"{camacq.__name__}."
         )
         if module_path in name
     ]

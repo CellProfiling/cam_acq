@@ -12,7 +12,7 @@ REQUIRES = [
     "colorlog",
     "jinja2",
     "leicacam>=0.4.0",
-    "leicaexperiment",
+    "leicaimage",
     "numpy",
     "ruamel.yaml>=0.15",
     "tifffile",
@@ -34,7 +34,7 @@ CLASSIFIERS = [
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator",
     # Pick your license as you wish (should match "license" above)
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "License :: OSI Approved :: Apache Software License",
     # Specify the Python versions you support here. In particular, ensure
     # that you indicate whether you support Python 2, Python 3 or both.
     "Programming Language :: Python :: 3.6",
@@ -49,7 +49,7 @@ CONFIG = {
     "author": "Martin Hjelmare",
     "url": GITHUB_URL,
     "download_url": DOWNLOAD_URL,
-    "license": "GPLv3",
+    "license": "Apache-2.0",
     "author_email": "marhje52@kth.se",
     "version": VERSION,
     "python_requires": ">=3.6",
