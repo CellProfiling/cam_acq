@@ -1,5 +1,15 @@
 # Change Log
 
+## [0.7.0](https://github.com/CellProfiling/cam_acq/tree/0.7.0) (2020-03-10)
+[Full Changelog](https://github.com/CellProfiling/cam_acq/compare/0.6.0...0.7.0)
+
+**Merged pull requests:**
+
+- Fix release deps [\#178](https://github.com/CellProfiling/cam_acq/pull/178) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add github actions CI [\#177](https://github.com/CellProfiling/cam_acq/pull/177) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Scheduled monthly dependency update for March [\#176](https://github.com/CellProfiling/cam_acq/pull/176) ([pyup-bot](https://github.com/pyup-bot))
+- Update author email [\#175](https://github.com/CellProfiling/cam_acq/pull/175) ([MartinHjelmare](https://github.com/MartinHjelmare))
+
 ## [0.6.0](https://github.com/CellProfiling/cam_acq/tree/0.6.0) (2020-02-14)
 [Full Changelog](https://github.com/CellProfiling/cam_acq/compare/0.5.0...0.6.0)
 
@@ -14,6 +24,7 @@
 
 **Merged pull requests:**
 
+- 0.6.0 [\#174](https://github.com/CellProfiling/cam_acq/pull/174) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Use leicaimage instead of leicaexperiment [\#173](https://github.com/CellProfiling/cam_acq/pull/173) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Scheduled monthly dependency update for February [\#172](https://github.com/CellProfiling/cam_acq/pull/172) ([pyup-bot](https://github.com/pyup-bot))
 - Change license to Apache 2.0 [\#171](https://github.com/CellProfiling/cam_acq/pull/171) ([MartinHjelmare](https://github.com/MartinHjelmare))
