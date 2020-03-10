@@ -1,10 +1,19 @@
 # Change Log
 
+## [0.7.3](https://github.com/CellProfiling/cam_acq/tree/0.7.3) (2020-03-10)
+[Full Changelog](https://github.com/CellProfiling/cam_acq/compare/0.7.2...0.7.3)
+
+**Merged pull requests:**
+
+- Fix release and publish actions [\#188](https://github.com/CellProfiling/cam_acq/pull/188) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Bump version to 0.7.3.dev0 [\#187](https://github.com/CellProfiling/cam_acq/pull/187) ([MartinHjelmare](https://github.com/MartinHjelmare))
+
 ## [0.7.2](https://github.com/CellProfiling/cam_acq/tree/0.7.2) (2020-03-10)
 [Full Changelog](https://github.com/CellProfiling/cam_acq/compare/0.7.1...0.7.2)
 
 **Merged pull requests:**
 
+- 0.7.2 [\#186](https://github.com/CellProfiling/cam_acq/pull/186) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Add rc label check action [\#185](https://github.com/CellProfiling/cam_acq/pull/185) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Update release instructions [\#184](https://github.com/CellProfiling/cam_acq/pull/184) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Bump version to 0.7.2.dev0 [\#183](https://github.com/CellProfiling/cam_acq/pull/183) ([MartinHjelmare](https://github.com/MartinHjelmare))
