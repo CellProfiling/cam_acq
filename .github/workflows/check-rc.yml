@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: zwaldowski/match-label-action@v1
         with:
-          allowed: >
+          allowed: |
             major
             minor
             patch
