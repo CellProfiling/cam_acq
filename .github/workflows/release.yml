@@ -44,6 +44,7 @@ jobs:
         uses: Roang-zero1/github-create-release-action@v2.1.0
         with:
           created_tag: ${{ steps.tag_and_prepare_release.outputs.tag }}
+          update_existing: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
