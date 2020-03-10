@@ -7,6 +7,7 @@ It's important to name it correctly to allow the github release action to work.
 - Update `CHANGELOG.md` by running `scripts/gen_changelog`.
 - Commit and push the release branch.
 - Create a pull request from release branch `rc` to `master` with the upcoming release number as the title. Put the changes for the new release from the updated changelog as the PR message.
+- Add a label to the pull request, `patch`, `minor` or `major`. This will allow the github release action to work.
 - Merge the pull request into `master`, do not squash.
 - Fetch and checkout the `master` branch.
 - Fetch and checkout the `develop` branch.
