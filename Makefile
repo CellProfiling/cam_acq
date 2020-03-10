@@ -1,7 +1,8 @@
 # Inspired by https://github.com/arve0/leicacam/blob/master/Makefile
-.PHONY: help clean clean-pyc lint test test-all coverage docs docs-api
+.PHONY: help build clean clean-pyc lint test test-all coverage docs docs-api
 
 help:
+	@echo "build - build a distribution"
 	@echo "check-format - check code format with black code formatter"
 	@echo "clean - run all clean operations"
 	@echo "clean-build - remove build artifacts"
@@ -16,6 +17,9 @@ help:
 	@echo "test-release - package and upload a release to test PyPI"
 	@echo "test - run tests quickly with the default Python"
 	@echo "test-all - run tests on every Python version with tox"
+
+build:
+	python setup.py sdist bdist_wheel
 
 check-format:
 	black --check ./
@@ -52,12 +56,10 @@ format:
 lint:
 	tox -e lint
 
-release: clean
-	python setup.py sdist bdist_wheel
+release: clean build
 	twine upload dist/*
 
-test-release: clean
-	python setup.py sdist bdist_wheel
+test-release: clean build
 	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
 test:
