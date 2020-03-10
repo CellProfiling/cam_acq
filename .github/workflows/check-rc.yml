@@ -3,6 +3,7 @@ name: Check release candidate
 on:
   pull_request:
     branches: [master, develop]
+    types: [labeled, unlabeled]
 
 jobs:
   check-rc:
