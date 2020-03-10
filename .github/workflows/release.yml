@@ -44,6 +44,7 @@ jobs:
         uses: Roang-zero1/github-create-release-action@v2.1.0
         with:
           created_tag: ${{ steps.tag_and_prepare_release.outputs.tag }}
+          update_existing: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -57,7 +58,7 @@ jobs:
           name: built-output
           path: ./dist
       - name: Publish package
-        uses: pypa/gh-action-pypi-publish@v1
+        uses: pypa/gh-action-pypi-publish@v1.1.0
         with:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}
