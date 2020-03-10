@@ -1,0 +1,31 @@
+name: Generate changelog
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  generate_changelog:
+    runs-on: ubuntu-latest
+    name: Generate changelog for default branch
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Generate changelog
+        uses: charmixer/auto-changelog-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release_branch: develop
+          base: HISTORY.md
+          since_tag: "0.7.0"
+
+      - name: Commit files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add CHANGELOG.md && git commit -m 'Updated CHANGELOG.md' && echo ::set-env name=push::1 || echo "No changes to CHANGELOG.md"
+      - name: Push changes
+        if: env.push == 1
+        uses: ad-m/github-push-action@0.5.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
