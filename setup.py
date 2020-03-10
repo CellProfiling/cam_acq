@@ -50,7 +50,7 @@ CONFIG = {
     "url": GITHUB_URL,
     "download_url": DOWNLOAD_URL,
     "license": "Apache-2.0",
-    "author_email": "marhje52@kth.se",
+    "author_email": "marhje52@gmail.com",
     "version": VERSION,
     "python_requires": ">=3.6",
     "install_requires": REQUIRES,
