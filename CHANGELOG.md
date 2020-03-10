@@ -5,6 +5,7 @@
 
 **Merged pull requests:**
 
+- 0.7.3 [\#189](https://github.com/CellProfiling/cam_acq/pull/189) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Fix release and publish actions [\#188](https://github.com/CellProfiling/cam_acq/pull/188) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Bump version to 0.7.3.dev0 [\#187](https://github.com/CellProfiling/cam_acq/pull/187) ([MartinHjelmare](https://github.com/MartinHjelmare))
 
