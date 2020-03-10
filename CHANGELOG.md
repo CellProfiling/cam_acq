@@ -1,10 +1,19 @@
 # Change Log
 
+## [0.7.1](https://github.com/CellProfiling/cam_acq/tree/0.7.1) (2020-03-10)
+[Full Changelog](https://github.com/CellProfiling/cam_acq/compare/0.7.0...0.7.1)
+
+**Merged pull requests:**
+
+- Fix release workflow jobs [\#181](https://github.com/CellProfiling/cam_acq/pull/181) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Bump version to 0.7.1.dev0 [\#180](https://github.com/CellProfiling/cam_acq/pull/180) ([MartinHjelmare](https://github.com/MartinHjelmare))
+
 ## [0.7.0](https://github.com/CellProfiling/cam_acq/tree/0.7.0) (2020-03-10)
 [Full Changelog](https://github.com/CellProfiling/cam_acq/compare/0.6.0...0.7.0)
 
 **Merged pull requests:**
 
+- 0.7.0 [\#179](https://github.com/CellProfiling/cam_acq/pull/179) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Fix release deps [\#178](https://github.com/CellProfiling/cam_acq/pull/178) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Add github actions CI [\#177](https://github.com/CellProfiling/cam_acq/pull/177) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Scheduled monthly dependency update for March [\#176](https://github.com/CellProfiling/cam_acq/pull/176) ([pyup-bot](https://github.com/pyup-bot))
