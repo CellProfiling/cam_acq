@@ -1,8 +1,5 @@
 name-template: "$NEXT_PATCH_VERSION 🌈"
 tag-template: "$NEXT_PATCH_VERSION"
-branches:
-  - develop
-  - add-release-drafter
 categories:
   - title: "Breaking changes:"
     labels:
