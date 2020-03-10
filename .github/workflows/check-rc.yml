@@ -1,0 +1,16 @@
+name: Check release candidate
+
+on:
+  pull_request:
+    branches: [master, develop]
+
+jobs:
+  check-rc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: zwaldowski/match-label-action@v1
+        with:
+          allowed: >
+            major
+            minor
+            patch
