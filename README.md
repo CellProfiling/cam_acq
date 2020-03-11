@@ -373,6 +373,10 @@ Use the Makefile to run common development tasks.
 make
 ```
 
+### Release
+
+See the [release instructions](RELEASE.md).
+
 ## Credits
 
 A lot of the inspiration for the architecture of camacq comes from
