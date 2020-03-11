@@ -4,8 +4,10 @@
 - Merge `master` branch into the release branch to make the PR mergeable.
 - Update version in `VERSION`to the new version number, eg `'0.2.0'`.
 - Commit and push the release branch.
-- Create a pull request from release branch to `master` with the upcoming release number as the title. Put the changes for the new release from the updated changelog as the PR message.
+- Create a pull request from release branch to `master` with the upcoming release number as the title.
 - Merge the pull request into `master`, do not squash.
+- Wait for all GitHub actions to have run successfully.
+- Go to GitHub releases page and publish the current draft release, setting the correct title and tag version from master branch. Do not use a `v` prefix for the tag.
 - Fetch and checkout the `master` branch.
 - Fetch and checkout the `develop` branch.
 - Merge `master` into branch `develop`.
