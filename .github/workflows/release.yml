@@ -32,6 +32,8 @@ jobs:
     name: Generate changelog for default branch
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: master
 
       - name: Generate changelog
         uses: charmixer/auto-changelog-action@v1
