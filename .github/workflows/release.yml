@@ -1,9 +1,8 @@
 name: Release
 
 on:
-  pull_request:
-    branches: [master]
-    types: [closed]
+  release:
+    types: [published]
 
 jobs:
   build:
@@ -28,31 +27,32 @@ jobs:
           name: built-output
           path: ./dist
 
-  release:
+  generate_changelog:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged && startsWith(github.head_ref, 'rc')
+    name: Generate changelog for default branch
     steps:
       - uses: actions/checkout@v2
-      - name: Tag and prepare release
-        id: tag_and_prepare_release
-        uses: K-Phoen/semver-release-action@v1.3.1
+
+      - name: Generate changelog
+        uses: charmixer/auto-changelog-action@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           release_branch: master
-          tag_format: "%major%.%minor%.%patch%"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload release notes
-        if: steps.tag_and_prepare_release.outputs.tag
-        uses: Roang-zero1/github-create-release-action@v2.1.0
+          base: HISTORY.md
+          since_tag: "0.7.0"
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v2
         with:
-          created_tag: ${{ steps.tag_and_prepare_release.outputs.tag }}
-          update_existing: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: Update changelog
+          title: Update changelog
+          body: Update the changelog. This PR is created automatically after a new release.
+          branch: update-changelog
 
   publish:
     runs-on: ubuntu-latest
-    needs: [build, release]
+    needs: [build]
     steps:
       - name: Load saved build output
         uses: actions/download-artifact@v1
