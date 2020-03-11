@@ -1,3 +1,41 @@
+## [0.6.0](https://github.com/CellProfiling/cam_acq/tree/0.6.0) (2020-02-14)
+[Full Changelog](https://github.com/CellProfiling/cam_acq/compare/0.5.0...0.6.0)
+
+**Breaking Changes:**
+
+- Replace os.path with pathlib [\#169](https://github.com/CellProfiling/cam_acq/pull/169) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Refactor sample [\#165](https://github.com/CellProfiling/cam_acq/pull/165) ([MartinHjelmare](https://github.com/MartinHjelmare))
+
+**Closed issues:**
+
+- Replace str.format with f-strings [\#168](https://github.com/CellProfiling/cam_acq/issues/168)
+
+**Merged pull requests:**
+
+- 0.6.0 [\#174](https://github.com/CellProfiling/cam_acq/pull/174) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Use leicaimage instead of leicaexperiment [\#173](https://github.com/CellProfiling/cam_acq/pull/173) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Scheduled monthly dependency update for February [\#172](https://github.com/CellProfiling/cam_acq/pull/172) ([pyup-bot](https://github.com/pyup-bot))
+- Change license to Apache 2.0 [\#171](https://github.com/CellProfiling/cam_acq/pull/171) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Make toggle automation more robust [\#170](https://github.com/CellProfiling/cam_acq/pull/170) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Convert format strings to f-strings [\#167](https://github.com/CellProfiling/cam_acq/pull/167) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Order automations functions and classes logically [\#166](https://github.com/CellProfiling/cam_acq/pull/166) ([MartinHjelmare](https://github.com/MartinHjelmare))
+
+## [0.5.0](https://github.com/CellProfiling/cam_acq/tree/0.5.0) (2019-12-12)
+[Full Changelog](https://github.com/CellProfiling/cam_acq/compare/0.4.0...0.5.0)
+
+**Breaking Changes:**
+
+- Remove gain plugin [\#162](https://github.com/CellProfiling/cam_acq/pull/162) ([MartinHjelmare](https://github.com/MartinHjelmare))
+
+**Merged pull requests:**
+
+- 0.5.0 [\#164](https://github.com/CellProfiling/cam_acq/pull/164) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Fix make\_proj [\#163](https://github.com/CellProfiling/cam_acq/pull/163) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add lint to scripts [\#161](https://github.com/CellProfiling/cam_acq/pull/161) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Fix travis pypi deploy round 2 [\#160](https://github.com/CellProfiling/cam_acq/pull/160) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Fix travis pypi deploy [\#159](https://github.com/CellProfiling/cam_acq/pull/159) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Update manifest to exclude more files [\#158](https://github.com/CellProfiling/cam_acq/pull/158) ([MartinHjelmare](https://github.com/MartinHjelmare))
+
 ## [0.4.0](https://github.com/CellProfiling/cam_acq/tree/0.4.0) (2019-12-07)
 [Full Changelog](https://github.com/CellProfiling/cam_acq/compare/0.3.1...0.4.0)
 
