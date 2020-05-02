@@ -50,9 +50,7 @@ def enable_log(config):
     # basicConfig has added a StreamHandler
     # '%(log_color)s%(levelname)s:%(name)s:%(message)s'
     # '%(asctime)s;%(name)-16s;%(levelname)-8s;%(message)s'
-    log_format = (
-        "%(asctime)s;%(levelname)-5s;%(threadName)-10s;%(name)-18s;" "%(message)s"
-    )
+    log_format = "%(asctime)s;%(levelname)-5s;%(threadName)-10s;%(name)-18s;%(message)s"
     date_format = "%Y-%m-%d %H:%M:%S"
     color_format = f"%(log_color)s{log_format}"
     root_logger.handlers[0].setFormatter(
