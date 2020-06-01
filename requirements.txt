@@ -3,8 +3,8 @@ colorlog==4.1.0
 jinja2==2.11.2
 leicacam==0.4.0
 leicaimage==0.2.0
-numpy==1.18.3
+numpy==1.18.4
 ruamel.yaml==0.16.10
-tifffile==2020.2.16
+tifffile==2020.5.30
 voluptuous==0.11.7
 xmltodict==0.12.0
