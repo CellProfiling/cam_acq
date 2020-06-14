@@ -1,7 +1,7 @@
 async_timeout==3.0.1
 colorlog==4.1.0
 jinja2==2.11.2
-leicacam==0.4.0
+leicacam==0.4.2
 leicaimage==0.2.0
 numpy==1.18.4
 ruamel.yaml==0.16.10
