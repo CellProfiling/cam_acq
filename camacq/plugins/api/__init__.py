@@ -24,8 +24,8 @@ def validate_commands(value):
     if isinstance(value, str):
         try:
             return json.loads(value)
-        except ValueError:
-            raise vol.Invalid(f"Invalid commands: {value}")
+        except ValueError as exc:
+            raise vol.Invalid(f"Invalid commands: {value}") from exc
     else:
         schema = vol.Schema([COMMAND_VALIDATOR])
         return schema(value)
