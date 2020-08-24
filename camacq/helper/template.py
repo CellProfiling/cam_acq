@@ -50,7 +50,7 @@ def render_template(data, variables):
     try:
         rendered = data.render(variables)
     except jinja2.TemplateError as exc:
-        raise TemplateError(exc)
+        raise TemplateError(exc) from exc
     return rendered
 
 

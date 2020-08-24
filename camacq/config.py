@@ -61,14 +61,14 @@ def load_config_file(path):
     try:
         with open(path, "r") as yml_file:
             cfg = yaml.load(yml_file)
-    except YAMLError as exception:
+    except YAMLError as exc:
         _LOGGER.error("Error reading YAML configuration file %s", path)
-        raise YAMLError(exception)  # or let it pass?
+        raise YAMLError(exc) from exc
     if not isinstance(cfg, dict):
         _LOGGER.error(
             "The configuration file %s does not contain a dictionary", path.name,
         )
-        raise TypeError()  # or let it pass?
+        raise TypeError()
     return cfg
 
 
