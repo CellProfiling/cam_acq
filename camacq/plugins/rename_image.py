@@ -70,7 +70,10 @@ async def setup_module(center, config):
     )
 
     center.actions.register(
-        "rename_image", ACTION_RENAME_IMAGE, handle_action, rename_image_action_schema,
+        "rename_image",
+        ACTION_RENAME_IMAGE,
+        handle_action,
+        rename_image_action_schema,
     )
 
 

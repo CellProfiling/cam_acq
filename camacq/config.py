@@ -66,7 +66,8 @@ def load_config_file(path):
         raise YAMLError(exc) from exc
     if not isinstance(cfg, dict):
         _LOGGER.error(
-            "The configuration file %s does not contain a dictionary", path.name,
+            "The configuration file %s does not contain a dictionary",
+            path.name,
         )
         raise TypeError()
     return cfg
