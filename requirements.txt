@@ -5,6 +5,6 @@ leicacam==0.4.2
 leicaimage==0.2.1
 numpy==1.20.1
 ruamel.yaml==0.16.12
-tifffile==2021.2.1
+tifffile==2021.2.26
 voluptuous==0.12.1
 xmltodict==0.12.0
