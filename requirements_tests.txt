@@ -1,5 +1,5 @@
 asynctest==0.13.0
-click==7.1.2
+click==8.0.0
 pytest==6.2.3
 pytest-asyncio==0.15.1
 pytest-cov==2.11.1
