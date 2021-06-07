@@ -234,16 +234,15 @@ automations:
           old_path: >
             {{ trigger.event.path }}
           new_path: >
-            {%
-            if trigger.event.job_id == 2
-            %}{{ trigger.event.path }}{%
-            elif trigger.event.job_id == 3 and trigger.event.channel_id == 0
-            %}{{ trigger.event.path | replace('C00', 'C01') }}{%
-            elif trigger.event.job_id == 3 and trigger.event.channel_id == 01
-            %}{{ trigger.event.path | replace('C01', 'C02') }}{%
-            elif trigger.event.job_id == 4
-            %}{{ trigger.event.path | replace('C00', 'C03') }}{%
-            endif %}
+            {% if trigger.event.job_id == 2 -%}
+              {{ trigger.event.path }}
+            {%- elif trigger.event.job_id == 3 and trigger.event.channel_id == 0 -%}
+              {{ trigger.event.path | replace('C00', 'C01') }}
+            {%- elif trigger.event.job_id == 3 and trigger.event.channel_id == 1 -%}
+              {{ trigger.event.path | replace('C01', 'C02') }}
+            {%- elif trigger.event.job_id == 4 -%}
+              {{ trigger.event.path | replace('C00', 'C03') }}
+            {%- endif %}
   - name: set_well_ok
     trigger:
       - type: event
