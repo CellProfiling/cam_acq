@@ -4,7 +4,7 @@ jinja2==3.0.1
 leicacam==0.4.2
 leicaimage==0.2.1
 numpy==1.21.0
-ruamel.yaml==0.17.9
+ruamel.yaml==0.17.10
 tifffile==2021.6.14
 voluptuous==0.12.1
 xmltodict==0.12.0
