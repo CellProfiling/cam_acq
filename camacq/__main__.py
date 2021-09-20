@@ -4,8 +4,8 @@ import logging
 import sys
 from pathlib import Path
 
-import camacq.bootstrap as bootstrap
 import camacq.config as config_util
+from camacq import bootstrap
 from camacq.const import CONFIG_DIR, LOG_LEVEL
 from camacq.util import asyncio_run
 
