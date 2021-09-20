@@ -59,7 +59,7 @@ def load_config_file(path):
     """
     yaml = YAML()
     try:
-        with open(path, "r") as yml_file:
+        with open(path, "r", encoding="utf-8") as yml_file:
             cfg = yaml.load(yml_file)
     except YAMLError as exc:
         _LOGGER.error("Error reading YAML configuration file %s", path)
@@ -93,7 +93,7 @@ def create_default_config(config_dir):
     yaml = YAML()
 
     try:
-        with open(config_path, "w") as config_file:
+        with open(config_path, "w", encoding="utf-8") as config_file:
             yaml.dump(data, config_file)
     except OSError:
         _LOGGER.error("Unable to create default configuration file %s", config_path)
