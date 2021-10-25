@@ -3,7 +3,7 @@ colorlog==6.5.0
 jinja2==3.0.2
 leicacam==0.4.2
 leicaimage==0.2.1
-numpy==1.21.2
+numpy==1.21.3
 ruamel.yaml==0.17.16
 tifffile==2021.10.12
 voluptuous==0.12.2
