@@ -1,5 +1,6 @@
 """Test the control module."""
-import asynctest
+from unittest.mock import AsyncMock
+
 import pytest
 import voluptuous as vol
 
@@ -60,7 +61,7 @@ async def test_add_executor_job(center):
 
 async def test_create_task(center):
     """Test create task."""
-    coro_fun = asynctest.CoroutineMock()
+    coro_fun = AsyncMock()
     task = center.create_task(coro_fun())
     await task
 
@@ -70,7 +71,7 @@ async def test_create_task(center):
 
 async def test_wait_for(center):
     """Test wait for tracked tasks."""
-    sec_coro_fun = asynctest.CoroutineMock()
+    sec_coro_fun = AsyncMock()
 
     async def schedule_task(center):
         """Schedule a new task."""
