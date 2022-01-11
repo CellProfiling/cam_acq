@@ -3,8 +3,8 @@ import logging
 from functools import partial
 from pathlib import Path
 from pkg_resources import resource_filename
+from unittest.mock import Mock, call, patch
 
-import asynctest
 import pytest
 from leicacam.async_cam import AsyncCAM
 
@@ -23,7 +23,7 @@ pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
 @pytest.fixture(name="log_util", autouse=True)
 def log_util_fixture():
     """Patch the log util."""
-    with asynctest.patch("camacq.bootstrap.log_util"):
+    with patch("camacq.bootstrap.log_util"):
         yield
 
 
@@ -31,8 +31,8 @@ def log_util_fixture():
 def api_fixture(center):
     """Return a leica api instance."""
     config = {"leica": {}}
-    client = asynctest.Mock(AsyncCAM(loop=center.loop))
-    mock_api = asynctest.Mock(LeicaApi(center, config, client))
+    client = Mock(AsyncCAM(loop=center.loop))
+    mock_api = Mock(LeicaApi(center, config, client))
     mock_api.send_many = partial(base_api.Api.send_many, mock_api)
 
     async def register_mock_api(center, config):
@@ -40,7 +40,7 @@ def api_fixture(center):
         base_api.register_api(center, mock_api)
         await leica_sample_mod.setup_module(center, config)
 
-    with asynctest.patch("camacq.plugins.leica.setup_module") as leica_setup:
+    with patch("camacq.plugins.leica.setup_module") as leica_setup:
         leica_setup.side_effect = register_mock_api
         yield mock_api
 
@@ -48,7 +48,7 @@ def api_fixture(center):
 @pytest.fixture(name="rename_image")
 def rename_image_fixture():
     """Patch plugins.rename_image.rename_image."""
-    with asynctest.patch("camacq.plugins.rename_image.rename_image") as rename_image:
+    with patch("camacq.plugins.rename_image.rename_image") as rename_image:
         yield rename_image
 
 
@@ -86,14 +86,14 @@ async def test_workflow(center, caplog, api, rename_image):
 
     well = center.samples.leica.get_sample("well", plate_name="00", well_x=0, well_y=0)
     assert well is not None
-    assert api.send.call_args_list[0] == asynctest.call(command="/cmd:deletelist")
-    assert api.send.call_args_list[1] == asynctest.call(
+    assert api.send.call_args_list[0] == call(command="/cmd:deletelist")
+    assert api.send.call_args_list[1] == call(
         command=(
             "/cmd:add /tar:camlist /exp:p10xgain /ext:af /slide:0 "
             "/wellx:1 /welly:1 /fieldx:1 /fieldy:2 /dxpos:0 /dypos:0"
         )
     )
-    assert api.send.call_args_list[2] == asynctest.call(
+    assert api.send.call_args_list[2] == call(
         command=(
             "/cmd:add /tar:camlist /exp:p10xgain /ext:af /slide:0 "
             "/wellx:1 /welly:1 /fieldx:2 /fieldy:2 /dxpos:0 /dypos:0"
@@ -102,7 +102,7 @@ async def test_workflow(center, caplog, api, rename_image):
     assert not rename_image_auto.enabled
     assert not set_img_ok_auto.enabled
     assert api.start_imaging.call_count == 1
-    assert api.send.call_args_list[3] == asynctest.call(command="/cmd:startcamscan")
+    assert api.send.call_args_list[3] == call(command="/cmd:startcamscan")
 
     event = WorkflowImageEvent(
         {
@@ -121,7 +121,7 @@ async def test_workflow(center, caplog, api, rename_image):
     await center.wait_for()
 
     assert api.stop_imaging.call_count == 1
-    assert api.send.call_args_list[4] == asynctest.call(
+    assert api.send.call_args_list[4] == call(
         command="/cmd:adjust /tar:pmt /num:1 /exp:gain_job_1 /prop:gain /value:800"
     )
     channel = center.samples.leica.get_sample(
@@ -129,11 +129,11 @@ async def test_workflow(center, caplog, api, rename_image):
     )
     assert channel.values.get("gain") == 800
     assert channel.values.get("channel_name") == "red"
-    assert api.send.call_args_list[5] == asynctest.call(command="/cmd:deletelist")
+    assert api.send.call_args_list[5] == call(command="/cmd:deletelist")
     for idx, api_call in enumerate(api.send.call_args_list[6:12]):
         field_x = int(idx / 3) + 1
         field_y = idx % 3 + 1
-        assert api_call == asynctest.call(
+        assert api_call == call(
             (
                 "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 /wellx:1 "
                 f"/welly:1 /fieldx:{field_x} /fieldy:{field_y} /dxpos:0 /dypos:0"
@@ -142,7 +142,7 @@ async def test_workflow(center, caplog, api, rename_image):
     assert rename_image_auto.enabled
     assert set_img_ok_auto.enabled
     assert api.start_imaging.call_count == 2
-    assert api.send.call_args_list[12] == asynctest.call(command="/cmd:startcamscan")
+    assert api.send.call_args_list[12] == call(command="/cmd:startcamscan")
 
     for x_number in range(2):
         for y_number in range(3):
@@ -165,7 +165,7 @@ async def test_workflow(center, caplog, api, rename_image):
     for idx, rename_call in enumerate(rename_image.call_args_list[:6]):
         field_x = int(idx / 3)
         field_y = idx % 3
-        assert rename_call == asynctest.call(
+        assert rename_call == call(
             Path(f"test_path_{field_x}_{field_y}_C00"),
             Path(f"test_path_{field_x}_{field_y}_C03"),
         )
@@ -183,14 +183,14 @@ async def test_workflow(center, caplog, api, rename_image):
     )
     assert well_0_1.well_x == 0
     assert well_0_1.well_y == 1
-    assert api.send.call_args_list[13] == asynctest.call(command="/cmd:deletelist")
-    assert api.send.call_args_list[14] == asynctest.call(
+    assert api.send.call_args_list[13] == call(command="/cmd:deletelist")
+    assert api.send.call_args_list[14] == call(
         command=(
             "/cmd:add /tar:camlist /exp:p10xgain /ext:af /slide:0 "
             "/wellx:1 /welly:2 /fieldx:1 /fieldy:2 /dxpos:0 /dypos:0"
         )
     )
-    assert api.send.call_args_list[15] == asynctest.call(
+    assert api.send.call_args_list[15] == call(
         command=(
             "/cmd:add /tar:camlist /exp:p10xgain /ext:af /slide:0 "
             "/wellx:1 /welly:2 /fieldx:2 /fieldy:2 /dxpos:0 /dypos:0"
@@ -199,4 +199,4 @@ async def test_workflow(center, caplog, api, rename_image):
     assert not rename_image_auto.enabled
     assert not set_img_ok_auto.enabled
     assert api.start_imaging.call_count == 3
-    assert api.send.call_args_list[16] == asynctest.call(command="/cmd:startcamscan")
+    assert api.send.call_args_list[16] == call(command="/cmd:startcamscan")
