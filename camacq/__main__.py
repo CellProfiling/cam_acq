@@ -1,4 +1,5 @@
 """Main module."""
+import asyncio
 import argparse
 import logging
 import sys
@@ -7,7 +8,6 @@ from pathlib import Path
 import camacq.config as config_util
 from camacq import bootstrap
 from camacq.const import CONFIG_DIR, LOG_LEVEL
-from camacq.util import asyncio_run
 
 
 def check_dir_arg(path):
@@ -99,7 +99,7 @@ def main(args=None):
     config_dir = cmd_args[CONFIG_DIR]
     ensure_config_path(config_dir)
     config_file = ensure_config_file(config_dir)
-    exit_code = asyncio_run(setup_and_start(config_file, cmd_args))
+    exit_code = asyncio.run(setup_and_start(config_file, cmd_args))
     return exit_code
 
 
