@@ -2,22 +2,20 @@
 import logging
 from functools import partial
 from pathlib import Path
-from pkg_resources import resource_filename
 from unittest.mock import Mock, call, patch
 
 import pytest
 from leicacam.async_cam import AsyncCAM
+from pkg_resources import resource_filename
 
 from camacq import bootstrap
-from camacq.plugins import api as base_api
-from camacq.plugins.api import ImageEvent
-from camacq.plugins.leica import LeicaApi, sample as leica_sample_mod
-from camacq.plugins.sample import get_matched_samples
 from camacq.config import DEFAULT_CONFIG_TEMPLATE, load_config_file
 from camacq.control import CamAcqStartEvent
-
-# All test coroutines will be treated as marked.
-pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
+from camacq.plugins import api as base_api
+from camacq.plugins.api import ImageEvent
+from camacq.plugins.leica import LeicaApi
+from camacq.plugins.leica import sample as leica_sample_mod
+from camacq.plugins.sample import get_matched_samples
 
 
 @pytest.fixture(name="log_util", autouse=True)

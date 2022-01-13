@@ -2,15 +2,11 @@
 import logging
 from unittest.mock import call
 
-import pytest
 from ruamel.yaml import YAML
 
 from camacq import plugins
 from camacq.control import CamAcqStartEvent
 from camacq.plugins import api as api_mod
-
-# All test coroutines will be treated as marked.
-pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
 
 
 async def test_setup_automation(center, sample):

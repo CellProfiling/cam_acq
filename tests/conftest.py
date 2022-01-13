@@ -12,11 +12,11 @@ SET_SAMPLE_SCHEMA = vol.Schema({vol.Required("name"): str}, extra=vol.ALLOW_EXTR
 
 
 @pytest.fixture(name="center")
-def center_fixture(event_loop):
+async def center_fixture(event_loop):
     """Give access to center via fixture."""
     _center = Center(loop=event_loop)
     _center._track_tasks = True  # pylint: disable=protected-access
-    yield _center
+    return _center
 
 
 @pytest.fixture(name="config")
@@ -26,21 +26,21 @@ def config_fixture():
 
 
 @pytest.fixture(name="api")
-def api_fixture(center, config):
+async def api_fixture(center, config):
     """Set up a mock api."""
     mock_api = MockApi()
-    center.loop.run_until_complete(api_mod.setup_module(center, config))
+    await api_mod.setup_module(center, config)
     api_mod.register_api(center, mock_api)
-    yield mock_api
+    return mock_api
 
 
 @pytest.fixture(name="sample")
-def sample_fixture(center, config):
+async def sample_fixture(center, config):
     """Set up a mock sample."""
     mock_sample = MockSample()
-    center.loop.run_until_complete(sample_mod.setup_module(center, config))
+    await sample_mod.setup_module(center, config)
     sample_mod.register_sample(center, mock_sample)
-    yield mock_sample
+    return mock_sample
 
 
 class TestSampleEvent(sample_mod.SampleEvent):

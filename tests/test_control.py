@@ -1,14 +1,11 @@
 """Test the control module."""
 from unittest.mock import AsyncMock
 
-import pytest
 import voluptuous as vol
 
 from camacq.const import CAMACQ_START_EVENT, CAMACQ_STOP_EVENT
 
 # pylint: disable=redefined-outer-name
-# All test coroutines will be treated as marked.
-pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
 
 
 async def test_center_start(center):

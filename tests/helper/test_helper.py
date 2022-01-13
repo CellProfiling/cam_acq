@@ -7,8 +7,6 @@ import voluptuous as vol
 from camacq import helper
 
 # pylint: disable=redefined-outer-name
-# All test coroutines will be treated as marked.
-pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
 
 
 class MockModule:
