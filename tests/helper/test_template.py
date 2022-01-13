@@ -1,11 +1,7 @@
 """Test the template helper."""
-import pytest
 from ruamel.yaml import YAML
 
 from camacq.helper.template import make_template, render_template
-
-# All test coroutines will be treated as marked.
-pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
 
 
 async def test_next_well(center, sample):

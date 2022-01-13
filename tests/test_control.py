@@ -1,13 +1,11 @@
 """Test the control module."""
-import asynctest
-import pytest
+from unittest.mock import AsyncMock
+
 import voluptuous as vol
 
 from camacq.const import CAMACQ_START_EVENT, CAMACQ_STOP_EVENT
 
 # pylint: disable=redefined-outer-name
-# All test coroutines will be treated as marked.
-pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
 
 
 async def test_center_start(center):
@@ -60,7 +58,7 @@ async def test_add_executor_job(center):
 
 async def test_create_task(center):
     """Test create task."""
-    coro_fun = asynctest.CoroutineMock()
+    coro_fun = AsyncMock()
     task = center.create_task(coro_fun())
     await task
 
@@ -70,7 +68,7 @@ async def test_create_task(center):
 
 async def test_wait_for(center):
     """Test wait for tracked tasks."""
-    sec_coro_fun = asynctest.CoroutineMock()
+    sec_coro_fun = AsyncMock()
 
     async def schedule_task(center):
         """Schedule a new task."""

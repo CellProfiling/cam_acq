@@ -28,7 +28,7 @@ async def setup_module(center, config):
         module = plugins.pop(module_name, None)
         if not module:
             continue
-        tasks.append(setup_one_module(center, config, module))
+        tasks.append(center.create_task(setup_one_module(center, config, module)))
     if tasks:
         await asyncio.wait(tasks)
 
@@ -36,7 +36,7 @@ async def setup_module(center, config):
     for name, module in plugins.items():
         if name not in config:
             continue
-        tasks.append(setup_one_module(center, config, module))
+        tasks.append(center.create_task(setup_one_module(center, config, module)))
     if tasks:
         await asyncio.wait(tasks)
 

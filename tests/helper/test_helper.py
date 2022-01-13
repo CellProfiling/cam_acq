@@ -1,13 +1,12 @@
 """Test helper module."""
-import asynctest
+from unittest.mock import AsyncMock
+
 import pytest
 import voluptuous as vol
 
 from camacq import helper
 
 # pylint: disable=redefined-outer-name
-# All test coroutines will be treated as marked.
-pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
 
 
 class MockModule:
@@ -24,7 +23,7 @@ class MockModule:
         if setup_module is not None:
             self.setup_module = setup_module
         else:
-            self.setup_module = asynctest.CoroutineMock()
+            self.setup_module = AsyncMock()
 
         if config_schema is not None:
             self.CONFIG_SCHEMA = config_schema

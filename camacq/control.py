@@ -100,7 +100,7 @@ class Center:
 
         Return a task.
         """
-        task = self.loop.create_task(coro)
+        task = asyncio.create_task(coro)
 
         if self._track_tasks:
             self._pending_tasks.append(task)

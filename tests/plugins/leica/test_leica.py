@@ -2,8 +2,8 @@
 import asyncio
 from collections import OrderedDict
 from pathlib import Path
+from unittest.mock import AsyncMock, Mock, patch
 
-import asynctest
 import pytest
 from leicacam.async_cam import AsyncCAM
 
@@ -20,44 +20,40 @@ from camacq.plugins.leica import (
     LeicaStopCommandEvent,
 )
 
-# pylint: disable=redefined-outer-name, len-as-condition
-# All test coroutines will be treated as marked.
-pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
+# pylint: disable=redefined-outer-name
 
 
 @pytest.fixture
-def api(center):
+async def api(center):
     """Return a leica api instance."""
     leica_conf = {"host": "localhost", "port": 8895, "imaging_dir": "/tmp"}
     config = {"leica": leica_conf}
-    client = asynctest.Mock(AsyncCAM(loop=center.loop))
+    client = Mock(AsyncCAM(loop=center.loop))
     mock_api = LeicaApi(center, leica_conf, client)
 
-    def register_mock_api(center, config):
+    async def register_mock_api(center, config):
         """Register a mock api package."""
         base_api.register_api(center, mock_api)
 
-    with asynctest.patch(
-        "camacq.plugins.leica.setup_module"
-    ) as leica_setup, asynctest.patch("camacq.plugins.leica.START_STOP_DELAY", 0.0):
+    with patch("camacq.plugins.leica.setup_module") as leica_setup, patch(
+        "camacq.plugins.leica.START_STOP_DELAY", 0.0
+    ):
         leica_setup.side_effect = register_mock_api
-        center.loop.run_until_complete(base_api.setup_module(center, config))
+        await base_api.setup_module(center, config)
         yield mock_api
 
 
 @pytest.fixture
 def get_imgs():
     """Mock leica helper get_imgs."""
-    with asynctest.patch("camacq.plugins.leica.get_imgs") as mock_get_imgs:
+    with patch("camacq.plugins.leica.get_imgs") as mock_get_imgs:
         yield mock_get_imgs
 
 
 async def test_setup_bad_socket(center, caplog):
     """Test setup leica api package with bad host or port."""
     config = {"leica": {}}
-    with asynctest.patch(
-        "camacq.plugins.leica.AsyncCAM.connect", side_effect=OSError()
-    ):
+    with patch("camacq.plugins.leica.AsyncCAM.connect", side_effect=OSError()):
         await plugins.setup_module(center, config)
     assert "Connecting to server localhost failed:" in caplog.text
 
@@ -66,17 +62,22 @@ async def test_send(api):
     """Test the leica api send method."""
     cmd_string = "/cmd:deletelist"
     cmd_tuples = [("cmd", "deletelist")]
+
+    async def mock_send(commands):
+        """Mock client send."""
+        await api.receive([OrderedDict(cmd_tuples)])
+
     api.client.receive.return_value = OrderedDict(cmd_tuples)
-    api.client.send.return_value = api.receive([OrderedDict(cmd_tuples)])
-    mock_handler = asynctest.CoroutineMock()
+    api.client.send.side_effect = mock_send
+    mock_handler = AsyncMock()
     api.center.bus.register(LEICA_COMMAND_EVENT, mock_handler)
 
     await api.send(cmd_string)
 
-    assert len(api.client.send.mock_calls) == 1
+    assert api.client.send.call_count == 1
     _, args, _ = api.client.send.mock_calls[0]
     assert args[0] == cmd_tuples
-    assert len(mock_handler.mock_calls) == 1
+    assert mock_handler.call_count == 1
     _, args, _ = mock_handler.mock_calls[0]
     # The first argument is Center, the second is the event.
     event = args[1]
@@ -89,16 +90,19 @@ async def test_start_imaging(api):
     event_string = "/inf:scanstart"
     cmd_tuples = [("cmd", "startscan")]
     start_event_tuples = [("inf", "scanstart")]
-    api.client.send.return_value = api.receive(
-        [OrderedDict(cmd_tuples), OrderedDict(start_event_tuples)]
-    )
-    mock_handler = asynctest.CoroutineMock()
+
+    async def mock_send(commands):
+        """Mock client send."""
+        await api.receive([OrderedDict(cmd_tuples), OrderedDict(start_event_tuples)])
+
+    api.client.send.side_effect = mock_send
+    mock_handler = AsyncMock()
     api.center.bus.register(LEICA_START_COMMAND_EVENT, mock_handler)
 
     await api.start_imaging()
 
-    assert len(api.client.send.mock_calls) == 1
-    assert len(mock_handler.mock_calls) == 1
+    assert api.client.send.call_count == 1
+    assert mock_handler.call_count == 1
     _, args, _ = mock_handler.mock_calls[0]
     # The first argument is Center, the second is the event.
     event = args[1]
@@ -111,16 +115,19 @@ async def test_stop_imaging(api):
     event_string = "/inf:scanfinished"
     stop_event_tuples = [("inf", "scanfinished")]
     cmd_tuples = [("cmd", "stopscan")]
-    api.client.send.return_value = api.receive(
-        [OrderedDict(cmd_tuples), OrderedDict(stop_event_tuples)]
-    )
-    mock_handler = asynctest.CoroutineMock()
+
+    async def mock_send(commands):
+        """Mock client send."""
+        await api.receive([OrderedDict(cmd_tuples), OrderedDict(stop_event_tuples)])
+
+    api.client.send.side_effect = mock_send
+    mock_handler = AsyncMock()
     api.center.bus.register(LEICA_STOP_COMMAND_EVENT, mock_handler)
 
     await api.stop_imaging()
 
-    assert len(api.client.send.mock_calls) == 1
-    assert len(mock_handler.mock_calls) == 1
+    assert api.client.send.call_count == 1
+    assert mock_handler.call_count == 1
     _, args, _ = mock_handler.mock_calls[0]
     # The first argument is Center, the second is the event.
     event = args[1]
@@ -149,16 +156,16 @@ async def test_receive(api, get_imgs):
     api.config = leica_config
     image_path = str(Path(root_path) / image_path)
     get_imgs.return_value = [image_path]
-    mock_handler = asynctest.CoroutineMock()
+    mock_handler = AsyncMock()
     api.center.bus.register("image_event", mock_handler)
 
     await api.receive([OrderedDict(cmd_tuples)])
 
-    assert len(get_imgs.mock_calls) == 1
+    assert get_imgs.call_count == 1
     _, args, kwargs = get_imgs.mock_calls[0]
     assert args[0] == str(Path(root_path) / field_path)
     assert kwargs == dict(search="--E04")
-    assert len(mock_handler.mock_calls) == 1
+    assert mock_handler.call_count == 1
     _, args, _ = mock_handler.mock_calls[0]
     # The first argument is Center, the seconds is the event.
     event = args[1]
@@ -172,23 +179,24 @@ async def test_start_listen(center, caplog):
     """Test start listen for incoming messages."""
     config = {"leica": {}}
     cmd_tuples = [("cmd", "deletelist")]
+    commands = [OrderedDict(cmd_tuples)]
 
     async def mock_receive():
         """Mock receive."""
         await asyncio.sleep(0)
-        return [OrderedDict(cmd_tuples)]
+        if commands:
+            return [commands.pop()]
+        raise asyncio.CancelledError
 
-    mock_handler = asynctest.CoroutineMock()
+    mock_handler = AsyncMock()
     center.bus.register(LEICA_COMMAND_EVENT, mock_handler)
 
-    with asynctest.patch("camacq.plugins.leica.AsyncCAM") as mock_cam_class:
-        mock_cam_class.return_value = mock_cam = asynctest.Mock(
-            AsyncCAM(loop=center.loop)
-        )
-        mock_cam.receive.return_value = mock_receive()
+    with patch("camacq.plugins.leica.AsyncCAM", autospec=True) as mock_cam_class:
+        mock_cam = mock_cam_class.return_value
+        mock_cam.receive.side_effect = mock_receive
         await plugins.setup_module(center, config)
         await center.wait_for()
         await center.end(0)
 
     mock_cam.receive.assert_awaited()
-    assert len(mock_handler.mock_calls) == 1
+    assert mock_handler.call_count == 1

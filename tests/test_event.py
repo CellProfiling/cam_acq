@@ -1,10 +1,5 @@
 """Test the event bus."""
-import pytest
-
 from camacq import event as event_mod
-
-# All test coroutines will be treated as marked.
-pytestmark = pytest.mark.asyncio  # pylint: disable=invalid-name
 
 
 async def test_event_bus(center):

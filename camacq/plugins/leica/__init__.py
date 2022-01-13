@@ -82,6 +82,7 @@ async def setup_module(center, config):
     async def stop_listen(center, event):
         """Stop the task that listens to the client socket."""
         task.cancel()
+        await task
         api.client.close()
 
     center.bus.register(CAMACQ_STOP_EVENT, stop_listen)
