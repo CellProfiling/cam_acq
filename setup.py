@@ -21,7 +21,7 @@ REQUIRES = [
 ]
 
 README_FILE = PROJECT_DIR / "README.md"
-LONG_DESCR = README_FILE.read_text(encoding="utf-8")
+LONG_DESCRIPTION = README_FILE.read_text(encoding="utf-8")
 
 DOWNLOAD_URL = f"{GITHUB_URL}/archive/master.zip"
 CLASSIFIERS = [
@@ -39,11 +39,12 @@ CLASSIFIERS = [
     # that you indicate whether you support Python 2, Python 3 or both.
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
 ]
 
 CONFIG = {
     "description": "Control microscope through client server program.",
-    "long_description": LONG_DESCR,
+    "long_description": LONG_DESCRIPTION,
     "long_description_content_type": "text/markdown",
     "author": "Martin Hjelmare",
     "url": GITHUB_URL,
