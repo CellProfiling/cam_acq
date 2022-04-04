@@ -1,4 +1,4 @@
-click==8.0.4
+click==8.1.2
 pytest==7.1.1
 pytest-asyncio==0.18.3
 pytest-cov==3.0.0
