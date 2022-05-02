@@ -41,7 +41,7 @@ def save_image(path, data, description=None):
     description : str
         The description string of the image.
     """
-    tifffile.imsave(path, data, description=description)
+    tifffile.imwrite(path, data, description=description)
 
 
 def make_proj(images):
