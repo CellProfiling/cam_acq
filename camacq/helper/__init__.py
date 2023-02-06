@@ -119,7 +119,6 @@ def register_signals(center):
         center.loop.add_signal_handler(signal.SIGINT, handle_signal, 0)
 
     else:
-
         prev_sig_term = None
         prev_sig_int = None
 
