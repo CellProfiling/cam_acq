@@ -236,13 +236,13 @@ class ImageEvent(Event):
 
     def __repr__(self):
         """Return the representation."""
-        data = dict(
-            plate_name=self.plate_name,
-            well_x=self.well_x,
-            well_y=self.well_y,
-            field_x=self.field_x,
-            field_y=self.field_y,
-            z_slice_id=self.z_slice_id,
-            channel_id=self.channel_id,
-        )
+        data = {
+            "plate_name": self.plate_name,
+            "well_x": self.well_x,
+            "well_y": self.well_y,
+            "field_x": self.field_x,
+            "field_y": self.field_y,
+            "z_slice_id": self.z_slice_id,
+            "channel_id": self.channel_id,
+        }
         return f"{type(self).__name__}(data={data})"

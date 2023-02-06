@@ -164,7 +164,7 @@ async def test_receive(api, get_imgs):
     assert get_imgs.call_count == 1
     _, args, kwargs = get_imgs.mock_calls[0]
     assert args[0] == str(Path(root_path) / field_path)
-    assert kwargs == dict(search="--E04")
+    assert kwargs == {"search": "--E04"}
     assert mock_handler.call_count == 1
     _, args, _ = mock_handler.mock_calls[0]
     # The first argument is Center, the seconds is the event.
