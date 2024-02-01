@@ -1,5 +1,5 @@
 async_timeout==4.0.3
-colorlog==6.8.0
+colorlog==6.8.2
 jinja2==3.1.3
 leicacam==0.4.2
 leicaimage==0.2.1
