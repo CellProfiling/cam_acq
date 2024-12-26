@@ -1,4 +1,5 @@
 """Handle images."""
+
 import logging
 from collections import defaultdict
 

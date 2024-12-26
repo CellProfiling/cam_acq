@@ -1,4 +1,5 @@
 """Test the template helper."""
+
 from ruamel.yaml import YAML
 
 from camacq.helper.template import make_template, render_template

@@ -1,4 +1,5 @@
 """Configure and set up control center."""
+
 import logging
 
 import camacq.config as config_util

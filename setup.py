@@ -1,4 +1,5 @@
 """Set up file for camacq package."""
+
 from pathlib import Path
 
 from setuptools import find_packages, setup

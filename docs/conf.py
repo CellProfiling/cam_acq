@@ -1,4 +1,5 @@
 """Provide config options for Sphinx documentation."""
+
 # -*- coding: utf-8 -*-
 #
 # camacq documentation build configuration file, created by

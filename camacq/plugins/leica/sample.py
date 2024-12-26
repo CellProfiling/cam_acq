@@ -1,4 +1,5 @@
 """Provide sample implementation for leica microscope."""
+
 import json
 
 import voluptuous as vol

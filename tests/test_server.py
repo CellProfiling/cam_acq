@@ -1,4 +1,5 @@
 """Implement test server."""
+
 import logging
 import socket
 from time import sleep

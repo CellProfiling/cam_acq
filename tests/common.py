@@ -1,4 +1,5 @@
 """Provide common test utils."""
+
 from pathlib import Path
 
 IMAGE_DATA_DIR = (Path(__file__).parent / "fixtures/image_data").resolve()

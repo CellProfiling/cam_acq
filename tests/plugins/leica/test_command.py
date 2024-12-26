@@ -1,4 +1,5 @@
 """Tests for command."""
+
 from camacq.plugins.leica import command
 
 

@@ -1,4 +1,5 @@
 """Microscope API specific modules."""
+
 import asyncio
 import json
 import logging

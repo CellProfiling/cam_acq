@@ -1,4 +1,5 @@
 """Test the event bus."""
+
 from camacq import event as event_mod
 
 

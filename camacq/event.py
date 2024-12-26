@@ -1,4 +1,5 @@
 """Hold events."""
+
 import logging
 
 from camacq.const import BASE_EVENT
