@@ -1,9 +1,10 @@
 [MAIN]
 reports=no
 
-# Black needs to disable wrong-hanging-indent.
-
 disable=
   duplicate-code,
   locally-disabled,
   unused-argument,
+
+[DESIGN]
+max-positional-arguments=7
