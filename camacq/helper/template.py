@@ -1,4 +1,5 @@
 """Handle templates."""
+
 import jinja2
 from jinja2.sandbox import ImmutableSandboxedEnvironment
 

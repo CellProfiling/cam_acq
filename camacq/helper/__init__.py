@@ -1,4 +1,5 @@
 """Helper functions for camacq."""
+
 import logging
 import pkgutil
 import signal

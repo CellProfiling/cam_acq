@@ -1,4 +1,5 @@
 """Test config."""
+
 import camacq.config as config_util
 
 

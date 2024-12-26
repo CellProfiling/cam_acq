@@ -1,4 +1,5 @@
 """Test the control module."""
+
 from unittest.mock import AsyncMock
 
 import voluptuous as vol

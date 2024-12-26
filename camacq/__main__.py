@@ -1,4 +1,5 @@
 """Main module."""
+
 import asyncio
 import argparse
 import logging

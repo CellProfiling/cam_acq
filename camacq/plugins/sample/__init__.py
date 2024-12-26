@@ -1,4 +1,5 @@
 """Handle sample state."""
+
 import asyncio
 import json
 import logging

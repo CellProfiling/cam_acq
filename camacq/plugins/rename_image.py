@@ -1,4 +1,5 @@
 """Handle renaming of an image."""
+
 import logging
 from pathlib import Path
 

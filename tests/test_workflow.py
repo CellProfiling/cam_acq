@@ -1,4 +1,5 @@
 """Test a complete workflow."""
+
 import logging
 from functools import partial
 from pathlib import Path

@@ -1,4 +1,5 @@
 """Control the microscope."""
+
 import asyncio
 import logging
 

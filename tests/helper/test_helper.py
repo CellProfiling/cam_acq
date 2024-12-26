@@ -1,4 +1,5 @@
 """Test helper module."""
+
 from unittest.mock import AsyncMock
 
 import pytest

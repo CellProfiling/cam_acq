@@ -1,4 +1,5 @@
 """Test Leica API."""
+
 import asyncio
 from collections import OrderedDict
 from pathlib import Path

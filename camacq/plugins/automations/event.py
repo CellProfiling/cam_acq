@@ -1,4 +1,5 @@
 """Handle event trigger in automations."""
+
 # Copyright 2013-2017 The Home Assistant Authors
 # https://github.com/home-assistant/home-assistant/blob/master/LICENSE.md
 # This file was modified by The Camacq Authors.

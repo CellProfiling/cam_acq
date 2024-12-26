@@ -1,4 +1,5 @@
 """Handle the config file."""
+
 import logging
 import os
 from pathlib import Path

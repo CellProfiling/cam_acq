@@ -1,4 +1,5 @@
 """Set up common fixtures and helpers for pytest."""
+
 from unittest.mock import Mock
 
 import pytest

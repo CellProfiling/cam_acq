@@ -1,4 +1,5 @@
 """Store common constants."""
+
 ACTION_TIMEOUT = 60.0
 CONF_DATA = "data"
 CONF_ID = "id"
