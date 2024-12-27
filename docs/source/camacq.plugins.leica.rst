@@ -25,3 +25,11 @@ camacq.plugins.leica.helper module
    :undoc-members:
    :show-inheritance:
 
+camacq.plugins.leica.sample module
+----------------------------------
+
+.. automodule:: camacq.plugins.leica.sample
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
