@@ -1,5 +1,6 @@
 """Test a complete workflow."""
 
+from importlib import resources
 import logging
 from functools import partial
 from pathlib import Path
@@ -7,7 +8,6 @@ from unittest.mock import Mock, call, patch
 
 import pytest
 from leicacam.async_cam import AsyncCAM
-from pkg_resources import resource_filename
 
 from camacq import bootstrap
 from camacq.config import DEFAULT_CONFIG_TEMPLATE, load_config_file
@@ -66,7 +66,7 @@ async def test_workflow(center, caplog, api, rename_image):
     """Test a complete workflow."""
     # pylint: disable=too-many-locals,too-many-statements
     caplog.set_level(logging.DEBUG)
-    config_path = Path(resource_filename(bootstrap.__name__, DEFAULT_CONFIG_TEMPLATE))
+    config_path = resources.files(bootstrap.__package__) / DEFAULT_CONFIG_TEMPLATE
     config = await center.add_executor_job(load_config_file, config_path)
     config.pop("logging")
     await bootstrap.setup_dict(center, config)

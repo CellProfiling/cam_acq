@@ -2,7 +2,7 @@
 
 import asyncio
 
-import pkg_resources
+from importlib.metadata import entry_points
 
 from camacq.helper import setup_one_module
 
@@ -46,6 +46,6 @@ def get_plugins():
     """Return a dict of plugin modules."""
     plugins = {
         entry_point.name: entry_point.load()
-        for entry_point in pkg_resources.iter_entry_points("camacq.plugins")
+        for entry_point in entry_points(group="camacq.plugins")
     }
     return plugins
