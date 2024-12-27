@@ -1,5 +1,6 @@
 """Set up common fixtures and helpers for pytest."""
 
+import asyncio
 from unittest.mock import Mock
 
 import pytest
@@ -13,9 +14,9 @@ SET_SAMPLE_SCHEMA = vol.Schema({vol.Required("name"): str}, extra=vol.ALLOW_EXTR
 
 
 @pytest.fixture(name="center")
-async def center_fixture(event_loop):
+async def center_fixture():
     """Give access to center via fixture."""
-    _center = Center(loop=event_loop)
+    _center = Center(loop=asyncio.get_running_loop())
     _center._track_tasks = True  # pylint: disable=protected-access
     return _center
 
@@ -146,7 +147,7 @@ class MockSample(sample_mod.Sample):
             path=event.path,
             channel_id=event.channel_id,
             z_slice_id=event.z_slice_id,
-            **field_args
+            **field_args,
         )
         await self.set_sample("field", **field_args)
 
