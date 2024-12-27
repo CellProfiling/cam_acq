@@ -1,10 +1,10 @@
 """Handle the config file."""
 
+from importlib import resources
 import logging
 import os
 from pathlib import Path
 
-from pkg_resources import resource_filename
 from ruamel.yaml import YAML, YAMLError
 
 _LOGGER = logging.getLogger(__name__)
@@ -89,7 +89,7 @@ def create_default_config(config_dir):
         failed.
     """
     config_path = config_dir / YAML_CONFIG_FILE
-    default_config_template = resource_filename(__name__, DEFAULT_CONFIG_TEMPLATE)
+    default_config_template = resources.files(__package__) / DEFAULT_CONFIG_TEMPLATE
     data = load_config_file(Path(default_config_template))
     yaml = YAML()
 
