@@ -13,16 +13,11 @@ class Event:
 
     Parameters
     ----------
-    data : dict
+    data : dict, optional
         The data of the event.
-
-    Attributes
-    ----------
-    data : dict
-        Return the data of the event.
     """
 
-    __slots__ = ("data",)
+    __slots__ = {"data": "Return the data of the event."}
 
     event_type = BASE_EVENT
 
