@@ -29,7 +29,7 @@ async def api(center):
     """Return a leica api instance."""
     leica_conf = {"host": "localhost", "port": 8895, "imaging_dir": "/tmp"}
     config = {"leica": leica_conf}
-    client = Mock(AsyncCAM(loop=center.loop))
+    client = Mock(AsyncCAM())
     mock_api = LeicaApi(center, leica_conf, client)
 
     async def register_mock_api(center, config):
