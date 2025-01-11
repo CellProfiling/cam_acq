@@ -69,7 +69,7 @@ async def setup_module(center, config):
     conf = config[CONF_LEICA]
     host = conf[CONF_HOST]
     port = conf[CONF_PORT]
-    cam = AsyncCAM(host, port, loop=center.loop)
+    cam = AsyncCAM(host, port)
     try:
         await cam.connect()
     except OSError as exc:

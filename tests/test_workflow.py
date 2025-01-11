@@ -30,7 +30,7 @@ def log_util_fixture():
 def api_fixture(center):
     """Return a leica api instance."""
     config = {"leica": {}}
-    client = Mock(AsyncCAM(loop=center.loop))
+    client = Mock(AsyncCAM())
     mock_api = Mock(LeicaApi(center, config, client))
     mock_api.send_many = partial(base_api.Api.send_many, mock_api)
 

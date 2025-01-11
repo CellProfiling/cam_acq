@@ -12,7 +12,7 @@ REQUIRES = [
     "async_timeout",
     "colorlog",
     "jinja2",
-    "leicacam>=0.4.0",
+    "leicacam>=0.5.0",
     "leicaimage",
     "numpy",
     "ruamel.yaml>=0.15",
