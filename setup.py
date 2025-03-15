@@ -38,7 +38,6 @@ CLASSIFIERS = [
     "License :: OSI Approved :: Apache Software License",
     # Specify the Python versions you support here. In particular, ensure
     # that you indicate whether you support Python 2, Python 3 or both.
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -54,7 +53,7 @@ CONFIG = {
     "license": "Apache-2.0",
     "author_email": "marhje52@gmail.com",
     "version": VERSION,
-    "python_requires": ">=3.10",
+    "python_requires": ">=3.11",
     "install_requires": REQUIRES,
     "packages": find_packages(exclude=["contrib", "docs", "tests*"]),
     "include_package_data": True,
