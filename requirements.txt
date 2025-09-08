@@ -7,4 +7,4 @@ numpy==2.2.4
 ruamel.yaml==0.18.15
 tifffile==2025.3.13
 voluptuous==0.15.2
-xmltodict==0.14.2
+xmltodict==0.15.0
