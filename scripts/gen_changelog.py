@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Generate changelog."""
+
 import os
 from pathlib import Path
 
