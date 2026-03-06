@@ -359,15 +359,12 @@ can eg be an image analysis script. See the
 [documentation](http://cam-acq.readthedocs.io) for all default available
 plugins.
 
-To install a custom plugin, create a Python package with a `setup.py` module that
-implements the entry_points interface with key `"camacq.plugins"`.
+To install a custom plugin, create a Python package with a `pyproject.toml` file that
+configures the entry-points interface with the plugin group `"camacq.plugins"`.
 
-```py
-setup(
-    ...
-    entry_points={"camacq.plugins": "plugin_a = package_a.plugin_a"},
-    ...
-)
+```toml
+[project.entry-points."camacq.plugins"]
+plugin_a = "package_a.plugin_a"
 ```
 
 See the packaging [docs](https://packaging.python.org/guides/creating-and-discovering-plugins/#using-package-metadata) for details.
