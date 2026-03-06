@@ -18,10 +18,10 @@ Bug reports in the issue tracker and pull requests are welcome.
     git remote add upstream https://github.com/CellProfiling/cam_acq.git
     ```
 
-4. Create a topic branch based off master branch.
+4. Create a topic branch based off main branch.
 
     ```sh
-    git checkout -b cool_new_feature master
+    git checkout -b cool_new_feature main
     ```
 
 5. Make your changes in the new topic branch. New features should preferably be accompanied with new tests. [PEP8](https://www.python.org/dev/peps/pep-0008/) and [PEP257](https://www.python.org/dev/peps/pep-0257/) style should be followed. We use [pylint](https://www.pylint.org/) and [flake8](http://flake8.pycqa.org/en/latest/) as code linters.
@@ -45,5 +45,5 @@ Bug reports in the issue tracker and pull requests are welcome.
     git push origin HEAD
     ```
 
-9. Create a pull request at github to the main cam_acq repository and target the master branch with your changes.
+9. Create a pull request at github to the main cam_acq repository and target the main branch with your changes.
 10. Watch the build checks turn green :white_check_mark:, and get the :thumbsup: in the code review.

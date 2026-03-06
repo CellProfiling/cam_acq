@@ -24,7 +24,7 @@ REQUIRES = [
 README_FILE = PROJECT_DIR / "README.md"
 LONG_DESCRIPTION = README_FILE.read_text(encoding="utf-8")
 
-DOWNLOAD_URL = f"{GITHUB_URL}/archive/master.zip"
+DOWNLOAD_URL = f"{GITHUB_URL}/archive/main.zip"
 CLASSIFIERS = [
     # How mature is this project? Common values are
     #   3 - Alpha

@@ -33,20 +33,20 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
         with:
-          ref: master
+          ref: main
 
       - name: Generate changelog
         uses: charmixer/auto-changelog-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          release_branch: master
+          release_branch: main
           base: HISTORY.md
           since_tag: "0.7.0"
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v8.1.0
         with:
-          base: master
+          base: main
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: Update changelog
           title: Update changelog
