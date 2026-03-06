@@ -10,4 +10,4 @@ def test_can_run_as_python_module():
         capture_output=True,
     )
     assert result.returncode == 0
-    assert b"camacq [OPTIONS]" in result.stdout
+    assert b"usage: __main__.py [-h]" in result.stdout
