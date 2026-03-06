@@ -1,40 +1,89 @@
-"""Provide config options for Sphinx documentation."""
-
-import datetime
+# Configuration file for the Sphinx documentation builder.
+#
+# This file only contains a selection of the most common options. For a full
+# list see the documentation:
+# https://www.sphinx-doc.org/en/master/usage/configuration.html
 from pathlib import Path
+from typing import Any
 
-# Project information
-now = datetime.datetime.now()
+from sphinx.application import Sphinx
+from sphinx.ext import apidoc
+
+# -- Project information -----------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
+
 project = "camacq"
-project_copyright = f"{now.year}, Martin Hjelmare"
+project_copyright = "2026, Martin Hjelmare"
 author = "Martin Hjelmare"
+release = "0.9.0"
 
-project_dir = Path(__file__).parent.parent.resolve()
-release = (project_dir / "camacq" / "VERSION").read_text(encoding="utf-8").strip()
-version = ".".join(release.split(".")[:2])
+# -- General configuration ---------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-# General configuration
+# Add any Sphinx extension module names here, as strings. They can be
+# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
+# ones.
 extensions = [
-    "sphinx.ext.autodoc",
+    "myst_parser",
     "sphinx.ext.napoleon",
-    "sphinx_rtd_theme",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.viewcode",
 ]
-
-autodoc_default_options = {
-    "members": None,
-    "inherited-members": True,
-    "show-inheritance": True,
-}
+napoleon_google_docstring = False
 
 # The suffix of source filenames.
-source_suffix = ".rst"
+source_suffix = [
+    ".rst",
+    ".md",
+]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ["_templates"]
+templates_path = [
+    "_templates",
+]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ["_build"]
+# This pattern also affects html_static_path and html_extra_path.
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+]
 
-# Options for HTML output
-html_theme = "sphinx_rtd_theme"
+
+# -- Options for HTML output -------------------------------------------------
+
+# The theme to use for HTML and HTML Help pages.  See the documentation for
+# a list of builtin themes.
+#
+html_theme = "furo"
+
+# Add any paths that contain custom static files (such as style sheets) here,
+# relative to this directory. They are copied after the builtin static files,
+# so a file named "default.css" will overwrite the builtin "default.css".
+html_static_path = ["_static"]
+
+
+# -- Automatically run sphinx-apidoc -----------------------------------------
+
+
+def run_apidoc(_: Any) -> None:
+    """Run sphinx-apidoc."""
+    docs_path = Path(__file__).parent
+    module_path = docs_path.parent / "src" / "camacq"
+
+    apidoc.main(
+        [
+            "--force",
+            "--module-first",
+            "-o",
+            docs_path.as_posix(),
+            module_path.as_posix(),
+        ]
+    )
+
+
+def setup(app: Sphinx) -> None:
+    """Setup sphinx."""
+    app.connect("builder-inited", run_apidoc)

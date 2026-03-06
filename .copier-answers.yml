@@ -1,0 +1,22 @@
+# Changes here will be overwritten by Copier
+_commit: ee4a730
+_src_path: https://github.com/browniebroke/pypackage-template
+cli_name: camacq
+copyright_year: '2026'
+documentation: true
+email: marhje52@gmail.com
+full_name: Martin Hjelmare
+github_username: CellProfiling
+has_cli: true
+initial_commit: false
+is_django_package: false
+open_source_license: Apache-2.0
+open_with_editor: false
+package_name: camacq
+project_name: camacq
+project_short_description: Control microscope through client server program.
+project_slug: cam_acq
+run_uv_sync: false
+setup_github: false
+setup_pre_commit: false
+

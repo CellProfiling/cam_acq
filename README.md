@@ -1,19 +1,50 @@
-# camacq [![Build Status](https://github.com/CellProfiling/cam_acq/workflows/Test%20application/badge.svg)](https://github.com/CellProfiling/cam_acq/actions) [![Documentation Status](https://readthedocs.org/projects/cam-acq/badge/?version=latest)](http://cam-acq.readthedocs.io/en/latest/?badge=latest)
+# camacq
 
-Python project to control microscope through client-server program.
+<p align="center">
+  <a href="https://github.com/CellProfiling/cam_acq/actions/workflows/ci.yml?query=branch%3Amain">
+    <img src="https://img.shields.io/github/actions/workflow/status/CellProfiling/cam_acq/ci.yml?branch=main&label=CI&logo=github&style=flat-square" alt="CI Status" >
+  </a>
+  <a href="https://cam_acq.readthedocs.io">
+    <img src="https://img.shields.io/readthedocs/cam_acq.svg?logo=read-the-docs&logoColor=fff&style=flat-square" alt="Documentation Status">
+  </a>
+  <a href="https://codecov.io/gh/CellProfiling/cam_acq">
+    <img src="https://img.shields.io/codecov/c/github/CellProfiling/cam_acq.svg?logo=codecov&logoColor=fff&style=flat-square" alt="Test coverage percentage">
+  </a>
+</p>
+<p align="center">
+  <a href="https://github.com/astral-sh/uv">
+    <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json" alt="uv">
+  </a>
+  <a href="https://github.com/astral-sh/ruff">
+    <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff">
+  </a>
+  <a href="https://github.com/pre-commit/pre-commit">
+    <img src="https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white&style=flat-square" alt="pre-commit">
+  </a>
+</p>
+<p align="center">
+  <a href="https://pypi.org/project/camacq/">
+    <img src="https://img.shields.io/pypi/v/camacq.svg?logo=python&logoColor=fff&style=flat-square" alt="PyPI Version">
+  </a>
+  <img src="https://img.shields.io/pypi/pyversions/camacq.svg?style=flat-square&logo=python&amp;logoColor=fff" alt="Supported Python versions">
+  <img src="https://img.shields.io/pypi/l/camacq.svg?style=flat-square" alt="License">
+</p>
 
-## Install
+---
 
-- Install the camacq package. Python version 3.11+ is supported.
+**Documentation**: <a href="https://cam-acq.readthedocs.io" target="_blank">https://cam-acq.readthedocs.io </a>
 
-    ```sh
-    # Check python version.
-    python --version
-    # Install package.
-    pip install camacq
-    # Test that program is callable and show help.
-    camacq -h
-    ```
+**Source Code**: <a href="https://github.com/CellProfiling/cam_acq" target="_blank">https://github.com/CellProfiling/cam_acq </a>
+
+---
+
+Control microscope through client server program.
+
+## Installation
+
+Install this via pip (or your favourite package manager):
+
+`pip install camacq`
 
 ## Run
 
@@ -359,27 +390,16 @@ example_plugin:
   ...
 ```
 
-## Development
-
-Install the packages needed for development.
-
-```sh
-pip install -r requirements_dev.txt
-```
-
-Use the Makefile to run common development tasks.
-
-```sh
-make
-```
-
-### Release
-
-See the [release instructions](RELEASE.md).
-
 ## Credits
 
 A lot of the inspiration for the architecture of camacq comes from
 another open-source Python automation app: [Home
 Assistant](https://github.com/home-assistant/home-assistant). This is
 also the source for the automations interface in camacq.
+
+[![Copier](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/copier-org/copier/master/img/badge/badge-grayscale-inverted-border-orange.json)](https://github.com/copier-org/copier)
+
+This package was created with
+[Copier](https://copier.readthedocs.io/) and the
+[browniebroke/pypackage-template](https://github.com/browniebroke/pypackage-template)
+project template.

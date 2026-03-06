@@ -1,49 +1,117 @@
-# How to contribute
+# Contributing
 
-Bug reports in the issue tracker and pull requests are welcome.
+Contributions are welcome, and they are greatly appreciated! Every little helps, and credit will always be given.
 
-## Pull request
+You can contribute in many ways:
 
-1. Fork the repository at github.
-2. Clone your fork.
+## Types of Contributions
 
-    ```sh
-    git clone https://github.com/YOUR_GIT_USERNAME/cam_acq.git
-    cd cam_acq
-    ```
+### Report Bugs
 
-3. Add the main repository as upstream.
+Report bugs to [our issue page][gh-issues]. If you are reporting a bug, please include:
 
-    ```sh
-    git remote add upstream https://github.com/CellProfiling/cam_acq.git
-    ```
+- Your operating system name and version.
+- Any details about your local setup that might be helpful in troubleshooting.
+- Detailed steps to reproduce the bug.
 
-4. Create a topic branch based off main branch.
+### Fix Bugs
 
-    ```sh
-    git checkout -b cool_new_feature main
-    ```
+Look through the GitHub issues for bugs. Anything tagged with "bug" and "help wanted" is open to whoever wants to implement it.
 
-5. Make your changes in the new topic branch. New features should preferably be accompanied with new tests. [PEP8](https://www.python.org/dev/peps/pep-0008/) and [PEP257](https://www.python.org/dev/peps/pep-0257/) style should be followed. We use [pylint](https://www.pylint.org/) and [flake8](http://flake8.pycqa.org/en/latest/) as code linters.
-6. Test with tox and make sure existing tests don't fail. Linting will also be checked when tox is run.
+### Implement Features
 
-    ```sh
-    pip install -r requirements_dev.txt
-    tox
-    ```
+Look through the GitHub issues for features. Anything tagged with "enhancement" and "help wanted" is open to whoever wants to implement it.
 
-7. Add and commit your work and describe the additions and or changes in the commit message. Use an editor for the commit message, not the command line. Try to keep the header of the commit message within 50 characters and the body within 72 characters per line. A blank line should separate the header from the body of the commit message. Markdown is cool.
+### Write Documentation
 
-    ```sh
-    git add -A
-    git commit
-    ```
+camacq could always use more documentation, whether as part of the official camacq docs, in docstrings, or even on the web in blog posts, articles, and such.
 
-8. Push you local changes to your fork.
+### Submit Feedback
 
-    ```sh
-    git push origin HEAD
-    ```
+The best way to send feedback [our issue page][gh-issues] on GitHub. If you are proposing a feature:
 
-9. Create a pull request at github to the main cam_acq repository and target the main branch with your changes.
-10. Watch the build checks turn green :white_check_mark:, and get the :thumbsup: in the code review.
+- Explain in detail how it would work.
+- Keep the scope as narrow as possible, to make it easier to implement.
+- Remember that this is a volunteer-driven project, and that contributions are welcome 😊
+
+## Get Started!
+
+Ready to contribute? Here's how to set yourself up for local development.
+
+1. Fork the repo on GitHub.
+
+2. Clone your fork locally:
+
+   ```shell
+   $ git clone git@github.com:your_name_here/cam_acq.git
+   ```
+
+3. Install the project dependencies with [uv](https://docs.astral.sh/uv/):
+
+   ```shell
+   $ uv sync
+   ```
+
+4. Create a branch for local development:
+
+   ```shell
+   $ git checkout -b name-of-your-bugfix-or-feature
+   ```
+
+   Now you can make your changes locally.
+
+5. When you're done making changes, check that your changes pass our tests:
+
+   ```shell
+   $ uv run pytest
+   ```
+
+6. Linting is done through [pre-commit](https://pre-commit.com). Provided you have the tool installed globally, you can run them all as one-off:
+
+   ```shell
+   $ pre-commit run -a
+   ```
+
+   Or better, install the hooks once and have them run automatically each time you commit:
+
+   ```shell
+   $ pre-commit install
+   ```
+
+7. Commit your changes and push your branch to GitHub:
+
+   ```shell
+   $ git add .
+   $ git commit -m "feat(something): your detailed description of your changes"
+   $ git push origin name-of-your-bugfix-or-feature
+   ```
+
+   Note: the commit message should follow [the conventional commits](https://www.conventionalcommits.org). We run [`commitlint` on CI](https://github.com/marketplace/actions/commit-linter) to validate it, and if you've installed pre-commit hooks at the previous step, the message will be checked at commit time.
+
+8. Submit a pull request through the GitHub website or using the GitHub CLI (if you have it installed):
+
+   ```shell
+   $ gh pr create --fill
+   ```
+
+## Pull Request Guidelines
+
+We like to have the pull request open as soon as possible, that's a great place to discuss any piece of work, even unfinished. You can use draft pull request if it's still a work in progress. Here are a few guidelines to follow:
+
+1. Include tests for feature or bug fixes.
+2. Update the documentation for significant features.
+3. Ensure tests are passing on CI.
+
+## Tips
+
+To run a subset of tests:
+
+```shell
+$ pytest tests
+```
+
+## Making a new release
+
+The deployment should be automated and can be triggered from the Semantic Release workflow in GitHub. The next version will be based on [the commit logs](https://python-semantic-release.readthedocs.io/en/latest/commit-log-parsing.html#commit-log-parsing). This is done by [python-semantic-release](https://python-semantic-release.readthedocs.io/en/latest/index.html) via a GitHub action.
+
+[gh-issues]: https://github.com/CellProfiling/cam_acq/issues
