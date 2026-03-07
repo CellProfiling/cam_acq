@@ -64,7 +64,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
       - uses: astral-sh/setup-uv@v6
-      - run: uv sync --no-python-downloads
+      - run: uv sync --all-extras --no-python-downloads
+        shell: bash
+      - run: ./scripts/setup_tests.py
         shell: bash
       - run: uv run pytest
         shell: bash
