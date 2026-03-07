@@ -1,9 +1,12 @@
 """Handle sample state."""
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 import asyncio
 import json
 import logging
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import voluptuous as vol
 
@@ -11,6 +14,9 @@ from camacq.event import Event
 from camacq.exceptions import SampleError
 from camacq.helper import BASE_ACTION_SCHEMA
 from camacq.util import dotdict
+
+if TYPE_CHECKING:
+    from camacq.control import Center
 
 _LOGGER = logging.getLogger(__name__)
 SAMPLE_EVENT = "sample_event"
@@ -24,12 +30,12 @@ BASE_SET_SAMPLE_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend(
     {vol.Required("name"): vol.Coerce(str), "values": dict}
 )
 
-ACTION_TO_METHOD = {
+ACTION_TO_METHOD: dict[str, dict[str, Any]] = {
     ACTION_SET_SAMPLE: {"method": "set_sample", "schema": SET_SAMPLE_ACTION_SCHEMA},
 }
 
 
-async def setup_module(center, config):
+async def setup_module(center: Center, config: dict[str, Any]) -> None:
     """Set up sample module.
 
     Parameters
@@ -41,7 +47,7 @@ async def setup_module(center, config):
 
     """
 
-    async def handle_action(**kwargs):
+    async def handle_action(**kwargs: Any) -> None:
         """Handle action call to add a state to the sample.
 
         Parameters
@@ -59,7 +65,7 @@ async def setup_module(center, config):
             samples = [center.samples[sample_name]]
         else:
             samples = list(center.samples.values())
-        tasks = []
+        tasks: list[asyncio.Task[Any]] = []
         for sample in samples:
             try:
                 kwargs = sample.set_sample_schema(kwargs)
@@ -91,7 +97,7 @@ class Samples(dotdict):
 
     # pylint: disable=too-few-public-methods
 
-    def __getattr__(self, sample_name):
+    def __getattr__(self, sample_name: str) -> Sample:  # type: ignore[override]
         """Get a sample by name."""
         try:
             return self[sample_name]
@@ -99,7 +105,7 @@ class Samples(dotdict):
             raise SampleError(f"Unable to get sample with name {sample_name}") from exc
 
 
-def register_sample(center, sample):
+def register_sample(center: Center, sample: Sample) -> None:
     """Register sample."""
     sample.center = center
     sample.data = {}
@@ -112,51 +118,51 @@ class ImageContainer(ABC):
 
     @property
     @abstractmethod
-    def change_event(self):
+    def change_event(self) -> type[SampleEvent]:
         """:Event: Return an event class to fire on container change."""
 
     @property
     @abstractmethod
-    def images(self):
+    def images(self) -> dict[str, Image]:
         """:dict: Return a dict with all images for the container."""
 
     @property
     @abstractmethod
-    def name(self):
+    def name(self) -> str:
         """:str: Return an identifying name for the container."""
 
     @property
     @abstractmethod
-    def values(self):
+    def values(self) -> dict[str, Any]:
         """:dict: Return a dict with the values set for the container."""
 
 
 class Sample(ImageContainer, ABC):
     """Representation of the state of the sample."""
 
-    center = None
-    data = None
+    center: Center | None = None
+    data: dict[str, ImageContainer] | None = None
 
     @property
     @abstractmethod
-    def image_event_type(self):
+    def image_event_type(self) -> str:
         """:str: Return the image event type to listen to for the sample."""
 
     @property
     @abstractmethod
-    def name(self):
+    def name(self) -> str:
         """:str: Return the name of the sample."""
 
     @property
     @abstractmethod
-    def set_sample_schema(self):
+    def set_sample_schema(self) -> vol.Schema | Any:
         """Return the validation schema of the set_sample method."""
 
     @abstractmethod
-    async def on_image(self, center, event):
+    async def on_image(self, center: Center, event: Event) -> None:
         """Handle image event for this sample."""
 
-    def get_sample(self, name, **kwargs):
+    def get_sample(self, name: str, **kwargs: Any) -> ImageContainer | None:
         """Get an image container of the sample.
 
         Parameters
@@ -174,9 +180,11 @@ class Sample(ImageContainer, ABC):
 
         """
         id_string = json.dumps({"name": name, **kwargs})
-        return self.data.get(id_string)
+        return self.data.get(id_string) if self.data else None
 
-    async def set_sample(self, name, values=None, **kwargs):
+    async def set_sample(
+        self, name: str, values: dict[str, Any] | None = None, **kwargs: Any
+    ) -> ImageContainer:
         """Set an image container of the sample.
 
         Parameters
@@ -197,30 +205,36 @@ class Sample(ImageContainer, ABC):
         """
         id_string = json.dumps({"name": name, **kwargs})
         values = values or {}
-        container = self.data.get(id_string)
+        container = self.data.get(id_string) if self.data else None
         event = None
 
         if container is None:
             container = await self._set_sample(name, values, **kwargs)
+            if container is None:
+                raise SampleError(f"Unknown sample container name: {name}")
             event_class = container.change_event
             event = event_class({"container": container})
 
         container.values.update(values)
-        self.data[id_string] = container
+        if self.data is not None:
+            self.data[id_string] = container
 
         if name == "image":
-            self.images[container.path] = container
+            image: Image = container  # type: ignore[assignment]
+            self.images[image.path] = image
 
         if not event and values:
             event_class = container.change_event
             event = event_class({"container": container})
 
-        if event:
+        if event and self.center:
             await self.center.bus.notify(event)
         return container
 
     @abstractmethod
-    async def _set_sample(self, name, values, **kwargs):
+    async def _set_sample(
+        self, name: str, values: dict[str, Any], **kwargs: Any
+    ) -> ImageContainer | None:
         """Set an image container of the sample.
 
         Parameters
@@ -243,39 +257,41 @@ class Sample(ImageContainer, ABC):
 class Image(ImageContainer):
     """An image with path and position info."""
 
-    def __init__(self, path, values=None, **kwargs):
+    def __init__(
+        self, path: str, values: dict[str, Any] | None = None, **kwargs: Any
+    ) -> None:
         """Set up instance."""
         self._path = path
         self._values = values or {}
         for attr, val in kwargs.items():
             setattr(self, attr, val)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the representation."""
         return f"<Image(path={self.path}, values={self.values})>"
 
     @property
-    def change_event(self):
+    def change_event(self) -> type[SampleImageSetEvent]:
         """:Event: Return an event class to fire on container change."""
         return SampleImageSetEvent
 
     @property
-    def images(self):
+    def images(self) -> dict[str, Image]:
         """:dict: Return a dict with all images for the container."""
         return {self.path: self}
 
     @property
-    def name(self):
+    def name(self) -> str:
         """:str: Return an identifying name for the container."""
         return "image"
 
     @property
-    def path(self):
+    def path(self) -> str:
         """:str: Return the path of the image."""
         return self._path
 
     @property
-    def values(self):
+    def values(self) -> dict[str, Any]:
         """:dict: Return a dict with the values set for the container."""
         return self._values
 
@@ -285,29 +301,29 @@ class SampleEvent(Event):
 
     __slots__ = ()
 
-    event_type = SAMPLE_EVENT
+    event_type: ClassVar[str] = SAMPLE_EVENT
 
     @property
-    def container(self):
+    def container(self) -> ImageContainer | None:
         """:ImageContainer instance: Return the container instance of the event."""
         return self.data.get("container")
 
     @property
-    def container_name(self):
+    def container_name(self) -> str:
         """:str: Return the container name of the event."""
-        return self.container.name
+        return self.container.name if self.container else ""
 
     @property
-    def images(self):
+    def images(self) -> dict[str, Image]:
         """:dict: Return the container images of the event."""
-        return self.container.images
+        return self.container.images if self.container else {}
 
     @property
-    def values(self):
+    def values(self) -> dict[str, Any]:
         """:dict: Return the container values of the event."""
-        return self.container.values
+        return self.container.values if self.container else {}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the representation."""
         data = {"container": self.container}
         return f"{type(self).__name__}(data={data})"
@@ -318,16 +334,21 @@ class SampleImageSetEvent(SampleEvent):
 
     __slots__ = ()
 
-    event_type = SAMPLE_IMAGE_SET_EVENT
+    event_type: ClassVar[str] = SAMPLE_IMAGE_SET_EVENT
 
 
-def get_matched_samples(sample, name, attrs=None, values=None):
+def get_matched_samples(
+    sample: Sample,
+    name: str,
+    attrs: dict[str, Any] | None = None,
+    values: dict[str, Any] | None = None,
+) -> list[ImageContainer]:
     """Return the sample items that match."""
     attrs = attrs or {}
     values = values or {}
     items = [
         cont
-        for cont in sample.data.values()
+        for cont in (sample.data.values() if sample.data else [])
         if cont.name == name
         and (
             not attrs

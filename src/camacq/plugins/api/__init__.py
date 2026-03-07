@@ -1,8 +1,11 @@
 """Microscope API specific modules."""
 
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import voluptuous as vol
 
@@ -15,12 +18,15 @@ from camacq.const import (
 from camacq.event import Event
 from camacq.helper import BASE_ACTION_SCHEMA
 
+if TYPE_CHECKING:
+    from camacq.control import Center
+
 _LOGGER = logging.getLogger(__name__)
 
 COMMAND_VALIDATOR = vol.Any([(str, str)], vol.Coerce(str))
 
 
-def validate_commands(value):
+def validate_commands(value: Any) -> list[Any]:
     """Validate a template string via JSON."""
     if isinstance(value, str):
         try:
@@ -47,7 +53,7 @@ SEND_MANY_ACTION_SCHEMA = BASE_ACTION_SCHEMA.extend({"commands": validate_comman
 
 START_IMAGING_ACTION_SCHEMA = STOP_IMAGING_ACTION_SCHEMA = BASE_ACTION_SCHEMA
 
-ACTION_TO_METHOD = {
+ACTION_TO_METHOD: dict[str, dict[str, Any]] = {
     ACTION_SEND: {"method": "send", "schema": SEND_ACTION_SCHEMA},
     ACTION_SEND_MANY: {"method": "send_many", "schema": SEND_MANY_ACTION_SCHEMA},
     ACTION_START_IMAGING: {
@@ -61,13 +67,13 @@ ACTION_TO_METHOD = {
 }
 
 
-def register_api(center, api):
+def register_api(center: Center, api: Api) -> None:
     """Register api."""
-    api_store = center.data.setdefault(DATA_API, {})
+    api_store: dict[str, Api] = center.data.setdefault(DATA_API, {})
     api_store[api.name] = api
 
 
-async def setup_module(center, config):
+async def setup_module(center: Center, config: dict[str, Any]) -> None:
     """Set up the microscope API package.
 
     Parameters
@@ -78,9 +84,9 @@ async def setup_module(center, config):
         The config dict.
 
     """
-    api_store = center.data.setdefault(DATA_API, {})
+    api_store: dict[str, Api] = center.data.setdefault(DATA_API, {})
 
-    async def handle_action(**kwargs):
+    async def handle_action(**kwargs: Any) -> None:
         """Handle action call to send a command to an api.
 
         Parameters
@@ -97,7 +103,7 @@ async def setup_module(center, config):
             apis = [api_store[api_name]]
         else:
             apis = list(api_store.values())
-        tasks = []
+        tasks: list[asyncio.Task[Any]] = []
         for api in apis:
             _LOGGER.debug("Handle API %s action %s: %s", api.name, action_id, kwargs)
             tasks.append(center.create_task(getattr(api, method)(**kwargs)))
@@ -113,11 +119,11 @@ class Api:
     """Represent the microscope API."""
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the API."""
         raise NotImplementedError()
 
-    async def send(self, command, **kwargs):
+    async def send(self, command: Any, **kwargs: Any) -> Any:
         """Send a command to the microscope API.
 
         Parameters
@@ -128,7 +134,7 @@ class Api:
         """
         raise NotImplementedError()
 
-    async def send_many(self, commands, **kwargs):
+    async def send_many(self, commands: list[Any], **kwargs: Any) -> None:
         """Send multiple commands to the microscope API.
 
         Parameters
@@ -141,11 +147,11 @@ class Api:
             # It's important that each task is done before we start the next.
             await self.send(cmd, **kwargs)
 
-    async def start_imaging(self):
+    async def start_imaging(self) -> None:
         """Send a command to the microscope to start the imaging."""
         raise NotImplementedError()
 
-    async def stop_imaging(self):
+    async def stop_imaging(self) -> None:
         """Send a command to the microscope to stop the imaging."""
         raise NotImplementedError()
 
@@ -159,10 +165,10 @@ class CommandEvent(Event):
 
     __slots__ = ()
 
-    event_type = COMMAND_EVENT
+    event_type: ClassVar[str] = COMMAND_EVENT
 
     @property
-    def command(self):
+    def command(self) -> str | None:
         """:str: Return the command string."""
         return None
 
@@ -175,7 +181,7 @@ class StartCommandEvent(CommandEvent):
 
     __slots__ = ()
 
-    event_type = START_COMMAND_EVENT
+    event_type: ClassVar[str] = START_COMMAND_EVENT
 
 
 class StopCommandEvent(CommandEvent):
@@ -186,7 +192,7 @@ class StopCommandEvent(CommandEvent):
 
     __slots__ = ()
 
-    event_type = STOP_COMMAND_EVENT
+    event_type: ClassVar[str] = STOP_COMMAND_EVENT
 
 
 class ImageEvent(Event):
@@ -197,49 +203,52 @@ class ImageEvent(Event):
 
     __slots__ = ()
 
-    event_type = IMAGE_EVENT
+    event_type: ClassVar[str] = IMAGE_EVENT
 
     @property
-    def path(self):
+    def path(self) -> str:
         """:str: Return absolute path to the image."""
-        return self.data.get("path")
+        path = self.data.get("path")
+        if path is None:
+            raise NotImplementedError()
+        return path
 
     @property
-    def well_x(self):
+    def well_x(self) -> int | None:
         """:int: Return x coordinate of the well of the image."""
         return self.data.get("well_x")
 
     @property
-    def well_y(self):
+    def well_y(self) -> int | None:
         """:int: Return y coordinate of the well of the image."""
         return self.data.get("well_y")
 
     @property
-    def field_x(self):
+    def field_x(self) -> int | None:
         """:int: Return x coordinate of the well of the image."""
         return self.data.get("field_x")
 
     @property
-    def field_y(self):
+    def field_y(self) -> int | None:
         """:int: Return y coordinate of the well of the image."""
         return self.data.get("field_y")
 
     @property
-    def z_slice_id(self):
+    def z_slice_id(self) -> int | None:
         """:int: Return z index of the image."""
         return self.data.get("z_slice_id")
 
     @property
-    def channel_id(self):
+    def channel_id(self) -> int | None:
         """:int: Return channel id of the image."""
         return self.data.get("channel_id")
 
     @property
-    def plate_name(self):
+    def plate_name(self) -> str | None:
         """:str: Return plate name of the image."""
         return self.data.get("plate_name")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the representation."""
         data = {
             "plate_name": self.plate_name,

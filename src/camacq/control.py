@@ -1,7 +1,12 @@
 """Control the microscope."""
 
+from __future__ import annotations
+
 import asyncio
+from collections.abc import Awaitable, Callable, Coroutine
+import inspect
 import logging
+from typing import Any, ParamSpec, TypeVar
 
 from async_timeout import timeout as async_timeout
 import voluptuous as vol
@@ -14,6 +19,9 @@ from camacq.plugins.sample import Samples
 from camacq.util import dotdict
 
 _LOGGER = logging.getLogger(__name__)
+
+_T = TypeVar("_T")
+_P = ParamSpec("_P")
 
 
 class Center:
@@ -41,24 +49,24 @@ class Center:
 
     # pylint: disable=too-many-instance-attributes
 
-    def __init__(self, loop=None):
+    def __init__(self, loop: asyncio.AbstractEventLoop | None = None) -> None:
         """Set up instance."""
-        self.loop = loop or asyncio.get_event_loop()
+        self.loop: asyncio.AbstractEventLoop = loop or asyncio.get_event_loop()
         self.loop.set_exception_handler(loop_exception_handler)
         self.bus = EventBus(self)
-        self.actions = ActionsRegistry(self)
-        self.samples = Samples()
-        self.data = {}
+        self.actions: ActionsRegistry = ActionsRegistry(self)
+        self.samples: Samples = Samples()
+        self.data: dict[str, Any] = {}
         self._exit_code = 0
-        self._stopped = None
-        self._pending_tasks = []
+        self._stopped: asyncio.Event | None = None
+        self._pending_tasks: list[asyncio.Task[Any] | asyncio.Future[Any]] = []
         self._track_tasks = False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the representation."""
         return "<Center>"
 
-    async def end(self, code):
+    async def end(self, code: int) -> None:
         """Prepare app for exit.
 
         Parameters
@@ -77,7 +85,7 @@ class Center:
         else:
             self.loop.stop()
 
-    async def start(self):
+    async def start(self) -> int:
         """Start the app."""
         _LOGGER.info("Starting camacq")
         await self.bus.notify(CamAcqStartEvent())
@@ -86,7 +94,9 @@ class Center:
         await self._stopped.wait()
         return self._exit_code
 
-    def add_executor_job(self, func, *args):
+    def add_executor_job(
+        self, func: Callable[_P, _T], *args: _P.args, **kwargs: _P.kwargs
+    ) -> asyncio.Future[_T]:
         """Schedule a function to be run in the thread pool.
 
         Return a task.
@@ -98,7 +108,7 @@ class Center:
 
         return task
 
-    def create_task(self, coro):
+    def create_task(self, coro: Coroutine[Any, Any, _T]) -> asyncio.Task[_T]:
         """Schedule a coroutine on the event loop.
 
         Return a task.
@@ -110,7 +120,7 @@ class Center:
 
         return task
 
-    async def wait_for(self):
+    async def wait_for(self) -> None:
         """Wait for all pending tasks."""
         await asyncio.sleep(0)
         while self._pending_tasks:
@@ -123,15 +133,18 @@ class Center:
                 await asyncio.sleep(0)
 
 
+ActionFunc = Callable[..., Awaitable[None]]
+
+
 class ActionsRegistry:
     """Manage all registered actions."""
 
-    def __init__(self, center):
+    def __init__(self, center: Center) -> None:
         """Set up instance."""
-        self._actions = {}
+        self._actions: dict[str, ActionType] = {}
         self._center = center
 
-    def __getattr__(self, action_type):
+    def __getattr__(self, action_type: str) -> ActionType:
         """Return registered actions for an action type."""
         try:
             return self._actions[action_type]
@@ -139,11 +152,17 @@ class ActionsRegistry:
             raise MissingActionTypeError(action_type) from exc
 
     @property
-    def actions(self):
+    def actions(self) -> dict[str, ActionType]:
         """:dict: Return dict of ActionTypes with all registered actions."""
         return self._actions
 
-    def register(self, action_type, action_id, action_func, schema):
+    def register(
+        self,
+        action_type: str,
+        action_id: str,
+        action_func: ActionFunc,
+        schema: vol.Schema | Any,
+    ) -> None:
         """Register an action.
 
         Register actions per module.
@@ -161,7 +180,7 @@ class ActionsRegistry:
             of the action call.
 
         """
-        if not asyncio.iscoroutinefunction(action_func):
+        if not inspect.iscoroutinefunction(action_func):
             _LOGGER.error(
                 "Action handler function %s is not a coroutine function", action_func
             )
@@ -173,7 +192,7 @@ class ActionsRegistry:
             action_type, action_id, action_func, schema
         )
 
-    async def call(self, action_type, action_id, **kwargs):
+    async def call(self, action_type: str, action_id: str, **kwargs: Any) -> None:
         """Call an action with optional kwargs.
 
         Parameters
@@ -204,7 +223,7 @@ class ActionsRegistry:
 class ActionType(dotdict):
     """Represent an action type."""
 
-    def __getattr__(self, action_id):
+    def __getattr__(self, action_id: str) -> Action:  # type: ignore[override]
         """Return registered action for an action id."""
         try:
             return self[action_id]
@@ -217,14 +236,20 @@ class Action:
 
     # pylint: disable=too-few-public-methods
 
-    def __init__(self, action_type, action_id, func, schema):
+    def __init__(
+        self,
+        action_type: str,
+        action_id: str,
+        func: ActionFunc,
+        schema: vol.Schema | Any,
+    ) -> None:
         """Set up the instance."""
         self.action_type = action_type
         self.action_id = action_id
         self.func = func
         self.schema = schema
 
-    async def __call__(self, **kwargs):
+    async def __call__(self, **kwargs: Any) -> None:
         """Call action."""
         silent = kwargs.get("silent", False)
         try:
@@ -263,9 +288,11 @@ class Action:
             raise
 
 
-def loop_exception_handler(loop, context):
+def loop_exception_handler(
+    loop: asyncio.AbstractEventLoop, context: dict[str, Any]
+) -> None:
     """Handle exceptions inside the event loop."""
-    kwargs = {}
+    kwargs: dict[str, Any] = {}
     exc = context.get("exception")
     if exc:
         kwargs["exc_info"] = exc
@@ -290,6 +317,6 @@ class CamAcqStopEvent(Event):
     event_type = CAMACQ_STOP_EVENT
 
     @property
-    def exit_code(self):
+    def exit_code(self) -> int | None:
         """:int: Return the plate instance of the event."""
         return self.data.get("exit_code")

@@ -3,14 +3,16 @@
 import logging
 from unittest.mock import call
 
+import pytest
 from ruamel.yaml import YAML
 
 from camacq import plugins
-from camacq.control import CamAcqStartEvent
+from camacq.control import CamAcqStartEvent, Center
 from camacq.plugins import api as api_mod
+from tests.conftest import MockApi, MockSample
 
 
-async def test_setup_automation(center, sample):
+async def test_setup_automation(center: Center, sample: MockSample) -> None:
     """Test setup of an automation."""
     config = """
         automations:
@@ -48,7 +50,9 @@ async def test_setup_automation(center, sample):
     assert not automation.enabled
 
 
-async def test_toggle_invalid_name(center, caplog):
+async def test_toggle_invalid_name(
+    center: Center, caplog: pytest.LogCaptureFixture
+) -> None:
     """Test toggle an automation with invalid automation name."""
     config = """
         automations:
@@ -78,7 +82,7 @@ async def test_toggle_invalid_name(center, caplog):
     assert not automation.enabled
 
 
-async def test_sample_event(center, api, sample):
+async def test_sample_event(center: Center, api: MockApi, sample: MockSample) -> None:
     """Test a trigger for sample change event."""
     config = """
         automations:
@@ -117,7 +121,7 @@ async def test_sample_event(center, api, sample):
     assert command == "/test /num:1"
 
 
-async def test_condition(center, api):
+async def test_condition(center: Center, api: MockApi) -> None:
     """Test a condition for command event."""
     config = """
         automations:
@@ -151,7 +155,7 @@ async def test_condition(center, api):
     assert command == "success"
 
 
-async def test_nested_condition(center, api):
+async def test_nested_condition(center: Center, api: MockApi) -> None:
     """Test a nested condition for command event."""
     config = """
         automations:
@@ -211,7 +215,7 @@ async def test_nested_condition(center, api):
     assert len(api.calls) == 2
 
 
-async def test_sample_access(center, api, sample):
+async def test_sample_access(center: Center, api: MockApi, sample: MockSample) -> None:
     """Test accessing sample in template."""
     config = """
         automations:
@@ -261,7 +265,9 @@ async def test_sample_access(center, api, sample):
     assert command == "/test /num:1"
 
 
-async def test_delay_action(center, api, caplog):
+async def test_delay_action(
+    center: Center, api: MockApi, caplog: pytest.LogCaptureFixture
+) -> None:
     """Test delay action."""
     config = """
         automations:

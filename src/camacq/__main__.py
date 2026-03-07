@@ -5,22 +5,23 @@ import asyncio
 import logging
 from pathlib import Path
 import sys
+from typing import Any
 
 from camacq import bootstrap
 import camacq.config as config_util
 from camacq.const import CONFIG_DIR, LOG_LEVEL
 
 
-def check_dir_arg(path):
+def check_dir_arg(path: str) -> Path:
     """Check that argument is a directory."""
     # remove if not needed
-    path = Path(path)
-    if path.is_dir():
-        return path.resolve()
+    p = Path(path)
+    if p.is_dir():
+        return p.resolve()
     raise argparse.ArgumentTypeError(f"String {path} is not a path to a directory")
 
 
-def check_log_level(loglevel):
+def check_log_level(loglevel: str) -> int:
     """Validate log level and return it if valid."""
     # assuming loglevel is bound to the string value obtained from the
     # command line argument. Convert to upper case to allow the user to
@@ -31,7 +32,7 @@ def check_log_level(loglevel):
     return numeric_level
 
 
-def parse_command_line(args=None):
+def parse_command_line(args: list[str] | None = None) -> dict[str, Any]:
     """Parse the provided command line."""
     parser = argparse.ArgumentParser(
         description="Control microscope through client-server program."
@@ -50,14 +51,14 @@ def parse_command_line(args=None):
         default=config_util.get_default_config_dir(),
         help="the path to camacq configuration directory",
     )
-    args = parser.parse_args(args=args)
-    cmd_args_dict = vars(args)
+    parsed_args = parser.parse_args(args=args)
+    cmd_args_dict = vars(parsed_args)
     cmd_args_dict = {key: val for key, val in cmd_args_dict.items() if val}
 
     return cmd_args_dict
 
 
-def ensure_config_path(config_dir):
+def ensure_config_path(config_dir: Path) -> None:
     """Validate the configuration directory."""
     # Test if configuration directory exists
     if config_dir.is_dir():
@@ -72,7 +73,7 @@ def ensure_config_path(config_dir):
         sys.exit(1)
 
 
-def ensure_config_file(config_dir):
+def ensure_config_file(config_dir: Path) -> Path:
     """Ensure configuration file exists."""
     config_path = config_util.ensure_config_exists(config_dir)
 
@@ -83,7 +84,7 @@ def ensure_config_file(config_dir):
     return config_path
 
 
-async def setup_and_start(config_file, cmd_args):
+async def setup_and_start(config_file: Path, cmd_args: dict[str, Any]) -> int:
     """Set up app and start."""
     try:
         center = await bootstrap.setup_file(config_file, cmd_args)
@@ -93,7 +94,7 @@ async def setup_and_start(config_file, cmd_args):
     return await center.start()
 
 
-def main(args=None):
+def main(args: list[str] | None = None) -> int:
     """Run main function."""
     # Parse command line arguments
     cmd_args = parse_command_line(args=args)

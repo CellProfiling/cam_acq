@@ -4,6 +4,7 @@ from importlib import resources
 import logging
 import os
 from pathlib import Path
+from typing import Any
 
 from ruamel.yaml import YAML, YAMLError
 
@@ -14,7 +15,7 @@ YAML_CONFIG_FILE = "config.yml"
 DEFAULT_CONFIG_TEMPLATE = "data/config.yml"
 
 
-def get_default_config_dir():
+def get_default_config_dir() -> Path:
     """Get the default configuration directory based on OS.
 
     Returns
@@ -23,11 +24,11 @@ def get_default_config_dir():
         Return the path to the configuration directory.
 
     """
-    data_dir = os.getenv("APPDATA") if os.name == "nt" else Path.home()
-    return (Path(data_dir) / CONFIG_DIR_NAME).resolve()
+    data_dir = os.getenv("APPDATA") if os.name == "nt" else None
+    return (Path(data_dir or Path.home()) / CONFIG_DIR_NAME).resolve()
 
 
-def find_config_file(config_dir):
+def find_config_file(config_dir: Path) -> Path | None:
     """Find the configuration file in the configuration directory.
 
     Parameters
@@ -47,7 +48,7 @@ def find_config_file(config_dir):
     return config_path if config_path.is_file() else None
 
 
-def load_config_file(path):
+def load_config_file(path: Path) -> dict[str, Any]:
     """Parse a YAML configuration file.
 
     Parameters
@@ -77,7 +78,7 @@ def load_config_file(path):
     return cfg
 
 
-def create_default_config(config_dir):
+def create_default_config(config_dir: Path) -> Path | None:
     """Create a default config file in given configuration directory.
 
     Parameters
@@ -94,7 +95,7 @@ def create_default_config(config_dir):
     """
     config_path = config_dir / YAML_CONFIG_FILE
     default_config_template = resources.files(__package__) / DEFAULT_CONFIG_TEMPLATE
-    data = load_config_file(Path(default_config_template))
+    data = load_config_file(Path(str(default_config_template)))
     yaml = YAML()
 
     try:
@@ -107,7 +108,7 @@ def create_default_config(config_dir):
     return config_path
 
 
-def ensure_config_exists(config_dir):
+def ensure_config_exists(config_dir: Path) -> Path | None:
     """Ensure configuration file exists in the configuration directory.
 
     Create a default configuration file if needed.

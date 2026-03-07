@@ -1,11 +1,15 @@
 """Test helper module."""
 
+from types import ModuleType
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
+from pytest import LogCaptureFixture
 import voluptuous as vol
 
 from camacq import helper
+from camacq.control import Center
 
 # pylint: disable=redefined-outer-name
 
@@ -15,7 +19,12 @@ class MockModule:
 
     # pylint: disable=too-few-public-methods
 
-    def __init__(self, module_name, setup_module=None, config_schema=None):
+    def __init__(
+        self,
+        module_name: str,
+        setup_module: AsyncMock | None = None,
+        config_schema: vol.Schema | None = None,
+    ) -> None:
         """Set up the mock module."""
         # pylint: disable=invalid-name
         self.__name__ = f"camacq.plugins.{module_name}"
@@ -31,21 +40,21 @@ class MockModule:
 
 
 @pytest.fixture(name="module")
-def module_fixture():
+def module_fixture() -> MockModule:
     """Mock a module."""
     return MockModule("test")
 
 
 @pytest.fixture(name="schema_module")
-def schema_module_fixture():
+def schema_module_fixture() -> MockModule:
     """Mock a module."""
     schema = vol.Schema({vol.Required("test_option"): True})
     return MockModule("test", config_schema=schema)
 
 
-async def test_setup_module(center, module):
+async def test_setup_module(center: Center, module: ModuleType) -> None:
     """Test set up module."""
-    config = {"test": {}}
+    config: dict[str, Any] = {"test": {}}
     await helper.setup_one_module(center, config, module)
     assert module.setup_module.call_count == 1
     _, args, kwargs = module.setup_module.mock_calls[0]
@@ -53,10 +62,10 @@ async def test_setup_module(center, module):
     assert kwargs == {}
 
 
-async def test_setup_schema_module(center, schema_module):
+async def test_setup_schema_module(center: Center, schema_module: ModuleType) -> None:
     """Test set up module with config schema."""
     module = schema_module
-    config = {"test": {"test_option": True}}
+    config: dict[str, Any] = {"test": {"test_option": True}}
     await helper.setup_one_module(center, config, module)
     assert module.setup_module.call_count == 1
     _, args, kwargs = module.setup_module.mock_calls[0]
@@ -64,16 +73,18 @@ async def test_setup_schema_module(center, schema_module):
     assert kwargs == {}
 
 
-async def test_setup_bad_config(center, schema_module, caplog):
+async def test_setup_bad_config(
+    center: Center, schema_module: ModuleType, caplog: LogCaptureFixture
+) -> None:
     """Test set up module with config schema and bad config."""
     module = schema_module
-    config = {"test": {"test_option": False}}
+    config: dict[str, Any] = {"test": {"test_option": False}}
     await helper.setup_one_module(center, config, module)
     assert module.setup_module.call_count == 0
     assert "Incorrect configuration for module test" in caplog.text
 
 
-async def test_missing_setup(center, caplog):
+async def test_missing_setup(center: Center, caplog: LogCaptureFixture) -> None:
     """Test missing setup function."""
     const_module = helper.get_module("camacq", "const")
     assert const_module.__name__ == "camacq.const"
@@ -81,7 +92,7 @@ async def test_missing_setup(center, caplog):
     assert "Missing setup_module function in module const" in caplog.text
 
 
-async def test_many_module_matches(center):
+async def test_many_module_matches(center: Center) -> None:
     """Test many module matches."""
     with pytest.raises(ValueError):
         helper.get_module("camacq.plugins", "")

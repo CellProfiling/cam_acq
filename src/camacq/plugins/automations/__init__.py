@@ -3,9 +3,13 @@
 # Copyright 2013-2017 The Home Assistant Authors
 # https://github.com/home-assistant/home-assistant/blob/master/LICENSE.md
 # This file was modified by The Camacq Authors.
+from __future__ import annotations
+
 from collections import deque
+from collections.abc import Callable, Generator
 from functools import partial
 import logging
+from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 
@@ -13,6 +17,12 @@ from camacq.const import CAMACQ_STOP_EVENT, CONF_DATA, CONF_ID
 from camacq.exceptions import TemplateError
 from camacq.helper import BASE_ACTION_SCHEMA, get_module, has_at_least_one_key
 from camacq.helper.template import make_template, render_template
+
+if TYPE_CHECKING:
+    from jinja2 import Template
+
+    from camacq.control import Center
+    from camacq.event import Event
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -39,7 +49,7 @@ TRIGGER_ACTION_SCHEMA = vol.Schema(
     ],
 )
 
-CONDITION_SCHEMA = vol.All(
+CONDITION_SCHEMA: Any = vol.All(
     has_at_least_one_key(CONF_TYPE, CONF_CONDITION),
     {
         # pylint: disable=no-value-for-parameter
@@ -68,7 +78,7 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 
-async def setup_module(center, config):
+async def setup_module(center: Center, config: dict[str, Any]) -> None:
     """Set up automations package.
 
     Parameters
@@ -80,13 +90,13 @@ async def setup_module(center, config):
 
     """
     _process_automations(center, config)
-    automations = center.data[DATA_AUTOMATIONS]
+    automations: dict[str, Automation] = center.data[DATA_AUTOMATIONS]
 
-    async def handle_action(**kwargs):
+    async def handle_action(**kwargs: Any) -> None:
         """Enable or disable an automation."""
-        name = kwargs[NAME]
+        name: str = kwargs[NAME]
         automation = automations[name]
-        enabled = kwargs.get(ENABLED, not automation.enabled)
+        enabled: bool = kwargs.get(ENABLED, not automation.enabled)
         if enabled:
             automation.enable()
         else:
@@ -105,12 +115,12 @@ async def setup_module(center, config):
     )
 
 
-def _process_automations(center, config):
+def _process_automations(center: Center, config: dict[str, Any]) -> None:
     """Process automations from config."""
-    automations = center.data.setdefault(DATA_AUTOMATIONS, {})
-    conf = config[CONF_AUTOMATIONS]
+    automations: dict[str, Automation] = center.data.setdefault(DATA_AUTOMATIONS, {})
+    conf: list[dict[str, Any]] = config[CONF_AUTOMATIONS]
     for block in conf:
-        name = block[CONF_NAME]
+        name: str = block[CONF_NAME]
         _LOGGER.debug("Setting up automation %s", name)
         action_sequence = _get_actions(center, block[CONF_ACTION])
         cond_func = _process_condition(center, block[CONF_CONDITION])
@@ -121,33 +131,39 @@ def _process_automations(center, config):
         )
 
 
-def _get_actions(center, config_block):
+def _get_actions(center: Center, config_block: list[dict[str, Any]]) -> ActionSequence:
     """Return actions."""
-    actions = (TemplateAction(center, action_conf) for action_conf in config_block)
+    actions: Generator[TemplateAction, None, None] = (
+        TemplateAction(center, action_conf) for action_conf in config_block
+    )
 
     return ActionSequence(center, actions)
 
 
-def _process_condition(center, config_block):
+def _process_condition(
+    center: Center, config_block: dict[str, Any]
+) -> Callable[[dict[str, Any]], str | bool]:
     """Return a function that parses the condition."""
     if CONF_TYPE in config_block:
-        checks = []
-        condition_type = config_block[CONF_TYPE]
-        conditions = config_block[CONF_CONDITIONS]
+        checks: list[Callable[[dict[str, Any]], str | bool]] = []
+        condition_type: str = config_block[CONF_TYPE]
+        conditions: list[dict[str, Any]] = config_block[CONF_CONDITIONS]
         for cond in conditions:
             check = _process_condition(center, cond)
             checks.append(check)
         return make_checker(condition_type, checks)
 
-    data = config_block[CONF_CONDITION]
-    template = make_template(center, data)
+    data: str = config_block[CONF_CONDITION]
+    template: Template = make_template(center, data)
     return partial(render_template, template)
 
 
-def make_checker(condition_type, checks):
+def make_checker(
+    condition_type: str, checks: list[Callable[[dict[str, Any]], str | bool]]
+) -> Callable[[dict[str, Any]], bool]:
     """Return a function to check condition."""
 
-    def check_condition(variables):
+    def check_condition(variables: dict[str, Any]) -> bool:
         """Return True if all or any condition(s) pass."""
         if condition_type.lower() == "and":
             return all(template_check(check(variables)) for check in checks)
@@ -158,7 +174,7 @@ def make_checker(condition_type, checks):
     return check_condition
 
 
-def template_check(value):
+def template_check(value: str | bool) -> bool:
     """Check if a rendered template string equals true.
 
     If value is not a string, return value as is.
@@ -168,13 +184,17 @@ def template_check(value):
     return value
 
 
-def _process_trigger(center, config_block, trigger):
+def _process_trigger(
+    center: Center,
+    config_block: list[dict[str, Any]],
+    trigger: Callable[[dict[str, Any]], Any],
+) -> Callable[[], None] | None:
     """Process triggers for an automation."""
-    remove_funcs = []
+    remove_funcs: list[Callable[[], None]] = []
 
     for conf in config_block:
-        trigger_id = conf[CONF_ID]
-        trigger_type = conf[CONF_TYPE]
+        trigger_id: str = conf[CONF_ID]
+        trigger_type: str = conf[CONF_TYPE]
         trigger_mod = get_module(__name__, trigger_type)
         if not trigger_mod:
             continue
@@ -190,7 +210,7 @@ def _process_trigger(center, config_block, trigger):
     if not remove_funcs:
         return None
 
-    def remove_triggers():
+    def remove_triggers() -> None:
         """Remove attached triggers."""
         for remove in remove_funcs:
             remove()
@@ -204,20 +224,28 @@ class Automation:
     # pylint: disable=too-many-arguments
 
     def __init__(
-        self, center, name, attach_triggers, cond_func, action_sequence, enabled=True
-    ):
+        self,
+        center: Center,
+        name: str,
+        attach_triggers: Callable[
+            [Callable[[dict[str, Any]], Any]], Callable[[], None] | None
+        ],
+        cond_func: Callable[[dict[str, Any]], str | bool],
+        action_sequence: ActionSequence,
+        enabled: bool = True,
+    ) -> None:
         """Set up instance."""
         self._center = center
         self.name = name
         self.enabled = False
         self._action_sequence = action_sequence
         self._attach_triggers = attach_triggers
-        self._detach_triggers = None
+        self._detach_triggers: Callable[[], None] | None = None
         self._cond_func = cond_func
         if enabled:
             self.enable()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the representation."""
         return (
             f"Automation(center={self._center}, name={self.name}, "
@@ -225,14 +253,14 @@ class Automation:
             f"action_sequence={self._action_sequence}, enabled={self.enabled})"
         )
 
-    def enable(self):
+    def enable(self) -> None:
         """Enable automation."""
         if self.enabled:
             return
         self._detach_triggers = self._attach_triggers(self.trigger)
         self.enabled = True
 
-    def disable(self):
+    def disable(self) -> None:
         """Disable automation."""
         if not self.enabled:
             return
@@ -241,7 +269,7 @@ class Automation:
         self._detach_triggers = None
         self.enabled = False
 
-    async def trigger(self, variables):
+    async def trigger(self, variables: dict[str, Any]) -> None:
         """Run actions of this automation."""
         variables["samples"] = self._center.samples
         _LOGGER.debug("Triggered automation %s", self.name)
@@ -260,21 +288,28 @@ class ActionSequence:
 
     # pylint: disable=too-few-public-methods
 
-    def __init__(self, center, actions):
+    def __init__(
+        self,
+        center: Center,
+        actions: Generator[TemplateAction, None, None] | list[TemplateAction],
+    ) -> None:
         """Set up instance."""
         self._center = center
-        self.actions = list(actions)  # copy to list to make sure it's a list
+        self.actions: list[TemplateAction] = list(
+            actions
+        )  # copy to list to make sure it's a list
 
-    async def __call__(self, variables):
+    async def __call__(self, variables: dict[str, Any]) -> None:
         """Start action sequence."""
-        waiting = deque(self.actions)
+        waiting: deque[TemplateAction] = deque(self.actions)
         while waiting:
             action = waiting.popleft()
 
             if action.action_type == "automations" and action.action_id == ACTION_DELAY:
                 rendered_kwargs = action.render(variables)
                 seconds = rendered_kwargs.get("seconds")
-                self.delay(float(seconds), variables, waiting)
+                if seconds is not None:
+                    self.delay(float(seconds), variables, waiting)
 
             else:
                 _LOGGER.debug(
@@ -282,7 +317,12 @@ class ActionSequence:
                 )
                 await action(variables)
 
-    def delay(self, seconds, variables, waiting):
+    def delay(
+        self,
+        seconds: float,
+        variables: dict[str, Any],
+        waiting: deque[TemplateAction],
+    ) -> None:
         """Delay action sequence.
 
         Parameters
@@ -293,15 +333,15 @@ class ActionSequence:
             A dict of template variables.
 
         """
-        sequence = ActionSequence(self._center, waiting)
+        sequence = ActionSequence(self._center, list(waiting))
         callback = partial(self._center.create_task, sequence(variables))
         waiting.clear()
         _LOGGER.info("Action delay for %s seconds", seconds)
-        callback = self._center.loop.call_later(seconds, callback)
+        handle = self._center.loop.call_later(seconds, callback)
 
-        async def cancel_pending_actions(center, event):
+        async def cancel_pending_actions(center: Center, event: Event) -> None:
             """Cancel pending actions."""
-            callback.cancel()
+            handle.cancel()
 
         self._center.bus.register(CAMACQ_STOP_EVENT, cancel_pending_actions)
 
@@ -311,15 +351,15 @@ class TemplateAction:
 
     # pylint: disable=too-few-public-methods
 
-    def __init__(self, center, action_conf):
+    def __init__(self, center: Center, action_conf: dict[str, Any]) -> None:
         """Set up instance."""
         self._center = center
-        self.action_id = action_conf[CONF_ID]
-        self.action_type = action_conf[CONF_TYPE]
-        action_data = action_conf[CONF_DATA]
-        self.template = make_template(center, action_data)
+        self.action_id: str = action_conf[CONF_ID]
+        self.action_type: str = action_conf[CONF_TYPE]
+        action_data: dict[str, Any] = action_conf[CONF_DATA]
+        self.template: Template = make_template(center, action_data)
 
-    async def __call__(self, variables=None):
+    async def __call__(self, variables: dict[str, Any] | None = None) -> None:
         """Execute action with optional template variables."""
         try:
             rendered = self.render(variables)
@@ -327,11 +367,11 @@ class TemplateAction:
             return
         await self._center.actions.call(self.action_type, self.action_id, **rendered)
 
-    def render(self, variables):
+    def render(self, variables: dict[str, Any] | None) -> dict[str, Any]:
         """Render the template with the kwargs for the action."""
         variables = variables or {}
         try:
-            rendered = render_template(self.template, variables)
+            rendered: dict[str, Any] = render_template(self.template, variables)
         except TemplateError as exc:
             _LOGGER.error(
                 "Failed to render variables for %s.%s: %s",

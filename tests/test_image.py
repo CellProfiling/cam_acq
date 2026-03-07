@@ -1,5 +1,6 @@
 """Provide tests for the image module."""
 
+from collections.abc import Generator
 from pathlib import Path
 import tempfile
 
@@ -11,7 +12,7 @@ from tests.common import IMAGE_PATH
 
 
 @pytest.fixture(name="save_path")
-def save_path_fixture():
+def save_path_fixture() -> Generator[str, None, None]:
     """Return a path to temporary dir."""
     temp_dir = tempfile.gettempdir()
     test_image_path = Path(temp_dir) / "test.tif"
@@ -21,16 +22,20 @@ def save_path_fixture():
     test_image_path.unlink()
 
 
-def test_save_image(save_path):
+def test_save_image(save_path: str) -> None:
     """Test save image."""
     data = image.read_image(IMAGE_PATH.as_posix())
+
+    assert data is not None
+
     image.save_image(save_path, data)
     saved_data = image.read_image(save_path)
 
+    assert saved_data is not None
     assert np.array_equal(data, saved_data)
 
 
-def test_image_data(save_path):
+def test_image_data(save_path: str) -> None:
     """Test ImageData class."""
     orig_path = IMAGE_PATH.as_posix()
     img = image.ImageData(orig_path)

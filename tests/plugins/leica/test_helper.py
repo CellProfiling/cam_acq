@@ -6,34 +6,34 @@ from camacq.plugins.leica.helper import find_image_path, get_field, get_imgs, ge
 from tests.common import FIELD_PATH, IMAGE_PATH, WELL_PATH
 
 
-def test_find_image_path():
+def test_find_image_path() -> None:
     """Test find image path."""
     parts = IMAGE_PATH.parts
     root = parts[0]
     relpath = parts[1:]
     windows_path = PureWindowsPath("")
-    relpath = windows_path.joinpath(*relpath)
+    joined_relpath = windows_path.joinpath(*relpath)
 
-    path = find_image_path(str(relpath), root)
+    path = find_image_path(str(joined_relpath), root)
 
     assert path == str(IMAGE_PATH)
 
 
-def test_get_field():
+def test_get_field() -> None:
     """Test get field."""
-    path = get_field(IMAGE_PATH)
+    path = get_field(str(IMAGE_PATH))
 
     assert path == str(IMAGE_PATH.parent)
 
 
-def test_get_well():
+def test_get_well() -> None:
     """Test get well."""
-    path = get_well(IMAGE_PATH)
+    path = get_well(str(IMAGE_PATH))
 
     assert path == str(WELL_PATH)
 
 
-def test_get_imgs():
+def test_get_imgs() -> None:
     """Test get imgs."""
     images = get_imgs(str(WELL_PATH), search="C31")
 

@@ -5,7 +5,7 @@ from pathlib import Path, PureWindowsPath
 from leicaimage import experiment
 
 
-def find_image_path(relpath, root):
+def find_image_path(relpath: str, root: str) -> str:
     """Parse the relpath from the server to find file path from root.
 
     Convert from windows path to posix path.
@@ -27,7 +27,7 @@ def find_image_path(relpath, root):
     return str(Path(root).joinpath(*parts))
 
 
-def get_field(path):
+def get_field(path: str) -> str:
     """Get path to field from image path.
 
     Parameters
@@ -44,7 +44,7 @@ def get_field(path):
     return experiment.Experiment(path).dirname  # pylint: disable=no-member
 
 
-def get_well(path):
+def get_well(path: str) -> str:
     """Get path to well from image path.
 
     Parameters
@@ -62,7 +62,7 @@ def get_well(path):
     return experiment.Experiment(get_field(path)).dirname
 
 
-def get_imgs(path, img_type="tif", search=""):
+def get_imgs(path: str, img_type: str = "tif", search: str = "") -> list[Path]:
     """Get all images below path.
 
     Parameters

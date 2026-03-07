@@ -1,9 +1,12 @@
 """Leica microscope API specific modules."""
 
+from __future__ import annotations
+
 import asyncio
 from functools import partial
 import logging
 import tempfile
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from async_timeout import timeout as async_timeout
 from leicacam.async_cam import AsyncCAM
@@ -25,6 +28,10 @@ from camacq.plugins.api import (
 from .command import start, stop
 from .helper import find_image_path, get_field, get_imgs
 from .sample import setup_module as sample_setup_module
+
+if TYPE_CHECKING:
+    from camacq.control import Center
+    from camacq.event import Event
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -55,7 +62,7 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 
-async def setup_module(center, config):
+async def setup_module(center: Center, config: dict[str, Any]) -> None:
     """Set up Leica api package.
 
     Parameters
@@ -67,9 +74,9 @@ async def setup_module(center, config):
 
     """
     await sample_setup_module(center, config)
-    conf = config[CONF_LEICA]
-    host = conf[CONF_HOST]
-    port = conf[CONF_PORT]
+    conf: dict[str, Any] = config[CONF_LEICA]
+    host: str = conf[CONF_HOST]
+    port: int = conf[CONF_PORT]
     cam = AsyncCAM(host, port)
     try:
         await cam.connect()
@@ -81,7 +88,7 @@ async def setup_module(center, config):
     # Start task that calls receive on the socket to the microscope
     task = center.create_task(api.start_listen())
 
-    async def stop_listen(center, event):
+    async def stop_listen(center: Center, event: Event) -> None:
         """Stop the task that listens to the client socket."""
         task.cancel()
         await task
@@ -93,28 +100,30 @@ async def setup_module(center, config):
 class LeicaApi(Api):
     """Represent the Leica API."""
 
-    def __init__(self, center, config, client):
+    def __init__(
+        self, center: Center, config: dict[str, Any], client: AsyncCAM
+    ) -> None:
         """Set up the Leica API."""
         self.center = center
         self.client = client
         self.config = config
-        self._last_image_path = None
+        self._last_image_path: str | None = None
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the API."""
         return __name__
 
-    async def start_listen(self):
+    async def start_listen(self) -> None:
         """Receive from the microscope socket."""
         try:
             while True:
                 reply = await self.client.receive()
-                self.center.create_task(self.receive(reply))
+                self.center.create_task(self.receive(reply))  # type: ignore[arg-type]
         except asyncio.CancelledError:
             _LOGGER.debug("Stopped listening for messages from CAM")
 
-    async def receive(self, replies):
+    async def receive(self, replies: list[dict[str, Any]] | dict[str, Any]) -> None:
         """Receive replies from CAM server and fire an event per reply.
 
         Parameters
@@ -133,8 +142,8 @@ class LeicaApi(Api):
             if not reply or not isinstance(reply, dict):
                 continue
             if REL_IMAGE_PATH in reply:
-                imaging_dir = self.config[CONF_IMAGING_DIR]
-                rel_path = reply[REL_IMAGE_PATH]
+                imaging_dir: str = self.config[CONF_IMAGING_DIR]
+                rel_path: str = reply[REL_IMAGE_PATH]
                 if rel_path == self._last_image_path:
                     # guard against duplicate image events from the microscope
                     _LOGGER.debug("Duplicate image reply received: %s", rel_path)
@@ -159,7 +168,11 @@ class LeicaApi(Api):
             else:
                 await self.center.bus.notify(LeicaCommandEvent(reply))
 
-    async def send(self, command, **kwargs):
+    async def send(
+        self,
+        command: list[tuple[str, str]] | str,
+        **kwargs: Any,
+    ) -> asyncio.Future[bool] | bool:
         """Send a command to the Leica API.
 
         Parameters
@@ -168,21 +181,24 @@ class LeicaApi(Api):
             The command to send.
 
         """
-        block = kwargs.get("block", True)
+        block: bool = kwargs.get("block", True)
 
         if isinstance(command, str):
-            command = bytes_as_dict(command.encode())
-            command = list(command.items())
+            command_dict = bytes_as_dict(command.encode())
+            command = list(command_dict.items())
         cmd, value = command[0]  # use the first cmd and value to wait for
-        cmd_sent = self.center.loop.create_future()
+        cmd_sent: asyncio.Future[bool] = self.center.loop.create_future()
 
-        async def receive_reply(center, event):
+        async def receive_reply(center: Center, event: LeicaCommandEvent) -> None:
             """Indicate that reply has been received."""
-            if check_messages([event.data], cmd, value=value):
+            if check_messages([event.data], cmd, value=value):  # type: ignore[list-item]
                 if not cmd_sent.done():
                     cmd_sent.set_result(True)
 
-        remove = self.center.bus.register(LEICA_COMMAND_EVENT, receive_reply)
+        remove = self.center.bus.register(
+            LEICA_COMMAND_EVENT,
+            receive_reply,  # type: ignore[arg-type]
+        )
         cmd_sent.add_done_callback(lambda x: remove())
 
         await self.client.send(command)
@@ -191,24 +207,26 @@ class LeicaApi(Api):
             return cmd_sent
         return await cmd_sent
 
-    async def start_imaging(self):
+    async def start_imaging(self) -> None:
         """Send a command to the microscope to start the imaging."""
         await self._start_stop_imaging(start(), LEICA_START_COMMAND_EVENT, SCAN_STARTED)
         # A delay is needed after starting.
         await asyncio.sleep(START_STOP_DELAY)
 
-    async def stop_imaging(self):
+    async def stop_imaging(self) -> None:
         """Send a command to the microscope to stop the imaging."""
         # A delay is needed before and after stopping.
         await asyncio.sleep(START_STOP_DELAY)
         await self._start_stop_imaging(stop(), LEICA_STOP_COMMAND_EVENT, SCAN_FINISHED)
         await asyncio.sleep(START_STOP_DELAY)
 
-    async def _start_stop_imaging(self, cmd, event, ack_cmd):
+    async def _start_stop_imaging(
+        self, cmd: list[tuple[str, str]], event: str, ack_cmd: str
+    ) -> None:
         """Send a command to the microscope to start or stop the imaging."""
-        cmd_sent = self.center.loop.create_future()
+        cmd_sent: asyncio.Future[bool] = self.center.loop.create_future()
 
-        async def receive_reply(center, event):
+        async def receive_reply(center: Center, event: Event) -> None:
             """Indicate that reply has been received."""
             if not cmd_sent.done():
                 cmd_sent.set_result(True)
@@ -220,7 +238,9 @@ class LeicaApi(Api):
         _LOGGER.info("Waiting for %s message for 10 seconds", ack_cmd)
         try:
             async with async_timeout(10.0):
-                await asyncio.wait([cmd_sent, trigger_cmd_sent])
+                await asyncio.wait(  # type: ignore[type-var]
+                    [cmd_sent, trigger_cmd_sent]
+                )
         except TimeoutError:
             _LOGGER.info("No acknowledgement event received, continuing anyway")
 
@@ -231,10 +251,10 @@ class LeicaCommandEvent(CommandEvent):
 
     __slots__ = ()
 
-    event_type = LEICA_COMMAND_EVENT
+    event_type: ClassVar[str] = LEICA_COMMAND_EVENT
 
     @property
-    def command(self):
+    def command(self) -> str:
         """Return the command string."""
         return tuples_as_bytes(list(self.data.items())).decode()
 
@@ -244,7 +264,7 @@ class LeicaStartCommandEvent(StartCommandEvent, LeicaCommandEvent):
 
     __slots__ = ()
 
-    event_type = LEICA_START_COMMAND_EVENT
+    event_type: ClassVar[str] = LEICA_START_COMMAND_EVENT
 
 
 class LeicaStopCommandEvent(StopCommandEvent, LeicaCommandEvent):
@@ -252,7 +272,7 @@ class LeicaStopCommandEvent(StopCommandEvent, LeicaCommandEvent):
 
     __slots__ = ()
 
-    event_type = LEICA_STOP_COMMAND_EVENT
+    event_type: ClassVar[str] = LEICA_STOP_COMMAND_EVENT
 
 
 class LeicaImageEvent(ImageEvent):
@@ -260,49 +280,49 @@ class LeicaImageEvent(ImageEvent):
 
     __slots__ = ()
 
-    event_type = LEICA_IMAGE_EVENT
+    event_type: ClassVar[str] = LEICA_IMAGE_EVENT
 
     @property
-    def path(self):
+    def path(self) -> str:
         """:str: Return absolute path to the image."""
         return self.data.get("path", "")
 
     @property
-    def well_x(self):
+    def well_x(self) -> int | None:
         """:int: Return x coordinate of the well of the image."""
         return attribute(self.path, "U")
 
     @property
-    def well_y(self):
+    def well_y(self) -> int | None:
         """:int: Return y coordinate of the well of the image."""
         return attribute(self.path, "V")
 
     @property
-    def field_x(self):
+    def field_x(self) -> int | None:
         """:int: Return x coordinate of the well of the image."""
         return attribute(self.path, "X")
 
     @property
-    def field_y(self):
+    def field_y(self) -> int | None:
         """:int: Return y coordinate of the well of the image."""
         return attribute(self.path, "Y")
 
     @property
-    def z_slice_id(self):
+    def z_slice_id(self) -> int | None:
         """:int: Return z index of the image."""
         return attribute(self.path, "Z")
 
     @property
-    def channel_id(self):
+    def channel_id(self) -> int | None:
         """:int: Return channel id of the image."""
         return attribute(self.path, "C")
 
     @property
-    def job_id(self):
+    def job_id(self) -> int | None:
         """:int: Return job id of the image."""
         return attribute(self.path, "E")
 
     @property
-    def plate_name(self):
+    def plate_name(self) -> str | None:
         """:str: Return plate name of the image."""
         return attribute_as_str(self.path, "S")

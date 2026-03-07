@@ -4,7 +4,7 @@ import subprocess
 import sys
 
 
-def test_can_run_as_python_module():
+def test_can_run_as_python_module() -> None:
     """Run the CLI as a Python module."""
     result = subprocess.run(  # noqa: S603
         [sys.executable, "-m", "camacq", "--help"],

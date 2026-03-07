@@ -1,17 +1,23 @@
 """Handle renaming of an image."""
 
+from __future__ import annotations
+
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 
 from camacq.helper import BASE_ACTION_SCHEMA, has_at_least_one_key
 
+if TYPE_CHECKING:
+    from camacq.control import Center
+
 _LOGGER = logging.getLogger(__name__)
 ACTION_RENAME_IMAGE = "rename_image"
 
 
-async def setup_module(center, config):
+async def setup_module(center: Center, config: dict[str, Any]) -> None:
     """Set up image rename plugin.
 
     Parameters
@@ -23,7 +29,7 @@ async def setup_module(center, config):
 
     """
 
-    async def handle_action(**kwargs):
+    async def handle_action(**kwargs: Any) -> None:
         """Handle the action call to rename an image.
 
         Parameters
@@ -33,18 +39,24 @@ async def setup_module(center, config):
             action function when an action is called.
 
         """
-        sample_name = kwargs["sample"]
+        sample_name: str = kwargs["sample"]
         old_path = Path(kwargs["old_path"])
-        new_path = kwargs.get("new_path")
-        new_name = kwargs.get("new_name")
+        new_path: Path | str | None = kwargs.get("new_path")
+        new_name: str | None = kwargs.get("new_name")
 
         if new_name:
             old_dir = old_path.parent
             new_path = old_dir / new_name
 
-        new_path = Path(new_path)  # make sure new_path is a Path instance
+        if new_path is None:
+            _LOGGER.error("new_path is required")
+            return
 
-        result = await center.add_executor_job(rename_image, old_path, new_path)
+        new_path_resolved = Path(new_path)  # make sure new_path is a Path instance
+
+        result = await center.add_executor_job(
+            rename_image, old_path, new_path_resolved
+        )
         if not result:
             return
         sample = center.samples[sample_name]
@@ -55,7 +67,7 @@ async def setup_module(center, config):
         image_attrs.pop("_path")
         image_attrs.pop("_values")
         await sample.set_sample(
-            image.name, path=new_path, values=image.values, **image_attrs
+            image.name, path=new_path_resolved, values=image.values, **image_attrs
         )
 
     rename_image_action_schema = vol.All(
@@ -80,7 +92,7 @@ async def setup_module(center, config):
     )
 
 
-def rename_image(old_path, new_path):
+def rename_image(old_path: Path, new_path: Path) -> bool:
     """Rename image at old_path to new_path.
 
     Parameters

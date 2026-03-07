@@ -1,6 +1,8 @@
 """Configure and set up control center."""
 
 import logging
+from pathlib import Path
+from typing import Any
 
 from camacq import plugins
 import camacq.config as config_util
@@ -11,7 +13,7 @@ import camacq.log as log_util
 _LOGGER = logging.getLogger(__name__)
 
 
-async def setup_dict(center, config):
+async def setup_dict(center: Center, config: dict[str, Any]) -> None:
     """Set up control center from config dict.
 
     Parameters
@@ -29,7 +31,7 @@ async def setup_dict(center, config):
     await setup_one_module(center, config, plugins)
 
 
-async def setup_file(config_file, cmd_args):
+async def setup_file(config_file: Path, cmd_args: dict[str, Any]) -> Center:
     """Set up control center from config file and command line args.
 
     Parameters

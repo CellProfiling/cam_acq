@@ -1,10 +1,19 @@
 """Hold events."""
 
+from __future__ import annotations
+
+from collections.abc import Callable
 import logging
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from camacq.const import BASE_EVENT
 
+if TYPE_CHECKING:
+    from camacq.control import Center
+
 _LOGGER = logging.getLogger(__name__)
+
+EventHandler = Callable[["Center", "Event"], Any]
 
 
 # pylint: disable=too-few-public-methods
@@ -20,13 +29,13 @@ class Event:
 
     __slots__ = {"data": "Return the data of the event."}
 
-    event_type = BASE_EVENT
+    event_type: ClassVar[str] = BASE_EVENT
 
-    def __init__(self, data=None):
+    def __init__(self, data: dict[str, Any] | None = None) -> None:
         """Set up event."""
-        self.data = data or {}
+        self.data: dict[str, Any] = data or {}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the representation."""
         return f"{type(self).__name__}(data={self.data})"
 
@@ -41,22 +50,22 @@ class EventBus:
 
     """
 
-    def __init__(self, center):
+    def __init__(self, center: Center) -> None:
         """Set up instance."""
         self._center = center
-        self._registry = {}
+        self._registry: dict[str, list[EventHandler]] = {}
 
     @property
-    def event_types(self):
+    def event_types(self) -> list[str]:
         """:list: Return all registered event types."""
         return list(self._registry.keys())
 
-    def _register_handler(self, event_type, handler):
+    def _register_handler(self, event_type: str, handler: EventHandler) -> None:
         """Register handler to fire for events of type event_class."""
         handlers = self._registry.setdefault(event_type, [])
         handlers.append(handler)
 
-    def register(self, event_type, handler):
+    def register(self, event_type: str, handler: EventHandler) -> Callable[[], None]:
         """Register event handler and return a function to remove it.
 
         An event can be a message from the microscope API or an
@@ -80,7 +89,7 @@ class EventBus:
         _LOGGER.debug("Registering event handler for event type %s", event_type)
         self._register_handler(event_type, handler)
 
-        def remove():
+        def remove() -> None:
             """Remove registered event handler."""
             handlers = self._registry[event_type]
             try:
@@ -90,7 +99,7 @@ class EventBus:
 
         return remove
 
-    async def notify(self, event):
+    async def notify(self, event: Event) -> None:
         """Notify handlers that an event has fired.
 
         Parameters
@@ -106,11 +115,14 @@ class EventBus:
             # Handle base objects for Python 3.
             if event_class.__name__ == "object":
                 continue
-            for handler in registry.get(event_class.event_type, []):
+            event_type = getattr(event_class, "event_type", None)
+            if event_type is None:
+                continue
+            for handler in registry.get(event_type, []):
                 await handler(self._center, event)  # await in sequential order
 
 
-def match_event(event, **event_data):
+def match_event(event: Event, **event_data: Any) -> bool:
     """Return True if event attributes match event_data."""
     if not event_data or all(
         val == getattr(event, key, None) for key, val in event_data.items()

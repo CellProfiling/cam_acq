@@ -10,10 +10,10 @@ import click
 IMAGE_DATA_DIR = Path(__file__).parent.parent / "tests/fixtures/image_data"
 
 
-def pack_image_fixture(root_dir=None):
+def pack_image_fixture(root_dir: str | None = None) -> None:
     """Gunzip tif images for image tests."""
     if root_dir is None:
-        root_dir = IMAGE_DATA_DIR
+        root_dir = str(IMAGE_DATA_DIR)
     matches = Path(root_dir).glob("**/*.tif")
     print("Gzipping the images, this will take some time...")
     for path in matches:
@@ -24,10 +24,10 @@ def pack_image_fixture(root_dir=None):
         path.unlink()
 
 
-def unpack_image_fixture(root_dir=None):
+def unpack_image_fixture(root_dir: str | None = None) -> None:
     """Unzip gunzipped tif images for image tests."""
     if root_dir is None:
-        root_dir = IMAGE_DATA_DIR
+        root_dir = str(IMAGE_DATA_DIR)
     matches = Path(root_dir).glob("**/*.gz")
     for gz_path in matches:
         path = gz_path.parent / gz_path.stem
@@ -38,7 +38,7 @@ def unpack_image_fixture(root_dir=None):
 
 @click.command()
 @click.option("--pack/--unpack", default=False)
-def main(pack):
+def main(pack: bool) -> None:
     """Pack or unpack the images for test fixtures."""
     if pack:
         pack_image_fixture()

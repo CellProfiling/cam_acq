@@ -1,14 +1,22 @@
 """Helper functions for camacq."""
 
+from __future__ import annotations
+
+from collections.abc import Callable
 from importlib import import_module
 import logging
 import pkgutil
 import signal
 import sys
+from types import FrameType, ModuleType
+from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 
 import camacq
+
+if TYPE_CHECKING:
+    from camacq.control import Center
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,7 +30,7 @@ BASE_ACTION_SCHEMA = vol.Schema(
 )
 
 
-def get_module(package, module_name):
+def get_module(package: str, module_name: str) -> ModuleType:
     """Return a module from a package.
 
     Parameters
@@ -43,18 +51,17 @@ def get_module(package, module_name):
     ]
     if len(matches) != 1:
         raise ValueError("Invalid module search result, not a single match")
+
     module_path = matches[0]
-    try:
-        module = import_module(module_path)
-    except ImportError:
-        _LOGGER.exception(("Loading %s failed"), module_path)
-        return None
+    module = import_module(module_path)
 
     _LOGGER.debug("Loaded %s from %s", module_name, module_path)
     return module
 
 
-async def setup_one_module(center, config, module):
+async def setup_one_module(
+    center: Center, config: dict[str, Any], module: ModuleType
+) -> None:
     """Set up one module or package.
 
     Returns
@@ -84,10 +91,10 @@ async def setup_one_module(center, config, module):
 
 # Adapted from:
 # https://github.com/alecthomas/voluptuous/issues/115#issuecomment-144464666
-def has_at_least_one_key(*keys):
+def has_at_least_one_key(*keys: str) -> Callable[[dict[str, Any]], dict[str, Any]]:
     """Validate that at least one key exists."""
 
-    def validate(obj):
+    def validate(obj: dict[str, Any]) -> dict[str, Any]:
         """Test keys exist in dict."""
         if not isinstance(obj, dict):
             raise vol.Invalid("expected a dictionary")
@@ -101,18 +108,18 @@ def has_at_least_one_key(*keys):
     return validate
 
 
-def ensure_dict(value):
+def ensure_dict(value: dict[str, Any] | None) -> dict[str, Any]:
     """Convert None to empty dict."""
     if value is None:
         return {}
     return value
 
 
-def register_signals(center):
+def register_signals(center: Center) -> None:
     """Register signal handlers."""
     if sys.platform != "win32":
 
-        def handle_signal(exit_code):
+        def handle_signal(exit_code: int) -> None:
             """Handle a signal."""
             center.loop.remove_signal_handler(signal.SIGTERM)
             center.loop.remove_signal_handler(signal.SIGINT)
@@ -122,10 +129,10 @@ def register_signals(center):
         center.loop.add_signal_handler(signal.SIGINT, handle_signal, 0)
 
     else:
-        prev_sig_term = None
-        prev_sig_int = None
+        prev_sig_term: signal.Handlers = None
+        prev_sig_int: signal.Handlers = None
 
-        def handle_signal(signum, frame):
+        def handle_signal(signum: int, frame: FrameType | None) -> None:
             """Handle a signal."""
             signal.signal(signal.SIGTERM, prev_sig_term)
             signal.signal(signal.SIGINT, prev_sig_int)

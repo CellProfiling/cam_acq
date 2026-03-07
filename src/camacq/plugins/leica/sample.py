@@ -1,10 +1,14 @@
 """Provide sample implementation for leica microscope."""
 
+from __future__ import annotations
+
 import json
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import voluptuous as vol
 
 from camacq.const import IMAGE_EVENT
+from camacq.plugins.api import ImageEvent
 from camacq.plugins.sample import (
     BASE_SET_SAMPLE_ACTION_SCHEMA,
     Image,
@@ -13,6 +17,9 @@ from camacq.plugins.sample import (
     SampleEvent,
     register_sample,
 )
+
+if TYPE_CHECKING:
+    from camacq.control import Center
 
 LEICA_SAMPLE_EVENT = "leica_sample_event"
 CHANNEL_EVENT = "channel_event"
@@ -74,7 +81,7 @@ SET_SAMPLE_SCHEMA = vol.Any(
 )
 
 
-async def setup_module(center, config):
+async def setup_module(center: Center, config: dict[str, Any]) -> None:
     """Set up sample module.
 
     Parameters
@@ -103,46 +110,52 @@ class LeicaSample(Sample):
 
     """
 
-    def __init__(self, images=None, values=None):
+    def __init__(
+        self,
+        images: dict[str, Image] | None = None,
+        values: dict[str, Any] | None = None,
+    ) -> None:
         """Set up instance."""
-        self._images = images or {}
-        self._values = values or {}
+        self._images: dict[str, Image] = images or {}
+        self._values: dict[str, Any] = values or {}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the representation."""
         return f"LeicaSample(images={self._images}, values={self._values})"
 
     @property
-    def change_event(self):
+    def change_event(self) -> type[SampleEvent]:
         """:Event: Return an event class to fire on container change."""
         return LeicaSampleEvent
 
     @property
-    def image_event_type(self):
+    def image_event_type(self) -> str:
         """:str: Return the image event type to listen to for the sample."""
         return IMAGE_EVENT
 
     @property
-    def images(self):
+    def images(self) -> dict[str, Image]:
         """:dict: Return a dict with all images for the container."""
         return self._images
 
     @property
-    def name(self):
+    def name(self) -> str:
         """:str: Return the name of the sample."""
         return "leica"
 
     @property
-    def set_sample_schema(self):
+    def set_sample_schema(self) -> vol.Schema | Any:
         """Return the validation schema of the set_sample method."""
         return SET_SAMPLE_SCHEMA
 
     @property
-    def values(self):
+    def values(self) -> dict[str, Any]:
         """:dict: Return a dict with the values set for the container."""
         return self._values
 
-    async def on_image(self, center, event):
+    async def on_image(  # type: ignore[override]
+        self, center: Center, event: ImageEvent
+    ) -> None:
         """Handle image event for this sample."""
         await self.set_sample(
             "image",
@@ -156,9 +169,11 @@ class LeicaSample(Sample):
             channel_id=event.channel_id,
         )
 
-    async def _set_sample(self, name, values, **kwargs):
+    async def _set_sample(
+        self, name: str, values: dict[str, Any], **kwargs: Any
+    ) -> ImageContainer | None:
         """Set an image container of the sample."""
-        sample = None
+        sample: ImageContainer | None = None
 
         if name == "image":
             params = SET_FIELD_SCHEMA({"name": "field", **kwargs})
@@ -225,13 +240,15 @@ class Plate(ImageContainer):
 
     """
 
-    def __init__(self, images, plate_name, **kwargs):
+    def __init__(
+        self, images: dict[str, Image], plate_name: str, **kwargs: Any
+    ) -> None:
         """Set up instance."""
         self._images = images
         self.plate_name = plate_name
-        self._values = kwargs.pop("values", {})
+        self._values: dict[str, Any] = kwargs.pop("values", {})
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the representation."""
         return (
             f"Plate(images={self._images}, plate_name={self.plate_name}, "
@@ -239,26 +256,26 @@ class Plate(ImageContainer):
         )
 
     @property
-    def change_event(self):
+    def change_event(self) -> type[SampleEvent]:
         """:Event: Return an event class to fire on container change."""
         return PlateEvent
 
     @property
-    def images(self):
+    def images(self) -> dict[str, Image]:
         """:dict: Return a dict with all images for the plate."""
         return {
             image.path: image
             for image in self._images.values()
-            if image.plate_name == self.plate_name
+            if image.plate_name == self.plate_name  # type: ignore[attr-defined]
         }
 
     @property
-    def name(self):
+    def name(self) -> str:
         """:str: Return an identifying name for the container."""
         return "plate"
 
     @property
-    def values(self):
+    def values(self) -> dict[str, Any]:
         """:dict: Return a dict with the values set for the container."""
         return self._values
 
@@ -288,15 +305,17 @@ class Well(Plate, ImageContainer):
 
     """
 
-    def __init__(self, images, well_x, well_y, **kwargs):
+    def __init__(
+        self, images: dict[str, Image], well_x: int, well_y: int, **kwargs: Any
+    ) -> None:
         """Set up instance."""
         self._images = images
         self.well_x = well_x
         self.well_y = well_y
-        self._values = kwargs.pop("values", {})
+        self._values: dict[str, Any] = kwargs.pop("values", {})
         super().__init__(images, **kwargs)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the representation."""
         return (
             f"Well(images={self._images}, well_x={self.well_x}, "
@@ -304,28 +323,28 @@ class Well(Plate, ImageContainer):
         )
 
     @property
-    def change_event(self):
+    def change_event(self) -> type[SampleEvent]:
         """:Event: Return an event class to fire on container change."""
         return WellEvent
 
     @property
-    def images(self):
+    def images(self) -> dict[str, Image]:
         """:dict: Return a dict with all images for the well."""
         return {
             image.path: image
             for image in self._images.values()
-            if image.plate_name == self.plate_name
-            and image.well_x == self.well_x
-            and image.well_y == self.well_y
+            if image.plate_name == self.plate_name  # type: ignore[attr-defined]
+            and image.well_x == self.well_x  # type: ignore[attr-defined]
+            and image.well_y == self.well_y  # type: ignore[attr-defined]
         }
 
     @property
-    def name(self):
+    def name(self) -> str:
         """:str: Return an identifying name for the container."""
         return "well"
 
     @property
-    def values(self):
+    def values(self) -> dict[str, Any]:
         """:dict: Return a dict with the values set for the container."""
         return self._values
 
@@ -359,15 +378,17 @@ class Field(Well, ImageContainer):
 
     """
 
-    def __init__(self, images, field_x, field_y, **kwargs):
+    def __init__(
+        self, images: dict[str, Image], field_x: int, field_y: int, **kwargs: Any
+    ) -> None:
         """Set up instance."""
         self._images = images
         self.field_x = field_x
         self.field_y = field_y
-        self._values = kwargs.pop("values", {})
+        self._values: dict[str, Any] = kwargs.pop("values", {})
         super().__init__(images, **kwargs)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the representation."""
         return (
             f"Field(images={self._images}, field_x={self.field_x}, "
@@ -375,30 +396,30 @@ class Field(Well, ImageContainer):
         )
 
     @property
-    def change_event(self):
+    def change_event(self) -> type[SampleEvent]:
         """:Event: Return an event class to fire on container change."""
         return FieldEvent
 
     @property
-    def images(self):
+    def images(self) -> dict[str, Image]:
         """:dict: Return a dict with all images for the field."""
         return {
             image.path: image
             for image in self._images.values()
-            if image.plate_name == self.plate_name
-            and image.well_x == self.well_x
-            and image.well_y == self.well_y
-            and image.field_x == self.field_x
-            and image.field_y == self.field_y
+            if image.plate_name == self.plate_name  # type: ignore[attr-defined]
+            and image.well_x == self.well_x  # type: ignore[attr-defined]
+            and image.well_y == self.well_y  # type: ignore[attr-defined]
+            and image.field_x == self.field_x  # type: ignore[attr-defined]
+            and image.field_y == self.field_y  # type: ignore[attr-defined]
         }
 
     @property
-    def name(self):
+    def name(self) -> str:
         """:str: Return an identifying name for the container."""
         return "field"
 
     @property
-    def values(self):
+    def values(self) -> dict[str, Any]:
         """:dict: Return a dict with the values set for the container."""
         return self._values
 
@@ -428,14 +449,16 @@ class Channel(Well, ImageContainer):
 
     """
 
-    def __init__(self, images, channel_id, **kwargs):
+    def __init__(
+        self, images: dict[str, Image], channel_id: int, **kwargs: Any
+    ) -> None:
         """Set up instance."""
         self._images = images
         self.channel_id = channel_id
-        self._values = kwargs.pop("values", {})
+        self._values: dict[str, Any] = kwargs.pop("values", {})
         super().__init__(images, **kwargs)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the representation."""
         return (
             f"Channel(images={self._images}, channel_id={self.channel_id}, "
@@ -443,29 +466,29 @@ class Channel(Well, ImageContainer):
         )
 
     @property
-    def change_event(self):
+    def change_event(self) -> type[SampleEvent]:
         """:Event: Return an event class to fire on container change."""
         return ChannelEvent
 
     @property
-    def images(self):
+    def images(self) -> dict[str, Image]:
         """:dict: Return a dict with all images for the channel."""
         return {
             image.path: image
             for image in self._images.values()
-            if image.plate_name == self.plate_name
-            and image.well_x == self.well_x
-            and image.well_y == self.well_y
-            and image.channel_id == self.channel_id
+            if image.plate_name == self.plate_name  # type: ignore[attr-defined]
+            and image.well_x == self.well_x  # type: ignore[attr-defined]
+            and image.well_y == self.well_y  # type: ignore[attr-defined]
+            and image.channel_id == self.channel_id  # type: ignore[attr-defined]
         }
 
     @property
-    def name(self):
+    def name(self) -> str:
         """:str: Return an identifying name for the container."""
         return "channel"
 
     @property
-    def values(self):
+    def values(self) -> dict[str, Any]:
         """:dict: Return a dict with the values set for the container."""
         return self._values
 
@@ -495,14 +518,16 @@ class ZSlice(Well, ImageContainer):
 
     """
 
-    def __init__(self, images, z_slice_id, **kwargs):
+    def __init__(
+        self, images: dict[str, Image], z_slice_id: int, **kwargs: Any
+    ) -> None:
         """Set up instance."""
         self._images = images
         self.z_slice_id = z_slice_id
-        self._values = kwargs.pop("values", {})
+        self._values: dict[str, Any] = kwargs.pop("values", {})
         super().__init__(images, **kwargs)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the representation."""
         return (
             f"ZSlice(images={self._images}, z_slice_id={self.z_slice_id}, "
@@ -510,29 +535,29 @@ class ZSlice(Well, ImageContainer):
         )
 
     @property
-    def change_event(self):
+    def change_event(self) -> type[SampleEvent]:
         """:Event: Return an event class to fire on container change."""
         return ZSliceEvent
 
     @property
-    def images(self):
+    def images(self) -> dict[str, Image]:
         """:dict: Return a dict with all images for the channel."""
         return {
             image.path: image
             for image in self._images.values()
-            if image.plate_name == self.plate_name
-            and image.well_x == self.well_x
-            and image.well_y == self.well_y
-            and image.z_slice_id == self.z_slice_id
+            if image.plate_name == self.plate_name  # type: ignore[attr-defined]
+            and image.well_x == self.well_x  # type: ignore[attr-defined]
+            and image.well_y == self.well_y  # type: ignore[attr-defined]
+            and image.z_slice_id == self.z_slice_id  # type: ignore[attr-defined]
         }
 
     @property
-    def name(self):
+    def name(self) -> str:
         """:str: Return an identifying name for the container."""
         return "z_slice"
 
     @property
-    def values(self):
+    def values(self) -> dict[str, Any]:
         """:dict: Return a dict with the values set for the container."""
         return self._values
 
@@ -542,7 +567,7 @@ class LeicaSampleEvent(SampleEvent):
 
     __slots__ = ()
 
-    event_type = LEICA_SAMPLE_EVENT
+    event_type: ClassVar[str] = LEICA_SAMPLE_EVENT
 
 
 class PlateEvent(LeicaSampleEvent):
@@ -550,12 +575,12 @@ class PlateEvent(LeicaSampleEvent):
 
     __slots__ = ()
 
-    event_type = PLATE_EVENT
+    event_type: ClassVar[str] = PLATE_EVENT
 
     @property
-    def plate_name(self):
+    def plate_name(self) -> str:
         """:str: Return the name of the plate."""
-        return self.container.plate_name
+        return self.container.plate_name  # type: ignore[union-attr]
 
 
 class WellEvent(PlateEvent):
@@ -563,22 +588,22 @@ class WellEvent(PlateEvent):
 
     __slots__ = ()
 
-    event_type = WELL_EVENT
+    event_type: ClassVar[str] = WELL_EVENT
 
     @property
-    def well_x(self):
+    def well_x(self) -> int:
         """:int: Return the well x coordinate of the event."""
-        return self.container.well_x
+        return self.container.well_x  # type: ignore[union-attr]
 
     @property
-    def well_y(self):
+    def well_y(self) -> int:
         """:int: Return the well y coordinate of the event."""
-        return self.container.well_y
+        return self.container.well_y  # type: ignore[union-attr]
 
     @property
-    def well_img_ok(self):
+    def well_img_ok(self) -> bool:
         """:bool: Return if the well has all images acquired ok."""
-        return self.container.values.get("well_img_ok", False)
+        return self.container.values.get("well_img_ok", False)  # type: ignore[union-attr]
 
 
 class ChannelEvent(WellEvent):
@@ -586,17 +611,17 @@ class ChannelEvent(WellEvent):
 
     __slots__ = ()
 
-    event_type = CHANNEL_EVENT
+    event_type: ClassVar[str] = CHANNEL_EVENT
 
     @property
-    def channel_id(self):
+    def channel_id(self) -> int:
         """:int: Return the channel id of the event."""
-        return self.container.channel_id
+        return self.container.channel_id  # type: ignore[union-attr]
 
     @property
-    def channel_name(self):
+    def channel_name(self) -> str | None:
         """:str: Return the channel name of the event."""
-        return self.container.values.get("channel_name")
+        return self.container.values.get("channel_name")  # type: ignore[union-attr]
 
 
 class FieldEvent(WellEvent):
@@ -604,22 +629,22 @@ class FieldEvent(WellEvent):
 
     __slots__ = ()
 
-    event_type = FIELD_EVENT
+    event_type: ClassVar[str] = FIELD_EVENT
 
     @property
-    def field_x(self):
+    def field_x(self) -> int:
         """:int: Return the field x coordinate of the event."""
-        return self.container.field_x
+        return self.container.field_x  # type: ignore[union-attr]
 
     @property
-    def field_y(self):
+    def field_y(self) -> int:
         """:int: Return the field y coordinate of the event."""
-        return self.container.field_y
+        return self.container.field_y  # type: ignore[union-attr]
 
     @property
-    def field_img_ok(self):
+    def field_img_ok(self) -> bool:
         """:bool: Return if the field has all images acquired ok."""
-        return self.container.values.get("field_img_ok", False)
+        return self.container.values.get("field_img_ok", False)  # type: ignore[union-attr]
 
 
 class ZSliceEvent(WellEvent):
@@ -627,32 +652,39 @@ class ZSliceEvent(WellEvent):
 
     __slots__ = ()
 
-    event_type = Z_SLICE_EVENT
+    event_type: ClassVar[str] = Z_SLICE_EVENT
 
     @property
-    def z_slice_id(self):
+    def z_slice_id(self) -> int:
         """:int: Return the z_slice id of the event."""
-        return self.container.z_slice_id
+        return self.container.z_slice_id  # type: ignore[union-attr]
 
 
-def next_well_xy(sample, plate_name, x_wells=None, y_wells=None):
+def next_well_xy(
+    sample: LeicaSample,
+    plate_name: str,
+    x_wells: int | None = None,
+    y_wells: int | None = None,
+) -> tuple[int | None, int | None]:
     """Return the next not done well for the given plate x, y format."""
+    if sample.data is None:
+        return None, None
     if json.dumps({"name": "plate", "plate_name": plate_name}) not in sample.data:
         return None, None
     if x_wells is None or y_wells is None:
         not_done = (
-            (cont.well_x, cont.well_y)
+            (cont.well_x, cont.well_y)  # type: ignore[attr-defined]
             for cont in sample.data.values()
             if cont.name == "well"
-            and cont.plate_name == plate_name
+            and cont.plate_name == plate_name  # type: ignore[attr-defined]
             and not cont.values.get("well_img_ok", False)
         )
     else:
         done = {
-            (cont.well_x, cont.well_y)
+            (cont.well_x, cont.well_y)  # type: ignore[attr-defined]
             for cont in sample.data.values()
             if cont.name == "well"
-            and cont.plate_name == plate_name
+            and cont.plate_name == plate_name  # type: ignore[attr-defined]
             and cont.values.get("well_img_ok", False)
         }
         not_done = (

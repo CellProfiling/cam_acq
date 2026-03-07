@@ -1,14 +1,21 @@
 """Handle plugins."""
 
+from __future__ import annotations
+
 import asyncio
 from importlib.metadata import entry_points
+from types import ModuleType
+from typing import TYPE_CHECKING, Any
 
 from camacq.helper import setup_one_module
+
+if TYPE_CHECKING:
+    from camacq.control import Center
 
 CORE_MODULES = ["api", "sample"]
 
 
-async def setup_module(center, config):
+async def setup_module(center: Center, config: dict[str, Any]) -> None:
     """Set up the plugins package.
 
     Parameters
@@ -22,7 +29,7 @@ async def setup_module(center, config):
     plugins = await center.add_executor_job(get_plugins)
 
     # Add core modules.
-    tasks = []
+    tasks: list[asyncio.Task[None]] = []
     for module_name in CORE_MODULES:
         if module_name not in config:
             config[module_name] = {}
@@ -42,7 +49,7 @@ async def setup_module(center, config):
         await asyncio.wait(tasks)
 
 
-def get_plugins():
+def get_plugins() -> dict[str, ModuleType]:
     """Return a dict of plugin modules."""
     plugins = {
         entry_point.name: entry_point.load()

@@ -1,6 +1,8 @@
 """Store common constants."""
 
-ACTION_TIMEOUT = 60.0
+from typing import Final
+
+ACTION_TIMEOUT: Final = 60.0
 CONF_DATA = "data"
 CONF_ID = "id"
 CONF_TRIGGER = "trigger"

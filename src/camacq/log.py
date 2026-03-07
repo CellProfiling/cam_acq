@@ -5,6 +5,7 @@ import logging.config
 import logging.handlers
 import os
 from pathlib import Path
+from typing import Any
 
 import colorlog
 
@@ -14,7 +15,7 @@ LOG_FILENAME = "camacq.log"
 _LOGGER = logging.getLogger(__name__)
 
 
-def check_path(path):
+def check_path(path: Path) -> bool:
     """Check that path to config exists and is writable for logging.
 
     Parameters
@@ -36,7 +37,7 @@ def check_path(path):
     return False
 
 
-def enable_log(config):
+def enable_log(config: dict[str, Any]) -> None:
     """Enable logging.
 
     Parameters
@@ -77,7 +78,7 @@ def enable_log(config):
         _LOGGER.info("Using default log path at: %s", log_path)
         if check_path(log_path):
             filelog = logging.handlers.RotatingFileHandler(
-                log_path, maxBytes=1048576, backupCount=9, encoding="utf-8", delay=0
+                log_path, maxBytes=1048576, backupCount=9, encoding="utf-8", delay=False
             )
             filelog.setLevel(logging.WARNING)
             formatter = logging.Formatter(
