@@ -149,6 +149,7 @@ warn_unreachable = true
 warn_unused_ignores = true
 
 [tool.semantic_release]
+allow_zero_version = true
 branches.main.match = "main"
 branches.noop.match = "(?!main$)"
 branches.noop.prerelease = true
@@ -177,3 +178,4 @@ version_variables = [
   "src/camacq/__init__.py:__version__",
   "docs/conf.py:release",
 ]
+commit_parser_options.parse_squash_commits = false
