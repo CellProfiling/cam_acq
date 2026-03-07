@@ -2,6 +2,18 @@
 
 <!-- version list -->
 
+## v0.10.0 (2026-03-07)
+
+### Chores
+
+- Require Python 3.12 ([#1247](https://github.com/CellProfiling/cam_acq/pull/1247),
+  [`7d83da0`](https://github.com/CellProfiling/cam_acq/commit/7d83da0c33f95e04de8e456c07284663d79602bc))
+
+### Breaking Changes
+
+- Drop support for Python 3.11
+
+
 ## [0.9.0](https://github.com/CellProfiling/cam_acq/tree/0.9.0) (2026-03-06)
 
 [Full Changelog](https://github.com/CellProfiling/cam_acq/compare/0.8.0...0.9.0)

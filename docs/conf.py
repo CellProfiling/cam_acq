@@ -15,7 +15,7 @@ from sphinx.ext import apidoc
 project = "camacq"
 project_copyright = "2026, Martin Hjelmare"
 author = "Martin Hjelmare"
-release = "0.9.0"
+release = "0.10.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
