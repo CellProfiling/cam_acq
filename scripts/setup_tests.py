@@ -4,10 +4,12 @@
 import gzip
 from pathlib import Path
 import shutil
+from typing import Annotated
 
-import click
+import typer
 
 IMAGE_DATA_DIR = Path(__file__).parent.parent / "tests/fixtures/image_data"
+cli = typer.Typer()
 
 
 def pack_image_fixture(root_dir: str | None = None) -> None:
@@ -36,9 +38,8 @@ def unpack_image_fixture(root_dir: str | None = None) -> None:
                 shutil.copyfileobj(f_in, f_out)
 
 
-@click.command()
-@click.option("--pack/--unpack", default=False)
-def main(pack: bool) -> None:
+@cli.command()
+def main(pack: Annotated[bool, typer.Option("--pack/--unpack")] = False) -> None:
     """Pack or unpack the images for test fixtures."""
     if pack:
         pack_image_fixture()
@@ -47,4 +48,4 @@ def main(pack: bool) -> None:
 
 
 if __name__ == "__main__":
-    main()  # pylint:disable=no-value-for-parameter
+    main()
