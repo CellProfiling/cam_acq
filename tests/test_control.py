@@ -12,8 +12,6 @@ from camacq.const import CAMACQ_START_EVENT, CAMACQ_STOP_EVENT
 from camacq.control import Center
 from camacq.event import Event
 
-# pylint: disable=redefined-outer-name
-
 
 async def test_center_start(center: Center) -> None:
     """Test start of Center."""
@@ -25,7 +23,7 @@ async def test_center_start(center: Center) -> None:
         events.append(event)
 
     center.bus.register(CAMACQ_START_EVENT, handle_event)
-    center._track_tasks = False  # pylint: disable=protected-access
+    center._track_tasks = False
     task = center.create_task(center.start())
     await center.wait_for()
     await center.end(exit_code)

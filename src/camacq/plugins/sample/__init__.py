@@ -95,8 +95,6 @@ async def setup_module(center: Center, config: dict[str, Any]) -> None:
 class Samples(dotdict):
     """Hold all samples."""
 
-    # pylint: disable=too-few-public-methods
-
     def __getattr__(self, sample_name: str) -> Sample:  # type: ignore[override]
         """Get a sample by name."""
         try:

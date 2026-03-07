@@ -88,7 +88,7 @@ async def setup_and_start(config_file: Path, cmd_args: dict[str, Any]) -> int:
     """Set up app and start."""
     try:
         center = await bootstrap.setup_file(config_file, cmd_args)
-    except Exception as exc:  # pylint: disable=broad-except
+    except Exception as exc:
         print("An error occurred during setup:", exc)
         return 1
     return await center.start()

@@ -3,7 +3,7 @@
 from typing import Any
 
 
-class dotdict(dict[str, Any]):  # pylint: disable=invalid-name
+class dotdict(dict[str, Any]):
     """Access to dictionary attributes with dot notation."""
 
     __getattr__ = dict.get

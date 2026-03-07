@@ -54,7 +54,6 @@ CONFIG_SCHEMA = vol.Schema(
         {
             vol.Optional(CONF_HOST, default="localhost"): vol.Coerce(str),
             vol.Optional(CONF_PORT, default=8895): vol.Coerce(int),
-            # pylint: disable=no-value-for-parameter
             vol.Optional(CONF_IMAGING_DIR, default=tempfile.gettempdir()): vol.IsDir(),
         },
     )
@@ -244,7 +243,6 @@ class LeicaApi(Api):
             _LOGGER.info("No acknowledgement event received, continuing anyway")
 
 
-# pylint: disable=too-few-public-methods
 class LeicaCommandEvent(CommandEvent):
     """Leica CommandEvent class."""
 

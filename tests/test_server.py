@@ -51,7 +51,6 @@ class EchoServer:
 
     def handle(self) -> None:
         """Handle incoming connections."""
-        # pylint: disable=no-member
         self.logger.debug("Serve incoming connections")
         conn, addr = self.sock.accept()
         self.logger.debug("Connected by %s", addr)

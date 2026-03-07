@@ -69,7 +69,6 @@ async def test_workflow(
     center: Center, caplog: LogCaptureFixture, api: Mock, rename_image: Mock
 ) -> None:
     """Test a complete workflow."""
-    # pylint: disable=too-many-locals,too-many-statements
     caplog.set_level(logging.DEBUG)
     config_path = cast(
         Path, resources.files(bootstrap.__package__) / DEFAULT_CONFIG_TEMPLATE

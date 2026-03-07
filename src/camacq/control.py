@@ -46,8 +46,6 @@ class Center:
 
     """
 
-    # pylint: disable=too-many-instance-attributes
-
     def __init__(self, loop: asyncio.AbstractEventLoop | None = None) -> None:
         """Set up instance."""
         self.loop: asyncio.AbstractEventLoop = loop or asyncio.get_event_loop()
@@ -233,8 +231,6 @@ class ActionType(dotdict):
 class Action:
     """Represent an action."""
 
-    # pylint: disable=too-few-public-methods
-
     def __init__(
         self,
         action_type: str,
@@ -299,7 +295,6 @@ def loop_exception_handler(
     _LOGGER.error("Error running job: %s", context["message"], **kwargs)
 
 
-# pylint: disable=too-few-public-methods
 class CamAcqStartEvent(Event):
     """An event fired when camacq has started."""
 

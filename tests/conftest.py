@@ -22,7 +22,7 @@ SET_SAMPLE_SCHEMA = vol.Schema({vol.Required("name"): str}, extra=vol.ALLOW_EXTR
 async def center_fixture() -> Center:
     """Give access to center via fixture."""
     _center = Center(loop=asyncio.get_running_loop())
-    _center._track_tasks = True  # pylint: disable=protected-access
+    _center._track_tasks = True
     return _center
 
 

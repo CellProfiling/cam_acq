@@ -76,7 +76,6 @@ def make_proj(images: dict[str, int]) -> dict[int, ImageData]:
     for path, channel in images.items():
         image = ImageData(path=path)
         # Exclude images with 0, 16 or 256 pixel side.
-        # pylint: disable=len-as-condition
         if len(image.data) == 0 or len(image.data) == 16 or len(image.data) == 256:
             continue
         sorted_images[channel].append(image)
@@ -103,8 +102,6 @@ class ImageData:
         The path to the image.
 
     """
-
-    # pylint: disable=too-many-arguments, too-many-instance-attributes
 
     def __init__(
         self,

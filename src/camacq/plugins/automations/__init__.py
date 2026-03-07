@@ -52,12 +52,10 @@ TRIGGER_ACTION_SCHEMA = vol.Schema(
 CONDITION_SCHEMA: Any = vol.All(
     has_at_least_one_key(CONF_TYPE, CONF_CONDITION),
     {
-        # pylint: disable=no-value-for-parameter
         vol.Inclusive(CONF_TYPE, "condition"): vol.All(
             vol.Upper, vol.In(["AND", "OR"])
         ),
         vol.Inclusive(CONF_CONDITIONS, "condition"): [
-            # pylint: disable=unnecessary-lambda
             lambda value: CONDITION_SCHEMA(value)
         ],
         vol.Exclusive(CONF_CONDITION, "condition"): vol.Coerce(str),
@@ -105,7 +103,7 @@ async def setup_module(center: Center, config: dict[str, Any]) -> None:
     toggle_action_schema = BASE_ACTION_SCHEMA.extend(
         {
             vol.Required(NAME): vol.All(vol.Coerce(str), vol.In(automations)),
-            ENABLED: vol.Boolean(),  # pylint: disable=no-value-for-parameter
+            ENABLED: vol.Boolean(),
         }
     )
 
@@ -221,8 +219,6 @@ def _process_trigger(
 class Automation:
     """Automation class."""
 
-    # pylint: disable=too-many-arguments
-
     def __init__(
         self,
         center: Center,
@@ -286,8 +282,6 @@ class Automation:
 class ActionSequence:
     """Represent a sequence of actions."""
 
-    # pylint: disable=too-few-public-methods
-
     def __init__(
         self,
         center: Center,
@@ -348,8 +342,6 @@ class ActionSequence:
 
 class TemplateAction:
     """Representation of an action with template data."""
-
-    # pylint: disable=too-few-public-methods
 
     def __init__(self, center: Center, action_conf: dict[str, Any]) -> None:
         """Set up instance."""

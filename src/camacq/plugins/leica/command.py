@@ -116,7 +116,6 @@ def cam_com(
 
     Return a list with parts for the cam command.
     """
-    # pylint: disable=too-many-arguments
     wellx = str(wellu + 1)
     welly = str(wellv + 1)
     fieldx_str = str(fieldx + 1)

@@ -24,8 +24,6 @@ from camacq.plugins.leica import (
     LeicaStopCommandEvent,
 )
 
-# pylint: disable=redefined-outer-name
-
 
 class MockLeicaApi(LeicaApi):
     """Mock LeicaApi class."""

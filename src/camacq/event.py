@@ -16,7 +16,6 @@ _LOGGER = logging.getLogger(__name__)
 EventHandler = Callable[["Center", "Event"], Any]
 
 
-# pylint: disable=too-few-public-methods
 class Event:
     """A base event.
 

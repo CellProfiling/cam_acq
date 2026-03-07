@@ -11,13 +11,9 @@ import voluptuous as vol
 from camacq import helper
 from camacq.control import Center
 
-# pylint: disable=redefined-outer-name
-
 
 class MockModule:
     """Represent a mock module."""
-
-    # pylint: disable=too-few-public-methods
 
     def __init__(
         self,
@@ -26,7 +22,6 @@ class MockModule:
         config_schema: vol.Schema | None = None,
     ) -> None:
         """Set up the mock module."""
-        # pylint: disable=invalid-name
         self.__name__ = f"camacq.plugins.{module_name}"
         self.__file__ = f"camacq.plugins/{module_name}"
 

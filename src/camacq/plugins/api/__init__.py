@@ -156,7 +156,6 @@ class Api:
         raise NotImplementedError()
 
 
-# pylint: disable=too-few-public-methods
 class CommandEvent(Event):
     """An event received from the API.
 

@@ -24,7 +24,7 @@ PACKAGE_MODULE = "{}.{}"
 BASE_ACTION_SCHEMA = vol.Schema(
     {
         "action_id": str,
-        "silent": vol.Boolean(),  # pylint: disable=no-value-for-parameter
+        "silent": vol.Boolean(),
     },
     extra=vol.REMOVE_EXTRA,
 )

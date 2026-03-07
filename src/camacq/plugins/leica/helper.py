@@ -41,7 +41,7 @@ def get_field(path: str) -> str:
         Return path to field directory of image.
 
     """
-    return experiment.Experiment(path).dirname  # pylint: disable=no-member
+    return experiment.Experiment(path).dirname
 
 
 def get_well(path: str) -> str:
@@ -58,7 +58,6 @@ def get_well(path: str) -> str:
         Return path to well directory of image.
 
     """
-    # pylint: disable=no-member
     return experiment.Experiment(get_field(path)).dirname
 
 
