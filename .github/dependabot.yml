@@ -42,11 +42,11 @@ updates:
     multi-ecosystem-group: "codespell"
   - package-ecosystem: "pre-commit"
     directory: "/"
-    patterns: ["codespell"]
+    patterns: ["*/codespell-project/codespell"]
     multi-ecosystem-group: "codespell"
   - package-ecosystem: "github-actions"
     directory: "/"
-    patterns: ["python-semantic-release"]
+    patterns: ["python-semantic-release/*"]
     multi-ecosystem-group: "python-semantic-release"
   - package-ecosystem: "pip"
     directory: "/"
@@ -58,5 +58,5 @@ updates:
     multi-ecosystem-group: "ruff"
   - package-ecosystem: "pre-commit"
     directory: "/"
-    patterns: ["ruff"]
+    patterns: ["*/astral-sh/ruff-pre-commit"]
     multi-ecosystem-group: "ruff"
