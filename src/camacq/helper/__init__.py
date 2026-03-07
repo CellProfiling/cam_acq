@@ -1,10 +1,10 @@
 """Helper functions for camacq."""
 
+from importlib import import_module
 import logging
 import pkgutil
 import signal
 import sys
-from importlib import import_module
 
 import voluptuous as vol
 
@@ -31,6 +31,7 @@ def get_module(package, module_name):
         The path to the package.
     module_name : str
         The name of the module.
+
     """
     module_path = PACKAGE_MODULE.format(package, module_name)
     matches = [
@@ -60,6 +61,7 @@ async def setup_one_module(center, config, module):
     -------
     asyncio.Task
         Return a task to set up the module or None.
+
     """
     module_name = module.__name__.split(".")[-1]
     if not hasattr(module, "setup_module"):

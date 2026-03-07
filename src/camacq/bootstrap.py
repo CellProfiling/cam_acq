@@ -2,11 +2,11 @@
 
 import logging
 
+from camacq import plugins
 import camacq.config as config_util
-import camacq.log as log_util
 from camacq.control import Center
 from camacq.helper import setup_one_module
-from camacq import plugins
+import camacq.log as log_util
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,6 +23,7 @@ async def setup_dict(center, config):
     -------
     Center instance
         Return the Center instance.
+
     """
     log_util.enable_log(config)
     await setup_one_module(center, config, plugins)
@@ -42,6 +43,7 @@ async def setup_file(config_file, cmd_args):
     -------
     Center instance
         Return the Center instance.
+
     """
     center = Center()
     user_config = await center.add_executor_job(

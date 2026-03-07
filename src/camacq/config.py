@@ -21,6 +21,7 @@ def get_default_config_dir():
     -------
     str
         Return the path to the configuration directory.
+
     """
     data_dir = os.getenv("APPDATA") if os.name == "nt" else Path.home()
     return (Path(data_dir) / CONFIG_DIR_NAME).resolve()
@@ -39,6 +40,7 @@ def find_config_file(config_dir):
     pathlib.Path
         Return path to the configuration file if found, None if not
         found.
+
     """
     config_path = config_dir / YAML_CONFIG_FILE
 
@@ -57,10 +59,11 @@ def load_config_file(path):
     -------
     dict
         Return a dict with the configuration contents.
+
     """
     yaml = YAML()
     try:
-        with open(path, "r", encoding="utf-8") as yml_file:
+        with open(path, encoding="utf-8") as yml_file:
             cfg = yaml.load(yml_file)
     except YAMLError as exc:
         _LOGGER.error("Error reading YAML configuration file %s", path)
@@ -87,6 +90,7 @@ def create_default_config(config_dir):
     pathlib.Path
         Return path to new configuration file if success, None if
         failed.
+
     """
     config_path = config_dir / YAML_CONFIG_FILE
     default_config_template = resources.files(__package__) / DEFAULT_CONFIG_TEMPLATE
@@ -117,6 +121,7 @@ def ensure_config_exists(config_dir):
     -------
     pathlib.Path
         Return path to the configuration file.
+
     """
     config_path = find_config_file(config_dir)
 

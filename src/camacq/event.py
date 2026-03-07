@@ -15,6 +15,7 @@ class Event:
     ----------
     data : dict, optional
         The data of the event.
+
     """
 
     __slots__ = {"data": "Return the data of the event."}
@@ -37,6 +38,7 @@ class EventBus:
     ----------
     center : Center instance
         The Center instance.
+
     """
 
     def __init__(self, center):
@@ -73,6 +75,7 @@ class EventBus:
         -------
         callable
             Return a function to remove the registered handler.
+
         """
         _LOGGER.debug("Registering event handler for event type %s", event_type)
         self._register_handler(event_type, handler)
@@ -94,6 +97,7 @@ class EventBus:
         ----------
         event : Event instance
             An instance of Event or an instance of subclass of Event.
+
         """
         _LOGGER.debug("Notifying event %s", event)
         # Inspired by https://goo.gl/VEPG3n

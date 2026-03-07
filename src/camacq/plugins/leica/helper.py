@@ -21,6 +21,7 @@ def find_image_path(relpath, root):
     -------
     str
         Return path to image.
+
     """
     parts = PureWindowsPath(relpath).parts
     return str(Path(root).joinpath(*parts))
@@ -38,6 +39,7 @@ def get_field(path):
     -------
     str
         Return path to field directory of image.
+
     """
     return experiment.Experiment(path).dirname  # pylint: disable=no-member
 
@@ -54,6 +56,7 @@ def get_well(path):
     -------
     str
         Return path to well directory of image.
+
     """
     # pylint: disable=no-member
     return experiment.Experiment(get_field(path)).dirname
@@ -75,6 +78,7 @@ def get_imgs(path, img_type="tif", search=""):
     -------
     list
         Return paths of all images found.
+
     """
     root = Path(path)
     _path = Path("")

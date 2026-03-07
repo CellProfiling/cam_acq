@@ -1,3 +1,5 @@
+"""Test the CLI."""
+
 import subprocess
 import sys
 

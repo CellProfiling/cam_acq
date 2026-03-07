@@ -57,7 +57,7 @@ class EchoServer:
         self.logger.debug("Connected by %s", addr)
         try:
             self.logger.debug("Send welcome")
-            conn.sendall("Welcome...".encode("utf-8"))
+            conn.sendall(b"Welcome...")
             while True:
                 data = conn.recv(1024)
                 if not data:

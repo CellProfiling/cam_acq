@@ -44,7 +44,7 @@
 **Merged pull requests:**
 
 - 0.5.0 [\#164](https://github.com/CellProfiling/cam_acq/pull/164) ([MartinHjelmare](https://github.com/MartinHjelmare))
-- Fix make\_proj [\#163](https://github.com/CellProfiling/cam_acq/pull/163) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Fix make_proj [\#163](https://github.com/CellProfiling/cam_acq/pull/163) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Add lint to scripts [\#161](https://github.com/CellProfiling/cam_acq/pull/161) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Fix travis pypi deploy round 2 [\#160](https://github.com/CellProfiling/cam_acq/pull/160) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Fix travis pypi deploy [\#159](https://github.com/CellProfiling/cam_acq/pull/159) ([MartinHjelmare](https://github.com/MartinHjelmare))
@@ -62,7 +62,7 @@
 **Closed issues:**
 
 - Add config validation using voluptuous [\#145](https://github.com/CellProfiling/cam_acq/issues/145)
-- Add entry\_point support for plugins [\#127](https://github.com/CellProfiling/cam_acq/issues/127)
+- Add entry_point support for plugins [\#127](https://github.com/CellProfiling/cam_acq/issues/127)
 - Only fire events after calculating gain [\#117](https://github.com/CellProfiling/cam_acq/issues/117)
 - Update release procedure [\#108](https://github.com/CellProfiling/cam_acq/issues/108)
 - Move to asyncio core with event loop [\#92](https://github.com/CellProfiling/cam_acq/issues/92)
@@ -75,7 +75,7 @@
 - Clean up logging format output [\#70](https://github.com/CellProfiling/cam_acq/issues/70)
 - Clean up child threads at stop event [\#67](https://github.com/CellProfiling/cam_acq/issues/67)
 - Fire both api image events and sample image events [\#66](https://github.com/CellProfiling/cam_acq/issues/66)
-- Add event\_type attribute to all events [\#64](https://github.com/CellProfiling/cam_acq/issues/64)
+- Add event_type attribute to all events [\#64](https://github.com/CellProfiling/cam_acq/issues/64)
 - Abstract the directory structure of the sample away from the plugins [\#62](https://github.com/CellProfiling/cam_acq/issues/62)
 - Abstract all microscope specifics from core and plugins [\#61](https://github.com/CellProfiling/cam_acq/issues/61)
 - Replace gain plugin flow with yaml automation [\#59](https://github.com/CellProfiling/cam_acq/issues/59)
@@ -111,7 +111,7 @@
 - Move sample to plugins [\#130](https://github.com/CellProfiling/cam_acq/pull/130) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Move automations to plugins [\#129](https://github.com/CellProfiling/cam_acq/pull/129) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Move api to plugins [\#128](https://github.com/CellProfiling/cam_acq/pull/128) ([MartinHjelmare](https://github.com/MartinHjelmare))
-- Enable external plugins via entry\_points [\#126](https://github.com/CellProfiling/cam_acq/pull/126) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Enable external plugins via entry_points [\#126](https://github.com/CellProfiling/cam_acq/pull/126) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Add Python 3.8 travis and tox env [\#125](https://github.com/CellProfiling/cam_acq/pull/125) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Fix tox [\#124](https://github.com/CellProfiling/cam_acq/pull/124) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Scheduled monthly dependency update for November [\#123](https://github.com/CellProfiling/cam_acq/pull/123) ([pyup-bot](https://github.com/pyup-bot))
@@ -131,7 +131,7 @@
 - Update release procedure [\#107](https://github.com/CellProfiling/cam_acq/pull/107) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Bump pydocstyle to 4.0.1 [\#106](https://github.com/CellProfiling/cam_acq/pull/106) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Fix image metadata [\#105](https://github.com/CellProfiling/cam_acq/pull/105) ([MartinHjelmare](https://github.com/MartinHjelmare))
-- Add requirements\_dev.txt [\#104](https://github.com/CellProfiling/cam_acq/pull/104) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add requirements_dev.txt [\#104](https://github.com/CellProfiling/cam_acq/pull/104) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Clean requirements [\#103](https://github.com/CellProfiling/cam_acq/pull/103) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Bump scipy to 1.3.1 [\#102](https://github.com/CellProfiling/cam_acq/pull/102) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Bump ruamel.yaml to 0.16.5 [\#101](https://github.com/CellProfiling/cam_acq/pull/101) ([MartinHjelmare](https://github.com/MartinHjelmare))
@@ -193,7 +193,7 @@
 - Fix logging [\#23](https://github.com/CellProfiling/cam_acq/pull/23) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Fix typo in contributing instruction [\#22](https://github.com/CellProfiling/cam_acq/pull/22) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Add contributing instructions [\#21](https://github.com/CellProfiling/cam_acq/pull/21) ([MartinHjelmare](https://github.com/MartinHjelmare))
-- Add entry\_points instead of scripts [\#20](https://github.com/CellProfiling/cam_acq/pull/20) ([MartinHjelmare](https://github.com/MartinHjelmare))
+- Add entry_points instead of scripts [\#20](https://github.com/CellProfiling/cam_acq/pull/20) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Fix template rendering [\#19](https://github.com/CellProfiling/cam_acq/pull/19) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Merge command line arguments into config dict [\#18](https://github.com/CellProfiling/cam_acq/pull/18) ([MartinHjelmare](https://github.com/MartinHjelmare))
 - Fix bugs [\#17](https://github.com/CellProfiling/cam_acq/pull/17) ([MartinHjelmare](https://github.com/MartinHjelmare))

@@ -83,6 +83,7 @@ async def setup_module(center, config):
         The Center instance.
     config : dict
         The config dict.
+
     """
     sample = LeicaSample()
     register_sample(center, sample)
@@ -99,6 +100,7 @@ class LeicaSample(Sample):
         A dict of images of the sample.
     values : dict
         Optional dict of values.
+
     """
 
     def __init__(self, images=None, values=None):
@@ -220,6 +222,7 @@ class Plate(ImageContainer):
     ----------
     plate_name: str
         The name of the plate.
+
     """
 
     def __init__(self, images, plate_name, **kwargs):
@@ -282,6 +285,7 @@ class Well(Plate, ImageContainer):
         Number showing the x coordinate of the well, from 0.
     well_y : int
         Number showing the y coordinate of the well, from 0.
+
     """
 
     def __init__(self, images, well_x, well_y, **kwargs):
@@ -352,6 +356,7 @@ class Field(Well, ImageContainer):
         Number showing the x coordinate of the field, from 0.
     field_y : int
         Number showing the y coordinate of the field, from 0.
+
     """
 
     def __init__(self, images, field_x, field_y, **kwargs):
@@ -420,6 +425,7 @@ class Channel(Well, ImageContainer):
     ----------
     channel_id : int
         Return channel_id of the channel.
+
     """
 
     def __init__(self, images, channel_id, **kwargs):
@@ -486,6 +492,7 @@ class ZSlice(Well, ImageContainer):
     ----------
     z_slice_id : int
         Return z_slice_id of the channel.
+
     """
 
     def __init__(self, images, z_slice_id, **kwargs):

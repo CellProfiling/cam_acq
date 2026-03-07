@@ -6,9 +6,9 @@ import logging
 from async_timeout import timeout as async_timeout
 import voluptuous as vol
 
+from camacq.const import ACTION_TIMEOUT, CAMACQ_START_EVENT, CAMACQ_STOP_EVENT
 from camacq.event import Event, EventBus
 from camacq.exceptions import CamAcqError, MissingActionError, MissingActionTypeError
-from camacq.const import ACTION_TIMEOUT, CAMACQ_START_EVENT, CAMACQ_STOP_EVENT
 from camacq.helper import register_signals
 from camacq.plugins.sample import Samples
 from camacq.util import dotdict
@@ -36,6 +36,7 @@ class Center:
         Return the ActionsRegistry instance.
     data : dict
         Return dict that stores data from other modules than control.
+
     """
 
     # pylint: disable=too-many-instance-attributes
@@ -64,6 +65,7 @@ class Center:
         ----------
         code : int
             Exit code to return when the app exits.
+
         """
         _LOGGER.info("Stopping camacq")
         self._track_tasks = True
@@ -157,6 +159,7 @@ class ActionsRegistry:
         action_func : voluptuous schema
             The voluptuous schema that should validate the parameters
             of the action call.
+
         """
         if not asyncio.iscoroutinefunction(action_func):
             _LOGGER.error(
@@ -182,6 +185,7 @@ class ActionsRegistry:
         **kwargs
             Arbitrary keyword arguments. These will be passed to the action
             function when an action is called.
+
         """
         if (
             action_type not in self._actions
@@ -245,7 +249,7 @@ class Action:
         try:
             async with async_timeout(ACTION_TIMEOUT):
                 await self.func(action_id=self.action_id, **kwargs)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             _LOGGER.error(
                 "Action %s.%s. timed out after %s seconds",
                 self.action_type,

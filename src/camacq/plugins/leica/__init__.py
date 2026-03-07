@@ -1,15 +1,15 @@
 """Leica microscope API specific modules."""
 
 import asyncio
+from functools import partial
 import logging
 import tempfile
-from functools import partial
 
-import voluptuous as vol
 from async_timeout import timeout as async_timeout
 from leicacam.async_cam import AsyncCAM
 from leicacam.cam import bytes_as_dict, check_messages, tuples_as_bytes
 from leicaimage import attribute, attribute_as_str
+import voluptuous as vol
 
 from camacq.const import CAMACQ_STOP_EVENT
 from camacq.helper import ensure_dict
@@ -64,6 +64,7 @@ async def setup_module(center, config):
         The Center instance.
     config : dict
         The config dict.
+
     """
     await sample_setup_module(center, config)
     conf = config[CONF_LEICA]
@@ -120,6 +121,7 @@ class LeicaApi(Api):
         ----------
         replies : list
             A list of replies from the CAM server.
+
         """
         # if reply check reply and call correct listener
         # parse reply and create Event
@@ -164,6 +166,7 @@ class LeicaApi(Api):
         ----------
         command : list of tuples or string
             The command to send.
+
         """
         block = kwargs.get("block", True)
 
@@ -218,7 +221,7 @@ class LeicaApi(Api):
         try:
             async with async_timeout(10.0):
                 await asyncio.wait([cmd_sent, trigger_cmd_sent])
-        except asyncio.TimeoutError:
+        except TimeoutError:
             _LOGGER.info("No acknowledgement event received, continuing anyway")
 
 

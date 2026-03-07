@@ -1,9 +1,9 @@
 """Handle sample state."""
 
+from abc import ABC, abstractmethod
 import asyncio
 import json
 import logging
-from abc import ABC, abstractmethod
 
 import voluptuous as vol
 
@@ -38,6 +38,7 @@ async def setup_module(center, config):
         The Center instance.
     config : dict
         The config dict.
+
     """
 
     async def handle_action(**kwargs):
@@ -48,6 +49,7 @@ async def setup_module(center, config):
         **kwargs
             Arbitrary keyword arguments. These will be passed to a
             method when an action is called.
+
         """
         action_id = kwargs.pop("action_id")
         method = ACTION_TO_METHOD[action_id]["method"]
@@ -169,6 +171,7 @@ class Sample(ImageContainer, ABC):
         -------
         ImageContainer instance
             Return the found ImageContainer instance.
+
         """
         id_string = json.dumps({"name": name, **kwargs})
         return self.data.get(id_string)
@@ -190,6 +193,7 @@ class Sample(ImageContainer, ABC):
         -------
         ImageContainer instance
             Return the ImageContainer instance that was updated.
+
         """
         id_string = json.dumps({"name": name, **kwargs})
         values = values or {}
@@ -232,6 +236,7 @@ class Sample(ImageContainer, ABC):
         -------
         ImageContainer instance
             Return the ImageContainer instance that was updated.
+
         """
 
 

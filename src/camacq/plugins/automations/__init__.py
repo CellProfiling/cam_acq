@@ -3,16 +3,16 @@
 # Copyright 2013-2017 The Home Assistant Authors
 # https://github.com/home-assistant/home-assistant/blob/master/LICENSE.md
 # This file was modified by The Camacq Authors.
-import logging
 from collections import deque
 from functools import partial
+import logging
 
 import voluptuous as vol
 
+from camacq.const import CAMACQ_STOP_EVENT, CONF_DATA, CONF_ID
 from camacq.exceptions import TemplateError
 from camacq.helper import BASE_ACTION_SCHEMA, get_module, has_at_least_one_key
 from camacq.helper.template import make_template, render_template
-from camacq.const import CAMACQ_STOP_EVENT, CONF_DATA, CONF_ID
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -77,6 +77,7 @@ async def setup_module(center, config):
         The Center instance.
     config : dict
         The config dict.
+
     """
     _process_automations(center, config)
     automations = center.data[DATA_AUTOMATIONS]
@@ -290,6 +291,7 @@ class ActionSequence:
             A time interval to delay the pending action sequence.
         variables : dict
             A dict of template variables.
+
         """
         sequence = ActionSequence(self._center, waiting)
         callback = partial(self._center.create_task, sequence(variables))

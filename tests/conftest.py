@@ -8,7 +8,8 @@ import voluptuous as vol
 
 from camacq.const import IMAGE_EVENT
 from camacq.control import Center
-from camacq.plugins import api as api_mod, sample as sample_mod
+from camacq.plugins import api as api_mod
+from camacq.plugins import sample as sample_mod
 
 SET_SAMPLE_SCHEMA = vol.Schema({vol.Required("name"): str}, extra=vol.ALLOW_EXTRA)
 
@@ -80,6 +81,7 @@ class MockApi(api_mod.Api):
         ----------
         command : str
             The command to send.
+
         """
         self.calls.append((self.send.__name__, command))
 
@@ -158,6 +160,7 @@ class MockSample(sample_mod.Sample):
         -------
         ImageContainer instance
             Return the ImageContainer instance that was updated.
+
         """
         self.mock_set_sample(name, **values, **kwargs)
         if name == "image":

@@ -1,7 +1,7 @@
 """Handle images."""
 
-import logging
 from collections import defaultdict
+import logging
 
 import numpy as np
 import tifffile
@@ -22,6 +22,7 @@ def read_image(path):
     -------
     numpy array
         Return a numpy array with image data.
+
     """
     try:
         return tifffile.imread(path, key=0)
@@ -41,6 +42,7 @@ def save_image(path, data, description=None):
         A numpy array with the image data.
     description : str
         The description string of the image.
+
     """
     tifffile.imwrite(path, data, description=description)
 
@@ -60,6 +62,7 @@ def make_proj(images):
     dict
         Return a dict of channels that map ImageData objects.
         Each image object have a max projection as data.
+
     """
     _LOGGER.info("Making max projections...")
     sorted_images = defaultdict(list)
@@ -92,6 +95,7 @@ class ImageData:
     ----------
     path : str
         The path to the image.
+
     """
 
     # pylint: disable=too-many-arguments, too-many-instance-attributes
@@ -165,6 +169,7 @@ class ImageData:
             A numpy array with the image data.
         metadata : dict
             The meta data of the image as a JSON dict.
+
         """
         if path is None:
             path = self.path

@@ -1,7 +1,6 @@
 """Handle plugins."""
 
 import asyncio
-
 from importlib.metadata import entry_points
 
 from camacq.helper import setup_one_module
@@ -18,6 +17,7 @@ async def setup_module(center, config):
         The Center instance.
     config : dict
         The config dict.
+
     """
     plugins = await center.add_executor_job(get_plugins)
 

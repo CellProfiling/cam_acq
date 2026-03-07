@@ -5,8 +5,8 @@ from collections import OrderedDict
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
-import pytest
 from leicacam.async_cam import AsyncCAM
+import pytest
 
 from camacq import plugins
 from camacq.plugins import api as base_api
@@ -27,7 +27,7 @@ from camacq.plugins.leica import (
 @pytest.fixture
 async def api(center):
     """Return a leica api instance."""
-    leica_conf = {"host": "localhost", "port": 8895, "imaging_dir": "/tmp"}
+    leica_conf = {"host": "localhost", "port": 8895, "imaging_dir": "/tmp"}  # noqa: S108
     config = {"leica": leica_conf}
     client = Mock(AsyncCAM())
     mock_api = LeicaApi(center, leica_conf, client)
@@ -36,8 +36,9 @@ async def api(center):
         """Register a mock api package."""
         base_api.register_api(center, mock_api)
 
-    with patch("camacq.plugins.leica.setup_module") as leica_setup, patch(
-        "camacq.plugins.leica.START_STOP_DELAY", 0.0
+    with (
+        patch("camacq.plugins.leica.setup_module") as leica_setup,
+        patch("camacq.plugins.leica.START_STOP_DELAY", 0.0),
     ):
         leica_setup.side_effect = register_mock_api
         await base_api.setup_module(center, config)

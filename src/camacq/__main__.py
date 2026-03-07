@@ -1,13 +1,13 @@
 """Make the CLI runnable using python -m camacq."""
 
-import asyncio
 import argparse
+import asyncio
 import logging
-import sys
 from pathlib import Path
+import sys
 
-import camacq.config as config_util
 from camacq import bootstrap
+import camacq.config as config_util
 from camacq.const import CONFIG_DIR, LOG_LEVEL
 
 

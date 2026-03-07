@@ -80,7 +80,6 @@ async def test_toggle_invalid_name(center, caplog):
 
 async def test_sample_event(center, api, sample):
     """Test a trigger for sample change event."""
-
     config = """
         automations:
         - name: set_channel_gain

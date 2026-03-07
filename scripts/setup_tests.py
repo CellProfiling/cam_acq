@@ -2,8 +2,8 @@
 """Make sure fixtures are in place before running tests."""
 
 import gzip
-import shutil
 from pathlib import Path
+import shutil
 
 import click
 

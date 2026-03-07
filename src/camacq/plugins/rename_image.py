@@ -20,6 +20,7 @@ async def setup_module(center, config):
         The Center instance.
     config : dict
         The config dict.
+
     """
 
     async def handle_action(**kwargs):
@@ -30,6 +31,7 @@ async def setup_module(center, config):
         **kwargs
             Arbitrary keyword arguments. These will be passed to the
             action function when an action is called.
+
         """
         sample_name = kwargs["sample"]
         old_path = Path(kwargs["old_path"])

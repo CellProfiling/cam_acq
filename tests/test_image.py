@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 
 from camacq import image
-
 from tests.common import IMAGE_PATH
 
 

@@ -26,4 +26,3 @@ camacq.plugins.rename\_image module
    :members:
    :undoc-members:
    :show-inheritance:
-

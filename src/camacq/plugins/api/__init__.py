@@ -76,6 +76,7 @@ async def setup_module(center, config):
         The Center instance.
     config : dict
         The config dict.
+
     """
     api_store = center.data.setdefault(DATA_API, {})
 
@@ -87,6 +88,7 @@ async def setup_module(center, config):
         **kwargs
             Arbitrary keyword arguments. These will be passed to the
             api method when an action is called.
+
         """
         action_id = kwargs.pop("action_id")
         method = ACTION_TO_METHOD[action_id]["method"]
@@ -122,6 +124,7 @@ class Api:
         ----------
         command : str
             The command to send.
+
         """
         raise NotImplementedError()
 
@@ -132,6 +135,7 @@ class Api:
         ----------
         commands : list
             A list of commands to send.
+
         """
         for cmd in commands:
             # It's important that each task is done before we start the next.

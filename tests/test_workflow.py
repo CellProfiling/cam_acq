@@ -1,13 +1,13 @@
 """Test a complete workflow."""
 
+from functools import partial
 from importlib import resources
 import logging
-from functools import partial
 from pathlib import Path
 from unittest.mock import Mock, call, patch
 
-import pytest
 from leicacam.async_cam import AsyncCAM
+import pytest
 
 from camacq import bootstrap
 from camacq.config import DEFAULT_CONFIG_TEMPLATE, load_config_file
@@ -133,10 +133,8 @@ async def test_workflow(center, caplog, api, rename_image):
         field_x = int(idx / 3) + 1
         field_y = idx % 3 + 1
         assert api_call == call(
-            (
-                "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 /wellx:1 "
-                f"/welly:1 /fieldx:{field_x} /fieldy:{field_y} /dxpos:0 /dypos:0"
-            )
+            "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 /wellx:1 "
+            f"/welly:1 /fieldx:{field_x} /fieldy:{field_y} /dxpos:0 /dypos:0"
         )
     assert rename_image_auto.enabled
     assert set_img_ok_auto.enabled

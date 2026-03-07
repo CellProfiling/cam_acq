@@ -26,12 +26,10 @@ def check_path(path):
     -------
     bool
         Return True if path exists and is writable.
+
     """
-    if (
-        path.is_file()
-        and os.access(path, os.W_OK)
-        or path.parent.is_dir()
-        and os.access(path.parent, os.W_OK)
+    if (path.is_file() and os.access(path, os.W_OK)) or (
+        path.parent.is_dir() and os.access(path.parent, os.W_OK)
     ):
         return True
     _LOGGER.error("Unable to access log file %s (access denied)", path)
@@ -45,6 +43,7 @@ def enable_log(config):
     ----------
     config : dict
         The dict with the configuration.
+
     """
     logging.basicConfig(level=logging.INFO)
     root_logger = logging.getLogger()

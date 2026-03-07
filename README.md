@@ -75,7 +75,7 @@ simple automation, in the configuration yaml file.
 leica:
   host: localhost
   port: 8895
-  imaging_dir: '/imaging_dir'
+  imaging_dir: "/imaging_dir"
 
 automations:
   - name: start
@@ -103,7 +103,7 @@ can use.
 leica:
   host: localhost
   port: 8895
-  imaging_dir: '/imaging_dir'
+  imaging_dir: "/imaging_dir"
 ```
 
 ## Automations
@@ -241,8 +241,7 @@ not in trigger sections.
 
 A condition can be used to check the current sample state and only
 execute the action if some criteria is met. Say eg we want to make sure
-that channel 3 of well 1:1 of plate 1 is green and that gain is set to
-800.
+that channel 3 of well 1:1 of plate 1 is green and that gain is set to 800.
 
 ```yaml
 condition:
@@ -383,8 +382,7 @@ async def setup_module(center, config):
 Each plugin must have its own configuration section at the root of the config.
 
 ```yaml
-example_plugin:
-  ...
+example_plugin: ...
 ```
 
 ## Credits
