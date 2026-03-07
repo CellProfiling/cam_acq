@@ -3,25 +3,25 @@
 from camacq.plugins.leica import command
 
 
-def test_del():
+def test_del() -> None:
     """Test deletelist command."""
     cmd = command.del_com()
     assert cmd == [("cmd", "deletelist")]
 
 
-def test_start():
+def test_start() -> None:
     """Test startscan command."""
     cmd = command.start()
     assert cmd == [("cmd", "startscan")]
 
 
-def test_stop():
+def test_stop() -> None:
     """Test stopscan command."""
     cmd = command.stop()
     assert cmd == [("cmd", "stopscan")]
 
 
-def test_camstart():
+def test_camstart() -> None:
     """Test startcamscan command."""
     cmd = command.camstart_com("afjob10x", 100, 10)
     assert cmd == [
@@ -34,7 +34,7 @@ def test_camstart():
     ]
 
 
-def test_camstart_no_args():
+def test_camstart_no_args() -> None:
     """Test startcamscan command."""
     cmd = command.camstart_com()
     assert cmd == [
@@ -44,13 +44,13 @@ def test_camstart_no_args():
     ]
 
 
-def test_cam_stop():
+def test_cam_stop() -> None:
     """Test stopcamscan command."""
     cmd = command.camstop_com()
     assert cmd == [("cmd", "stopcamscan")]
 
 
-def test_gain():
+def test_gain() -> None:
     """Test command to adjust gain on pmt."""
     cmd = command.gain_com("job12", 2, 666)
     assert cmd == [
@@ -63,7 +63,7 @@ def test_gain():
     ]
 
 
-def test_enable():
+def test_enable() -> None:
     """Test enable field command."""
     cmd = command.enable_com(0, 2, 1, 3, False)
     assert cmd == [
@@ -77,7 +77,7 @@ def test_enable():
     ]
 
 
-def test_cam_com():
+def test_cam_com() -> None:
     """Test add a field to the cam list."""
     cmd = command.cam_com("job12", 0, 2, 1, 3, 45, 68)
     assert cmd == [

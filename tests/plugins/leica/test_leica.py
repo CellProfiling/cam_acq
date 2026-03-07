@@ -2,13 +2,16 @@
 
 import asyncio
 from collections import OrderedDict
+from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
-import pytest
 from leicacam.async_cam import AsyncCAM
+import pytest
 
 from camacq import plugins
+from camacq.control import Center
 from camacq.plugins import api as base_api
 from camacq.plugins.leica import (
     LEICA_COMMAND_EVENT,
@@ -21,23 +24,32 @@ from camacq.plugins.leica import (
     LeicaStopCommandEvent,
 )
 
-# pylint: disable=redefined-outer-name
+
+class MockLeicaApi(LeicaApi):
+    """Mock LeicaApi class."""
+
+    client: Mock
+
+    def __init__(self, center: Center, config: dict[str, Any], client: Mock):
+        """Set up instance."""
+        super().__init__(center, config, client)
 
 
 @pytest.fixture
-async def api(center):
+async def api(center: Center) -> AsyncGenerator[MockLeicaApi, None]:
     """Return a leica api instance."""
-    leica_conf = {"host": "localhost", "port": 8895, "imaging_dir": "/tmp"}
+    leica_conf = {"host": "localhost", "port": 8895, "imaging_dir": "/tmp"}  # noqa: S108
     config = {"leica": leica_conf}
     client = Mock(AsyncCAM())
-    mock_api = LeicaApi(center, leica_conf, client)
+    mock_api = MockLeicaApi(center, leica_conf, client)
 
-    async def register_mock_api(center, config):
+    async def register_mock_api(center: Center, config: dict[str, Any]) -> None:
         """Register a mock api package."""
         base_api.register_api(center, mock_api)
 
-    with patch("camacq.plugins.leica.setup_module") as leica_setup, patch(
-        "camacq.plugins.leica.START_STOP_DELAY", 0.0
+    with (
+        patch("camacq.plugins.leica.setup_module") as leica_setup,
+        patch("camacq.plugins.leica.START_STOP_DELAY", 0.0),
     ):
         leica_setup.side_effect = register_mock_api
         await base_api.setup_module(center, config)
@@ -45,21 +57,23 @@ async def api(center):
 
 
 @pytest.fixture
-def get_imgs():
+def get_imgs() -> Generator[Mock, None, None]:
     """Mock leica helper get_imgs."""
     with patch("camacq.plugins.leica.get_imgs") as mock_get_imgs:
         yield mock_get_imgs
 
 
-async def test_setup_bad_socket(center, caplog):
+async def test_setup_bad_socket(
+    center: Center, caplog: pytest.LogCaptureFixture
+) -> None:
     """Test setup leica api package with bad host or port."""
-    config = {"leica": {}}
+    config: dict[str, Any] = {"leica": {}}
     with patch("camacq.plugins.leica.AsyncCAM.connect", side_effect=OSError()):
         await plugins.setup_module(center, config)
     assert "Connecting to server localhost failed:" in caplog.text
 
 
-async def test_send(api):
+async def test_send(api: MockLeicaApi) -> None:
     """Test the leica api send method."""
     cmd_string = "/cmd:deletelist"
     cmd_tuples = [("cmd", "deletelist")]
@@ -86,7 +100,7 @@ async def test_send(api):
     assert event.command == cmd_string
 
 
-async def test_start_imaging(api):
+async def test_start_imaging(api: MockLeicaApi) -> None:
     """Test the leica api start imaging method."""
     event_string = "/inf:scanstart"
     cmd_tuples = [("cmd", "startscan")]
@@ -111,7 +125,7 @@ async def test_start_imaging(api):
     assert event.command == event_string
 
 
-async def test_stop_imaging(api):
+async def test_stop_imaging(api: MockLeicaApi) -> None:
     """Test the leica api stop imaging method."""
     event_string = "/inf:scanfinished"
     stop_event_tuples = [("inf", "scanfinished")]
@@ -136,7 +150,7 @@ async def test_stop_imaging(api):
     assert event.command == event_string
 
 
-async def test_receive(api, get_imgs):
+async def test_receive(api: MockLeicaApi, get_imgs: Mock) -> None:
     """Test the leica api receive method."""
     image_path = (
         "subfolder/exp1/CAM1/slide--S00/chamber--U00--V00/"
@@ -176,9 +190,9 @@ async def test_receive(api, get_imgs):
     assert event.plate_name == "00"
 
 
-async def test_start_listen(center, caplog):
+async def test_start_listen(center: Center, caplog: pytest.LogCaptureFixture) -> None:
     """Test start listen for incoming messages."""
-    config = {"leica": {}}
+    config: dict[str, Any] = {"leica": {}}
     cmd_tuples = [("cmd", "deletelist")]
     commands = [OrderedDict(cmd_tuples)]
 

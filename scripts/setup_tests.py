@@ -2,18 +2,20 @@
 """Make sure fixtures are in place before running tests."""
 
 import gzip
-import shutil
 from pathlib import Path
+import shutil
+from typing import Annotated
 
-import click
+import typer
 
 IMAGE_DATA_DIR = Path(__file__).parent.parent / "tests/fixtures/image_data"
+cli = typer.Typer()
 
 
-def pack_image_fixture(root_dir=None):
+def pack_image_fixture(root_dir: str | None = None) -> None:
     """Gunzip tif images for image tests."""
     if root_dir is None:
-        root_dir = IMAGE_DATA_DIR
+        root_dir = str(IMAGE_DATA_DIR)
     matches = Path(root_dir).glob("**/*.tif")
     print("Gzipping the images, this will take some time...")
     for path in matches:
@@ -24,10 +26,10 @@ def pack_image_fixture(root_dir=None):
         path.unlink()
 
 
-def unpack_image_fixture(root_dir=None):
+def unpack_image_fixture(root_dir: str | None = None) -> None:
     """Unzip gunzipped tif images for image tests."""
     if root_dir is None:
-        root_dir = IMAGE_DATA_DIR
+        root_dir = str(IMAGE_DATA_DIR)
     matches = Path(root_dir).glob("**/*.gz")
     for gz_path in matches:
         path = gz_path.parent / gz_path.stem
@@ -36,9 +38,8 @@ def unpack_image_fixture(root_dir=None):
                 shutil.copyfileobj(f_in, f_out)
 
 
-@click.command()
-@click.option("--pack/--unpack", default=False)
-def main(pack):
+@cli.command()
+def main(pack: Annotated[bool, typer.Option("--pack/--unpack")] = False) -> None:
     """Pack or unpack the images for test fixtures."""
     if pack:
         pack_image_fixture()
@@ -47,4 +48,4 @@ def main(pack):
 
 
 if __name__ == "__main__":
-    main()  # pylint:disable=no-value-for-parameter
+    main()

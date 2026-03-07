@@ -6,7 +6,7 @@ from time import sleep
 
 from leicacam.cam import tuples_as_bytes
 
-CAM_REPLY = [
+CAM_REPLY: list[list[tuple[str, str]]] = [
     [
         (
             "relpath",
@@ -26,7 +26,7 @@ CAM_REPLY = [
 ]
 
 
-def image_event(data):
+def image_event(data: bytes) -> bytes | None:
     """Send a reply about saved image."""
     if "startcamscan" in data.decode():
         return tuples_as_bytes(CAM_REPLY.pop())
@@ -36,7 +36,7 @@ def image_event(data):
 class EchoServer:
     """Test server."""
 
-    def __init__(self, server_address):
+    def __init__(self, server_address: tuple[str, int]) -> None:
         """Set up server."""
         self.logger = logging.getLogger("EchoServer")
         self.logger.debug("Setting up server")
@@ -44,20 +44,19 @@ class EchoServer:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.setup()
 
-    def setup(self):
+    def setup(self) -> None:
         """Bind and listen to incoming connections."""
         self.sock.bind(self.server_address)
         self.sock.listen(1)
 
-    def handle(self):
+    def handle(self) -> None:
         """Handle incoming connections."""
-        # pylint: disable=no-member
         self.logger.debug("Serve incoming connections")
         conn, addr = self.sock.accept()
         self.logger.debug("Connected by %s", addr)
         try:
             self.logger.debug("Send welcome")
-            conn.sendall("Welcome...".encode("utf-8"))
+            conn.sendall(b"Welcome...")
             while True:
                 data = conn.recv(1024)
                 if not data:
@@ -77,12 +76,12 @@ class EchoServer:
             self.sock.shutdown(socket.SHUT_WR)
             self.sock.close()
 
-    def send(self, conn, data):
+    def send(self, conn: socket.socket, data: bytes) -> None:
         """Send data."""
         self.logger.debug("Sending: %s", data)
         conn.sendall(data + b"\n")
 
-    def run(self):
+    def run(self) -> None:
         """Run server."""
         try:
             self.handle()
@@ -91,7 +90,7 @@ class EchoServer:
             self.logger.debug("Server close")
             self.sock.close()
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop server."""
         try:
             self.logger.debug("Server shutdown")

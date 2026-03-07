@@ -1,14 +1,17 @@
 """Test the event bus."""
 
+from __future__ import annotations
+
 from camacq import event as event_mod
+from camacq.control import Center
 
 
-async def test_event_bus(center):
+async def test_event_bus(center: Center) -> None:
     """Test register handler, fire event and remove handler."""
     event = event_mod.Event({"test": 2})
     bus = center.bus
 
-    async def handler(center, event):
+    async def handler(center: Center, event: event_mod.Event) -> None:
         """Handle event."""
         if "test" not in center.data:
             center.data["test"] = 0

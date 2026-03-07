@@ -32,4 +32,3 @@ camacq.plugins.leica.sample module
    :members:
    :undoc-members:
    :show-inheritance:
-

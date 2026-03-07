@@ -1,17 +1,20 @@
 """Test a complete workflow."""
 
+from collections.abc import Generator
+from functools import partial
 from importlib import resources
 import logging
-from functools import partial
 from pathlib import Path
+from typing import Any, cast
 from unittest.mock import Mock, call, patch
 
-import pytest
 from leicacam.async_cam import AsyncCAM
+import pytest
+from pytest import LogCaptureFixture
 
 from camacq import bootstrap
 from camacq.config import DEFAULT_CONFIG_TEMPLATE, load_config_file
-from camacq.control import CamAcqStartEvent
+from camacq.control import CamAcqStartEvent, Center
 from camacq.plugins import api as base_api
 from camacq.plugins.api import ImageEvent
 from camacq.plugins.leica import LeicaApi
@@ -20,21 +23,21 @@ from camacq.plugins.sample import get_matched_samples
 
 
 @pytest.fixture(name="log_util", autouse=True)
-def log_util_fixture():
+def log_util_fixture() -> Generator[None, None, None]:
     """Patch the log util."""
     with patch("camacq.bootstrap.log_util"):
         yield
 
 
 @pytest.fixture(name="api")
-def api_fixture(center):
+def api_fixture(center: Center) -> Generator[Mock, None, None]:
     """Return a leica api instance."""
-    config = {"leica": {}}
+    config: dict[str, Any] = {"leica": {}}
     client = Mock(AsyncCAM())
     mock_api = Mock(LeicaApi(center, config, client))
     mock_api.send_many = partial(base_api.Api.send_many, mock_api)
 
-    async def register_mock_api(center, config):
+    async def register_mock_api(center: Center, config: dict[str, Any]) -> None:
         """Register a mock api package."""
         base_api.register_api(center, mock_api)
         await leica_sample_mod.setup_module(center, config)
@@ -45,7 +48,7 @@ def api_fixture(center):
 
 
 @pytest.fixture(name="rename_image")
-def rename_image_fixture():
+def rename_image_fixture() -> Generator[Mock, None, None]:
     """Patch plugins.rename_image.rename_image."""
     with patch("camacq.plugins.rename_image.rename_image") as rename_image:
         yield rename_image
@@ -57,16 +60,19 @@ class WorkflowImageEvent(ImageEvent):
     event_type = "workflow_image_event"
 
     @property
-    def job_id(self):
+    def job_id(self) -> int | None:
         """:int: Return job id of the image."""
         return self.data.get("job_id")
 
 
-async def test_workflow(center, caplog, api, rename_image):
+async def test_workflow(
+    center: Center, caplog: LogCaptureFixture, api: Mock, rename_image: Mock
+) -> None:
     """Test a complete workflow."""
-    # pylint: disable=too-many-locals,too-many-statements
     caplog.set_level(logging.DEBUG)
-    config_path = resources.files(bootstrap.__package__) / DEFAULT_CONFIG_TEMPLATE
+    config_path = cast(
+        Path, resources.files(bootstrap.__package__) / DEFAULT_CONFIG_TEMPLATE
+    )
     config = await center.add_executor_job(load_config_file, config_path)
     config.pop("logging")
     await bootstrap.setup_dict(center, config)
@@ -77,10 +83,10 @@ async def test_workflow(center, caplog, api, rename_image):
     assert not center.samples.leica.data
     assert api.start_imaging.call_count == 0
     assert api.stop_imaging.call_count == 0
-    assert center.actions.actions.get("rename_image", {}).get("rename_image")
+    assert center.actions.actions["rename_image"]["rename_image"]
 
-    event = CamAcqStartEvent()
-    await center.bus.notify(event)
+    start_event = CamAcqStartEvent()
+    await center.bus.notify(start_event)
     await center.wait_for()
 
     well = center.samples.leica.get_sample("well", plate_name="00", well_x=0, well_y=0)
@@ -103,7 +109,7 @@ async def test_workflow(center, caplog, api, rename_image):
     assert api.start_imaging.call_count == 1
     assert api.send.call_args_list[3] == call(command="/cmd:startcamscan")
 
-    event = WorkflowImageEvent(
+    image_event = WorkflowImageEvent(
         {
             "path": "test_path",
             "plate_name": "00",
@@ -116,7 +122,7 @@ async def test_workflow(center, caplog, api, rename_image):
             "channel_id": 31,
         }
     )
-    await center.bus.notify(event)
+    await center.bus.notify(image_event)
     await center.wait_for()
 
     assert api.stop_imaging.call_count == 1
@@ -126,6 +132,7 @@ async def test_workflow(center, caplog, api, rename_image):
     channel = center.samples.leica.get_sample(
         "channel", plate_name="00", well_x=0, well_y=0, channel_id=3
     )
+    assert channel is not None
     assert channel.values.get("gain") == 800
     assert channel.values.get("channel_name") == "red"
     assert api.send.call_args_list[5] == call(command="/cmd:deletelist")
@@ -133,10 +140,8 @@ async def test_workflow(center, caplog, api, rename_image):
         field_x = int(idx / 3) + 1
         field_y = idx % 3 + 1
         assert api_call == call(
-            (
-                "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 /wellx:1 "
-                f"/welly:1 /fieldx:{field_x} /fieldy:{field_y} /dxpos:0 /dypos:0"
-            )
+            "/cmd:add /tar:camlist /exp:p10xexp /ext:af /slide:0 /wellx:1 "
+            f"/welly:1 /fieldx:{field_x} /fieldy:{field_y} /dxpos:0 /dypos:0"
         )
     assert rename_image_auto.enabled
     assert set_img_ok_auto.enabled
@@ -180,8 +185,9 @@ async def test_workflow(center, caplog, api, rename_image):
     well_0_1 = center.samples.leica.get_sample(
         "well", plate_name="00", well_x=0, well_y=1
     )
-    assert well_0_1.well_x == 0
-    assert well_0_1.well_y == 1
+    assert well_0_1 is not None
+    assert well_0_1.well_x == 0  # type: ignore[attr-defined]
+    assert well_0_1.well_y == 1  # type: ignore[attr-defined]
     assert api.send.call_args_list[13] == call(command="/cmd:deletelist")
     assert api.send.call_args_list[14] == call(
         command=(

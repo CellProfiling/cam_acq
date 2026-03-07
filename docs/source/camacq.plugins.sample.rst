@@ -5,5 +5,3 @@ camacq.plugins.sample package
    :members:
    :undoc-members:
    :show-inheritance:
-
-

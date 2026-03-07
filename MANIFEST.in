@@ -1,9 +1,0 @@
-include camacq/data/*.yml
-include camacq/VERSION
-exclude requirements*.txt
-exclude .*
-exclude pylintrc
-exclude tox.ini
-prune docs
-prune scripts
-prune tests

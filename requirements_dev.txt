@@ -1,8 +1,0 @@
--r requirements.txt
--r requirements_docs.txt
--r requirements_lint.txt
--r requirements_pypi.txt
--r requirements_tests.txt
-tox==4.47.0
-
--e .

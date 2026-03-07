@@ -2,10 +2,12 @@
 
 from ruamel.yaml import YAML
 
+from camacq.control import Center
 from camacq.helper.template import make_template, render_template
+from camacq.plugins.sample import Sample
 
 
-async def test_next_well(center, sample):
+async def test_next_well(center: Center, sample: Sample) -> None:
     """Test next well template function."""
     data = """
         data:
@@ -37,7 +39,7 @@ async def test_next_well(center, sample):
     assert render["data"]["next_well_y"] == "1"
 
 
-async def test_next_well_no_plate(center, sample):
+async def test_next_well_no_plate(center: Center, sample: Sample) -> None:
     """Test next well template function without plate."""
     data = """
         data:

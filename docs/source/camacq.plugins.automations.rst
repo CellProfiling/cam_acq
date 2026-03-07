@@ -16,4 +16,3 @@ camacq.plugins.automations.event module
    :members:
    :undoc-members:
    :show-inheritance:
-
