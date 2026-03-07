@@ -94,7 +94,6 @@ name = "camacq"
 version = "0.9.0"
 source = { editable = "." }
 dependencies = [
-    { name = "async-timeout" },
     { name = "colorlog" },
     { name = "jinja2" },
     { name = "leicacam", version = "0.6.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
@@ -124,6 +123,7 @@ dev = [
     { name = "python-semantic-release" },
     { name = "ruff" },
     { name = "sybil", extra = ["pytest"] },
+    { name = "types-xmltodict" },
 ]
 docs = [
     { name = "furo", marker = "python_full_version >= '3.12'" },
@@ -134,10 +134,9 @@ docs = [
 
 [package.metadata]
 requires-dist = [
-    { name = "async-timeout" },
     { name = "colorlog" },
     { name = "jinja2" },
-    { name = "leicacam", specifier = ">=0.5.0" },
+    { name = "leicacam", specifier = ">=0.5" },
     { name = "leicaimage" },
     { name = "numpy" },
     { name = "ruamel-yaml", specifier = ">=0.15" },
@@ -151,15 +150,16 @@ provides-extras = ["cli"]
 [package.metadata.requires-dev]
 dev = [
     { name = "codespell", specifier = "==2.4.2" },
-    { name = "copier", specifier = "==9.13.0" },
+    { name = "copier", specifier = "==9.13" },
     { name = "mypy", specifier = "==1.19.1" },
     { name = "pre-commit", specifier = "==4.5.1" },
     { name = "pytest", specifier = "==9.0.2" },
-    { name = "pytest-asyncio", specifier = "==1.3.0" },
-    { name = "pytest-cov", specifier = "==7.0.0" },
+    { name = "pytest-asyncio", specifier = "==1.3" },
+    { name = "pytest-cov", specifier = "==7" },
     { name = "python-semantic-release", specifier = ">=10,<11" },
     { name = "ruff", specifier = "==0.15.5" },
-    { name = "sybil", extras = ["pytest"], specifier = "==9.3.0" },
+    { name = "sybil", extras = ["pytest"], specifier = "==9.3" },
+    { name = "types-xmltodict", specifier = "==1.0.1.20260113" },
 ]
 docs = [
     { name = "furo", marker = "python_full_version >= '3.12'" },
@@ -1730,6 +1730,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/fd/07/b822e1b307d40e263e8253d2384cf98c51aa2368cc7ba9a07e523a1d964b/typer-0.23.1.tar.gz", hash = "sha256:2070374e4d31c83e7b61362fd859aa683576432fd5b026b060ad6b4cd3b86134", size = 120047, upload-time = "2026-02-13T10:04:30.984Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d5/91/9b286ab899c008c2cb05e8be99814807e7fbbd33f0c0c960470826e5ac82/typer-0.23.1-py3-none-any.whl", hash = "sha256:3291ad0d3c701cbf522012faccfbb29352ff16ad262db2139e6b01f15781f14e", size = 56813, upload-time = "2026-02-13T10:04:32.008Z" },
+]
+
+[[package]]
+name = "types-xmltodict"
+version = "1.0.1.20260113"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/57/32/da41b9af1da90eb0a46489c49375f74f29297ce0c4feb65a81f26faf1d41/types_xmltodict-1.0.1.20260113.tar.gz", hash = "sha256:d19ecffd2cf84956107432b0ef0d688dd606249dedfbcd16c66cec8357a95d97", size = 8752, upload-time = "2026-01-13T03:20:13.785Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/18/99/56f785dbd6ff16e0bed77bb5b2d151903e2c96ae370e2865d1da8a70982b/types_xmltodict-1.0.1.20260113-py3-none-any.whl", hash = "sha256:01a79b2f979aaf91d90982cdd878768ea9571866e7a2d50e82f9a4998e2d5d00", size = 8383, upload-time = "2026-01-13T03:20:12.744Z" },
 ]
 
 [[package]]

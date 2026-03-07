@@ -25,7 +25,6 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator",
 ]
 dependencies = [
-  "async-timeout",
   "colorlog",
   "jinja2",
   "leicacam>=0.5",
@@ -62,6 +61,7 @@ dev = [
   "python-semantic-release>=10,<11",
   "ruff==0.15.5",
   "sybil[pytest]==9.3",
+  "types-xmltodict==1.0.1.20260113",
 ]
 docs = [
   "furo; python_version>='3.12'",

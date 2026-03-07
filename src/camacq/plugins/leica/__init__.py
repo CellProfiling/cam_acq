@@ -8,7 +8,6 @@ import logging
 import tempfile
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from async_timeout import timeout as async_timeout
 from leicacam.async_cam import AsyncCAM
 from leicacam.cam import bytes_as_dict, check_messages, tuples_as_bytes
 from leicaimage import attribute, attribute_as_str
@@ -237,7 +236,7 @@ class LeicaApi(Api):
         trigger_cmd_sent = await self.send(cmd, block=False)
         _LOGGER.info("Waiting for %s message for 10 seconds", ack_cmd)
         try:
-            async with async_timeout(10.0):
+            async with asyncio.timeout(10.0):
                 await asyncio.wait(  # type: ignore[type-var]
                     [cmd_sent, trigger_cmd_sent]
                 )

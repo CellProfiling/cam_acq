@@ -8,7 +8,6 @@ import inspect
 import logging
 from typing import Any, ParamSpec, TypeVar
 
-from async_timeout import timeout as async_timeout
 import voluptuous as vol
 
 from camacq.const import ACTION_TIMEOUT, CAMACQ_START_EVENT, CAMACQ_STOP_EVENT
@@ -272,7 +271,7 @@ class Action:
             kwargs,
         )
         try:
-            async with async_timeout(ACTION_TIMEOUT):
+            async with asyncio.timeout(ACTION_TIMEOUT):
                 await self.func(action_id=self.action_id, **kwargs)
         except TimeoutError:
             _LOGGER.error(
