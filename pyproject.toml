@@ -35,7 +35,7 @@ dependencies = [
   "xmltodict",
 ]
 optional-dependencies.cli = [
-  "typer>=0.15,<1",
+  "typer>=0.15,<0.23.2",
 ]
 urls."Bug Tracker" = "https://github.com/CellProfiling/cam_acq/issues"
 urls.Changelog = "https://github.com/CellProfiling/cam_acq/blob/main/CHANGELOG.md"
