@@ -101,6 +101,25 @@ lint.isort.known-first-party = [ "camacq", "tests" ]
 keep_full_version = true
 max_supported_python = "3.14"
 
+[tool.mypy]
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+exclude = [
+  "docs/.*",
+  "setup.py",
+]
+mypy_path = "src/"
+no_implicit_optional = true
+overrides = [
+  { module = "tests.*", allow_untyped_defs = true },
+  { module = "docs.*", ignore_errors = true },
+]
+show_error_codes = true
+warn_unreachable = true
+warn_unused_ignores = true
+
 [tool.pytest]
 addopts = [
   "-Wdefault",
@@ -128,25 +147,6 @@ report.exclude_lines = [
   "pragma: no cover",
   "raise NotImplementedError",
 ]
-
-[tool.mypy]
-check_untyped_defs = true
-disallow_any_generics = true
-disallow_incomplete_defs = true
-disallow_untyped_defs = true
-exclude = [
-  "docs/.*",
-  "setup.py",
-]
-mypy_path = "src/"
-no_implicit_optional = true
-overrides = [
-  { module = "tests.*", allow_untyped_defs = true },
-  { module = "docs.*", ignore_errors = true },
-]
-show_error_codes = true
-warn_unreachable = true
-warn_unused_ignores = true
 
 [tool.semantic_release]
 allow_zero_version = true
