@@ -60,7 +60,7 @@ dev = [
   "python-semantic-release>=10,<11",
   "ruff==0.15.9",
   "sybil[pytest]==10.0.1",
-  "types-xmltodict==1.0.1.20260113",
+  "types-xmltodict==1.0.1.20260408",
 ]
 docs = [
   "furo; python_version>='3.12'",
