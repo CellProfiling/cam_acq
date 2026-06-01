@@ -102,23 +102,23 @@ keep_full_version = true
 max_supported_python = "3.14"
 
 [tool.mypy]
-check_untyped_defs = true
-disallow_any_generics = true
-disallow_incomplete_defs = true
-disallow_untyped_defs = true
+mypy_path = "src/"
 exclude = [
   "docs/.*",
   "setup.py",
 ]
-mypy_path = "src/"
-no_implicit_optional = true
+disallow_any_generics = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_unreachable = true
 overrides = [
   { module = "tests.*", allow_untyped_defs = true },
   { module = "docs.*", ignore_errors = true },
 ]
+no_implicit_optional = true
 show_error_codes = true
-warn_unreachable = true
-warn_unused_ignores = true
 
 [tool.pytest]
 addopts = [
@@ -149,16 +149,24 @@ report.exclude_lines = [
 ]
 
 [tool.semantic_release]
+tag_format = "{version}"
+major_on_zero = false
 allow_zero_version = true
-branches.main.match = "main"
-branches.noop.match = "(?!main$)"
-branches.noop.prerelease = true
+version_variables = [
+  "docs/conf.py:release",
+  "src/camacq/__init__.py:__version__",
+]
+version_toml = [ "pyproject.toml:project.version" ]
 build_command = """
 pip install uv
 uv lock
 git add uv.lock
 uv build
 """
+commit_parser_options.parse_squash_commits = false
+branches.main.match = "main"
+branches.noop.match = "(?!main$)"
+branches.noop.prerelease = true
 changelog.environment.keep_trailing_newline = true
 changelog.exclude_commit_patterns = [
   "chore(?:\\([^)]*?\\))?: .+",
@@ -171,11 +179,3 @@ changelog.exclude_commit_patterns = [
   "Initial [Cc]ommit.*",         # codespell:ignore
 ]
 changelog.mode = "update"
-major_on_zero = false
-tag_format = "{version}"
-version_toml = [ "pyproject.toml:project.version" ]
-version_variables = [
-  "src/camacq/__init__.py:__version__",
-  "docs/conf.py:release",
-]
-commit_parser_options.parse_squash_commits = false
