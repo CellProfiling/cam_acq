@@ -59,7 +59,7 @@ dev = [
   "pytest-cov==7.1.0",
   "python-semantic-release>=10,<11",
   "ruff==0.15.12",
-  "sybil[pytest]==10.0.1",
+  "sybil[pytest]==10.1.0",
   "types-xmltodict==1.0.1.20260518",
 ]
 docs = [
