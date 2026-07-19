@@ -50,7 +50,7 @@ entry-points."camacq.plugins".sample = "camacq.plugins.sample"
 
 [dependency-groups]
 dev = [
-  "codespell==2.4.2",
+  "codespell==2.4.3",
   "copier==9.16.0",
   "mypy==1.20.1",
   "pre-commit==4.6.0",
