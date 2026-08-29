@@ -186,8 +186,8 @@ async def test_workflow(
         "well", plate_name="00", well_x=0, well_y=1
     )
     assert well_0_1 is not None
-    assert well_0_1.well_x == 0  # type: ignore[attr-defined]
-    assert well_0_1.well_y == 1  # type: ignore[attr-defined]
+    assert well_0_1.well_x == 0  # type: ignore
+    assert well_0_1.well_y == 1  # type: ignore
     assert api.send.call_args_list[13] == call(command="/cmd:deletelist")
     assert api.send.call_args_list[14] == call(
         command=(

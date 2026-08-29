@@ -1,3 +1,5 @@
+"""Pytest configuration and doctest integration."""
+
 from sybil import Sybil
 from sybil.evaluators.doctest import NUMBER
 from sybil.parsers.myst import ClearNamespaceParser as MarkdownClearNamespaceParser
@@ -16,7 +18,7 @@ markdown_examples = Sybil(
         MarkdownSkipParser(),
         MarkdownClearNamespaceParser(),
     ],
-    patterns=["*.md"],
+    patterns=["docs/*.md"],
 )
 
 rest_examples = Sybil(

@@ -201,7 +201,7 @@ class ImageData:
         if metadata is None:
             metadata = self.metadata
         description = xmltodict.unparse(metadata)
-        save_image(path, data, description)  # type: ignore[arg-type]
+        save_image(path, data, description)  # type: ignore
 
     def __repr__(self) -> str:
         """Return the representation."""

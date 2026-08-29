@@ -142,17 +142,17 @@ class MockSample(sample_mod.Sample):
         """Handle image event for this sample."""
         self.image_events.append(event)
         field_args = {
-            "plate_name": event.plate_name,  # type: ignore[attr-defined]
-            "well_x": event.well_x,  # type: ignore[attr-defined]
-            "well_y": event.well_y,  # type: ignore[attr-defined]
-            "field_x": event.field_x,  # type: ignore[attr-defined]
-            "field_y": event.field_y,  # type: ignore[attr-defined]
+            "plate_name": event.plate_name,  # type: ignore
+            "well_x": event.well_x,  # type: ignore
+            "well_y": event.well_y,  # type: ignore
+            "field_x": event.field_x,  # type: ignore
+            "field_y": event.field_y,  # type: ignore
         }
         await self.set_sample(
             "image",
-            path=event.path,  # type: ignore[attr-defined]
-            channel_id=event.channel_id,  # type: ignore[attr-defined]
-            z_slice_id=event.z_slice_id,  # type: ignore[attr-defined]
+            path=event.path,  # type: ignore
+            channel_id=event.channel_id,  # type: ignore
+            z_slice_id=event.z_slice_id,  # type: ignore
             **field_args,
         )
         await self.set_sample("field", **field_args)

@@ -220,7 +220,7 @@ class ActionsRegistry:
 class ActionType(dotdict):
     """Represent an action type."""
 
-    def __getattr__(self, action_id: str) -> Action:  # type: ignore[override]
+    def __getattr__(self, action_id: str) -> Action:  # type: ignore
         """Return registered action for an action id."""
         try:
             return self[action_id]

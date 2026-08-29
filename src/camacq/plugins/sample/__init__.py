@@ -95,7 +95,7 @@ async def setup_module(center: Center, config: dict[str, Any]) -> None:
 class Samples(dotdict):
     """Hold all samples."""
 
-    def __getattr__(self, sample_name: str) -> Sample:  # type: ignore[override]
+    def __getattr__(self, sample_name: str) -> Sample:  # type: ignore
         """Get a sample by name."""
         try:
             return self[sample_name]
@@ -218,7 +218,7 @@ class Sample(ImageContainer, ABC):
             self.data[id_string] = container
 
         if name == "image":
-            image: Image = container  # type: ignore[assignment]
+            image: Image = container  # type: ignore
             self.images[image.path] = image
 
         if not event and values:

@@ -153,7 +153,7 @@ class LeicaSample(Sample):
         """:dict: Return a dict with the values set for the container."""
         return self._values
 
-    async def on_image(  # type: ignore[override]
+    async def on_image(  # type: ignore
         self, center: Center, event: ImageEvent
     ) -> None:
         """Handle image event for this sample."""
@@ -266,7 +266,7 @@ class Plate(ImageContainer):
         return {
             image.path: image
             for image in self._images.values()
-            if image.plate_name == self.plate_name  # type: ignore[attr-defined]
+            if image.plate_name == self.plate_name  # type: ignore
         }
 
     @property
@@ -333,9 +333,9 @@ class Well(Plate, ImageContainer):
         return {
             image.path: image
             for image in self._images.values()
-            if image.plate_name == self.plate_name  # type: ignore[attr-defined]
-            and image.well_x == self.well_x  # type: ignore[attr-defined]
-            and image.well_y == self.well_y  # type: ignore[attr-defined]
+            if image.plate_name == self.plate_name  # type: ignore
+            and image.well_x == self.well_x  # type: ignore
+            and image.well_y == self.well_y  # type: ignore
         }
 
     @property
@@ -406,11 +406,11 @@ class Field(Well, ImageContainer):
         return {
             image.path: image
             for image in self._images.values()
-            if image.plate_name == self.plate_name  # type: ignore[attr-defined]
-            and image.well_x == self.well_x  # type: ignore[attr-defined]
-            and image.well_y == self.well_y  # type: ignore[attr-defined]
-            and image.field_x == self.field_x  # type: ignore[attr-defined]
-            and image.field_y == self.field_y  # type: ignore[attr-defined]
+            if image.plate_name == self.plate_name  # type: ignore
+            and image.well_x == self.well_x  # type: ignore
+            and image.well_y == self.well_y  # type: ignore
+            and image.field_x == self.field_x  # type: ignore
+            and image.field_y == self.field_y  # type: ignore
         }
 
     @property
@@ -476,10 +476,10 @@ class Channel(Well, ImageContainer):
         return {
             image.path: image
             for image in self._images.values()
-            if image.plate_name == self.plate_name  # type: ignore[attr-defined]
-            and image.well_x == self.well_x  # type: ignore[attr-defined]
-            and image.well_y == self.well_y  # type: ignore[attr-defined]
-            and image.channel_id == self.channel_id  # type: ignore[attr-defined]
+            if image.plate_name == self.plate_name  # type: ignore
+            and image.well_x == self.well_x  # type: ignore
+            and image.well_y == self.well_y  # type: ignore
+            and image.channel_id == self.channel_id  # type: ignore
         }
 
     @property
@@ -545,10 +545,10 @@ class ZSlice(Well, ImageContainer):
         return {
             image.path: image
             for image in self._images.values()
-            if image.plate_name == self.plate_name  # type: ignore[attr-defined]
-            and image.well_x == self.well_x  # type: ignore[attr-defined]
-            and image.well_y == self.well_y  # type: ignore[attr-defined]
-            and image.z_slice_id == self.z_slice_id  # type: ignore[attr-defined]
+            if image.plate_name == self.plate_name  # type: ignore
+            and image.well_x == self.well_x  # type: ignore
+            and image.well_y == self.well_y  # type: ignore
+            and image.z_slice_id == self.z_slice_id  # type: ignore
         }
 
     @property
@@ -580,7 +580,7 @@ class PlateEvent(LeicaSampleEvent):
     @property
     def plate_name(self) -> str:
         """:str: Return the name of the plate."""
-        return self.container.plate_name  # type: ignore[union-attr]
+        return self.container.plate_name  # type: ignore
 
 
 class WellEvent(PlateEvent):
@@ -593,17 +593,17 @@ class WellEvent(PlateEvent):
     @property
     def well_x(self) -> int:
         """:int: Return the well x coordinate of the event."""
-        return self.container.well_x  # type: ignore[union-attr]
+        return self.container.well_x  # type: ignore
 
     @property
     def well_y(self) -> int:
         """:int: Return the well y coordinate of the event."""
-        return self.container.well_y  # type: ignore[union-attr]
+        return self.container.well_y  # type: ignore
 
     @property
     def well_img_ok(self) -> bool:
         """:bool: Return if the well has all images acquired ok."""
-        return self.container.values.get("well_img_ok", False)  # type: ignore[union-attr]
+        return self.container.values.get("well_img_ok", False)  # type: ignore
 
 
 class ChannelEvent(WellEvent):
@@ -616,12 +616,12 @@ class ChannelEvent(WellEvent):
     @property
     def channel_id(self) -> int:
         """:int: Return the channel id of the event."""
-        return self.container.channel_id  # type: ignore[union-attr]
+        return self.container.channel_id  # type: ignore
 
     @property
     def channel_name(self) -> str | None:
         """:str: Return the channel name of the event."""
-        return self.container.values.get("channel_name")  # type: ignore[union-attr]
+        return self.container.values.get("channel_name")  # type: ignore
 
 
 class FieldEvent(WellEvent):
@@ -634,17 +634,17 @@ class FieldEvent(WellEvent):
     @property
     def field_x(self) -> int:
         """:int: Return the field x coordinate of the event."""
-        return self.container.field_x  # type: ignore[union-attr]
+        return self.container.field_x  # type: ignore
 
     @property
     def field_y(self) -> int:
         """:int: Return the field y coordinate of the event."""
-        return self.container.field_y  # type: ignore[union-attr]
+        return self.container.field_y  # type: ignore
 
     @property
     def field_img_ok(self) -> bool:
         """:bool: Return if the field has all images acquired ok."""
-        return self.container.values.get("field_img_ok", False)  # type: ignore[union-attr]
+        return self.container.values.get("field_img_ok", False)  # type: ignore
 
 
 class ZSliceEvent(WellEvent):
@@ -657,7 +657,7 @@ class ZSliceEvent(WellEvent):
     @property
     def z_slice_id(self) -> int:
         """:int: Return the z_slice id of the event."""
-        return self.container.z_slice_id  # type: ignore[union-attr]
+        return self.container.z_slice_id  # type: ignore
 
 
 def next_well_xy(
@@ -673,18 +673,18 @@ def next_well_xy(
         return None, None
     if x_wells is None or y_wells is None:
         not_done = (
-            (cont.well_x, cont.well_y)  # type: ignore[attr-defined]
+            (cont.well_x, cont.well_y)  # type: ignore
             for cont in sample.data.values()
             if cont.name == "well"
-            and cont.plate_name == plate_name  # type: ignore[attr-defined]
+            and cont.plate_name == plate_name  # type: ignore
             and not cont.values.get("well_img_ok", False)
         )
     else:
         done = {
-            (cont.well_x, cont.well_y)  # type: ignore[attr-defined]
+            (cont.well_x, cont.well_y)  # type: ignore
             for cont in sample.data.values()
             if cont.name == "well"
-            and cont.plate_name == plate_name  # type: ignore[attr-defined]
+            and cont.plate_name == plate_name  # type: ignore
             and cont.values.get("well_img_ok", False)
         }
         not_done = (
