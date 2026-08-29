@@ -46,7 +46,7 @@ jobs:
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           python-version: ${{ matrix.python-version }}
-      - run: uv sync --all-extras
+      - run: uv sync
         shell: bash
       - run: uv run ./scripts/setup_tests.py
         shell: bash

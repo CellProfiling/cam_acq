@@ -97,13 +97,9 @@ dependencies = [
     { name = "numpy" },
     { name = "ruamel-yaml" },
     { name = "tifffile" },
+    { name = "typer" },
     { name = "voluptuous" },
     { name = "xmltodict" },
-]
-
-[package.optional-dependencies]
-cli = [
-    { name = "typer" },
 ]
 
 [package.dev-dependencies]
@@ -136,11 +132,10 @@ requires-dist = [
     { name = "numpy" },
     { name = "ruamel-yaml", specifier = ">=0.15" },
     { name = "tifffile" },
-    { name = "typer", marker = "extra == 'cli'", specifier = ">=0.15,<0.26.5" },
+    { name = "typer", specifier = ">=0.15,<0.26.5" },
     { name = "voluptuous" },
     { name = "xmltodict" },
 ]
-provides-extras = ["cli"]
 
 [package.metadata.requires-dev]
 dev = [

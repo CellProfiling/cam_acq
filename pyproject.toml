@@ -32,11 +32,9 @@ dependencies = [
   "numpy",
   "ruamel-yaml>=0.15",
   "tifffile",
+  "typer>=0.15,<0.26.5",
   "voluptuous",
   "xmltodict",
-]
-optional-dependencies.cli = [
-  "typer>=0.15,<0.26.5",
 ]
 urls."Bug Tracker" = "https://github.com/CellProfiling/cam_acq/issues"
 urls.Changelog = "https://github.com/CellProfiling/cam_acq/blob/main/CHANGELOG.md"
