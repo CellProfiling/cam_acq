@@ -1,3 +1,16 @@
 {
-  "extends": ["github>browniebroke/renovate-configs:python"]
+  "extends": [
+    "config:best-practices",
+    ":pinOnlyDevDependencies",
+    ":automergeBranch",
+    ":automergeMinor",
+    ":enablePreCommit",
+    ":semanticCommitTypeAll(chore)"
+  ],
+  "minimumReleaseAge": "14 days",
+  "prCreation": "not-pending",
+  "packageRules": [
+    {"matchDepTypes": ["dependencies"], "major": {"semanticCommitType": "fix"}},
+    {"matchPackageNames": ["python"], "rangeStrategy": "widen", "separateMultipleMinor": true}
+  ]
 }

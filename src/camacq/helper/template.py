@@ -69,7 +69,7 @@ def template_next_well_xy(
     sample: Sample, plate_name: str, x_wells: int = 12, y_wells: int = 8
 ) -> tuple[int | None, int | None]:
     """Return the next not done well for the given plate x, y format."""
-    return next_well_xy(sample, plate_name, x_wells, y_wells)  # type: ignore[arg-type]
+    return next_well_xy(sample, plate_name, x_wells, y_wells)  # type: ignore
 
 
 def template_next_well_x(

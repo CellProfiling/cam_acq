@@ -117,7 +117,7 @@ class LeicaApi(Api):
         try:
             while True:
                 reply = await self.client.receive()
-                self.center.create_task(self.receive(reply))  # type: ignore[arg-type]
+                self.center.create_task(self.receive(reply))  # type: ignore
         except asyncio.CancelledError:
             _LOGGER.debug("Stopped listening for messages from CAM")
 
@@ -189,13 +189,13 @@ class LeicaApi(Api):
 
         async def receive_reply(center: Center, event: LeicaCommandEvent) -> None:
             """Indicate that reply has been received."""
-            if check_messages([event.data], cmd, value=value):  # type: ignore[list-item]
+            if check_messages([event.data], cmd, value=value):  # type: ignore
                 if not cmd_sent.done():
                     cmd_sent.set_result(True)
 
         remove = self.center.bus.register(
             LEICA_COMMAND_EVENT,
-            receive_reply,  # type: ignore[arg-type]
+            receive_reply,  # type: ignore
         )
         cmd_sent.add_done_callback(lambda x: remove())
 
@@ -236,8 +236,8 @@ class LeicaApi(Api):
         _LOGGER.info("Waiting for %s message for 10 seconds", ack_cmd)
         try:
             async with asyncio.timeout(10.0):
-                await asyncio.wait(  # type: ignore[type-var]
-                    [cmd_sent, trigger_cmd_sent]
+                await asyncio.wait(
+                    [cmd_sent, trigger_cmd_sent]  # type: ignore
                 )
         except TimeoutError:
             _LOGGER.info("No acknowledgement event received, continuing anyway")

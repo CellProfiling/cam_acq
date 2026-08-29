@@ -46,7 +46,7 @@ async def test_center_end(center: Center) -> None:
     await center.end(0)
 
     assert len(events) == 1
-    assert events[0].exit_code == 0  # type: ignore[attr-defined]
+    assert events[0].exit_code == 0  # type: ignore
 
 
 async def test_add_executor_job(center: Center) -> None:
@@ -118,7 +118,7 @@ async def test_register_non_coroutine(
         """Test the action handler as non coroutine function."""
 
     schema = vol.Schema({"one": int, "two": int})
-    center.actions.register(action_type, action_id, test_action, schema)  # type: ignore[arg-type]
+    center.actions.register(action_type, action_id, test_action, schema)  # type: ignore
     assert not center.actions.actions
     assert (
         f"Action handler function {test_action} is not a coroutine function"
