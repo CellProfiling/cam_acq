@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v0.10.1 (2026-08-30)
+
+### Bug Fixes
+
+- Remove loop.stop() fallback in Center.end()
+  ([#1374](https://github.com/CellProfiling/cam_acq/pull/1374),
+  [`617dc89`](https://github.com/CellProfiling/cam_acq/commit/617dc89a38d098055850903ef412bb2493bd5240))
+
+
 ## v0.10.0 (2026-03-07)
 
 ### Chores
