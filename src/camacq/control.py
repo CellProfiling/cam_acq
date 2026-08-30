@@ -79,8 +79,6 @@ class Center:
         await self.wait_for()
         if self._stopped is not None:
             self._stopped.set()
-        else:
-            self.loop.stop()
 
     async def start(self) -> int:
         """Start the app."""
