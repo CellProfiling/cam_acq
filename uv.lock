@@ -540,15 +540,14 @@ wheels = [
 
 [[package]]
 name = "leicacam"
-version = "0.7.0"
+version = "0.7.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "async-timeout" },
-    { name = "pydebug" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b5/d4/035565c6e172f6057ff9f7406bf48dc21c8a45ebc87f2de1000b802107b7/leicacam-0.7.0.tar.gz", hash = "sha256:05ad1186b0b04e7c5eec8aa79b992da93b5c201144e9921f55633213abc93eb7", size = 12291, upload-time = "2026-03-06T20:41:00.23Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7e/6a/17199c5a985d4e9d2f7dc442bbb535b8914382d579642d95c434049f70bd/leicacam-0.7.1.tar.gz", hash = "sha256:53322f271496d8c74bb009511649794c7173965e198e30f27d8166a333b6841f", size = 12063, upload-time = "2026-08-30T07:36:56.374Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a6/18/4f43558adcbad90c5aaf4fd203317c7e9cdda0016ca8e20194c16b81ae0d/leicacam-0.7.0-py3-none-any.whl", hash = "sha256:6be6b55f00f65956e9219c7bba9d387b7d9ec6bfb5282a509e214f8ae6c833fe", size = 8682, upload-time = "2026-03-06T20:40:58.794Z" },
+    { url = "https://files.pythonhosted.org/packages/73/65/36e667221a9badc1c6982be3b97914583596e54c580120b647843496359f/leicacam-0.7.1-py3-none-any.whl", hash = "sha256:43881a1b8e41a0b9d90204828e5a4563b4b0e695aa16a101d6ed081f0a813548", size = 8653, upload-time = "2026-08-30T07:36:55.039Z" },
 ]
 
 [[package]]
@@ -919,12 +918,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/13/01d40f9d07ce8a779fd6e0bd8ad4fba91309500dd67b869e2e219d261a6d/pydantic_core-2.46.5-graalpy312-graalpy250_312_native-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:347ec774390c87326a2e4929d58d3f7e8763a104d5d35f4cd595a4c952366433", size = 1967479, upload-time = "2026-08-28T10:01:05.004Z" },
     { url = "https://files.pythonhosted.org/packages/fa/04/c81d4841331c2178b6fb09ae225425e110ed72d990c9fe556c4ec03d1013/pydantic_core-2.46.5-graalpy312-graalpy250_312_native-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8e24d8f05fa2d28513d94e877e9c75ad66175376209b3977f916e240e623193c", size = 2111034, upload-time = "2026-08-28T10:01:07.345Z" },
 ]
-
-[[package]]
-name = "pydebug"
-version = "1.0.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/5b/7a/161dfb5bb88e8ee49851e43e1ab0fe5c71a56285cf4bbb82b08035f45f59/pydebug-1.0.3.tar.gz", hash = "sha256:d81094bf93943614acaad413ee0b4fda77d721b81a90856668a41a0ff0e401c1", size = 4330, upload-time = "2013-10-13T14:01:55.978Z" }
 
 [[package]]
 name = "pygments"
