@@ -50,7 +50,7 @@ entry-points."camacq.plugins".sample = "camacq.plugins.sample"
 [dependency-groups]
 dev = [
   "codespell==2.4.3",
-  "copier==9.17.2",
+  "copier==9.18.1",
   "prek==0.5.2",
   "pytest==9.1.1",
   "pytest-asyncio==1.4.0",
