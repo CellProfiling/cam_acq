@@ -552,11 +552,11 @@ wheels = [
 
 [[package]]
 name = "leicaimage"
-version = "0.5.0"
+version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/47/c1/45cda56ca427ab51bf3a0ed07b1db5ad018fd50b6099f14c917c63502d3f/leicaimage-0.5.0.tar.gz", hash = "sha256:bc164d2593a6582a403379b7e5faa86d54a57992861c8e715e868cec37d34210", size = 9516, upload-time = "2026-03-06T18:21:35.347Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d7/2f/4ead412360ec293944e3dcc1961f8c04a530a296adf479a33dbe243957c2/leicaimage-0.6.0.tar.gz", hash = "sha256:45851bb65c94119c22af70ca7e85fb5fae5576430d034c8f1704a2ae91fb245e", size = 9245, upload-time = "2026-08-30T18:54:07.564Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9c/f5/7a05ed17041b8fa7614872e634415a95b5d8a2e50f721999058104d96d38/leicaimage-0.5.0-py3-none-any.whl", hash = "sha256:dc5a6deb973878be0c9c1e462c596c70a2d4c65360bb1d8a59765e6f6bf1db95", size = 6498, upload-time = "2026-03-06T18:21:34.392Z" },
+    { url = "https://files.pythonhosted.org/packages/cd/ce/a842b47131db7f07c4b6f168a6fa09c442d2619ce61482b9ecb5704b6c5e/leicaimage-0.6.0-py3-none-any.whl", hash = "sha256:f7593ae3f0f1bb0392d961b71df67ad5cff4b91759b646dd25c1f6ccaa253d02", size = 6496, upload-time = "2026-08-30T18:54:06.44Z" },
 ]
 
 [[package]]
