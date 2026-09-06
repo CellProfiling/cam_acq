@@ -159,6 +159,6 @@ changelog.exclude_commit_patterns = [
   "test(?:\\([^)]*?\\))?: .+",
   "build\\((?!deps\\): .+)",
   "Merged? .*",
-  "Initial [Cc]ommit.*",         # codespell:ignore
+  "Initial [Cc]ommit.*",           # codespell:ignore
 ]
 changelog.mode = "update"
