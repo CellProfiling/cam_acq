@@ -32,7 +32,7 @@ dependencies = [
   "numpy",
   "ruamel-yaml>=0.15",
   "tifffile",
-  "typer>=0.15,<0.27.3",
+  "typer>=0.15,<0.27.4",
   "voluptuous",
   "xmltodict",
 ]
@@ -50,15 +50,15 @@ entry-points."camacq.plugins".sample = "camacq.plugins.sample"
 [dependency-groups]
 dev = [
   "codespell==2.4.3",
-  "copier==9.18.2",
-  "prek==0.5.2",
+  "copier==9.19.1",
+  "prek==0.5.9",
   "pytest==9.1.1",
   "pytest-asyncio==1.4.0",
   "pytest-cov==7.1.0",
-  "python-semantic-release==10.6.2",
+  "python-semantic-release==10.7.0",
   "ruff==0.16.8",
   "sybil==10.1.0",
-  "ty==0.0.80",
+  "ty==0.0.95",
   "types-xmltodict==1.0.1.20260518",
 ]
 docs = [
