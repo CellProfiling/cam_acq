@@ -20,38 +20,56 @@ updates:
     directory: "/"
     schedule:
       interval: daily
+    cooldown:
+      default-days: 14
     open-pull-requests-limit: 10
   - package-ecosystem: "pre-commit"
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 14
     open-pull-requests-limit: 10
   - package-ecosystem: "uv"
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 14
     open-pull-requests-limit: 10
   - package-ecosystem: "uv"
     directory: "/"
     patterns: ["codespell"]
+    cooldown:
+      default-days: 14
     multi-ecosystem-group: "codespell"
   - package-ecosystem: "pre-commit"
     directory: "/"
     patterns: ["*/codespell-project/codespell"]
+    cooldown:
+      default-days: 14
     multi-ecosystem-group: "codespell"
   - package-ecosystem: "github-actions"
     directory: "/"
     patterns: ["python-semantic-release/*"]
+    cooldown:
+      default-days: 14
     multi-ecosystem-group: "python-semantic-release"
   - package-ecosystem: "uv"
     directory: "/"
     patterns: ["python-semantic-release"]
+    cooldown:
+      default-days: 14
     multi-ecosystem-group: "python-semantic-release"
   - package-ecosystem: "uv"
     directory: "/"
     patterns: ["ruff"]
+    cooldown:
+      default-days: 14
     multi-ecosystem-group: "ruff"
   - package-ecosystem: "pre-commit"
     directory: "/"
     patterns: ["*/astral-sh/ruff-pre-commit"]
+    cooldown:
+      default-days: 14
     multi-ecosystem-group: "ruff"
