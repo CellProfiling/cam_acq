@@ -58,7 +58,7 @@ dev = [
   "python-semantic-release==10.7.0",
   "ruff==0.17.3",
   "sybil==10.1.0",
-  "ty==0.0.95",
+  "ty==0.0.100",
   "types-xmltodict==1.0.1.20260518",
 ]
 docs = [
